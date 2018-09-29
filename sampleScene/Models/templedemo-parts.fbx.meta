@@ -1,0 +1,243 @@
+fileFormatVersion: 2
+guid: d04ca428a5d158743a6573505ea58cf8
+ModelImporter:
+  serializedVersion: 22
+  fileIDToRecycleName:
+    100000: AltarCover.001
+    100002: Carpet.001
+    100004: Cube.016
+    100006: Cube.017
+    100008: Cube.018
+    100010: Cube.019
+    100012: Cube.020
+    100014: FloorTile.050
+    100016: Icosphere.001
+    100018: Lantern.010
+    100020: Pillar.008
+    100022: //RootNode
+    100024: Wall Segement.012
+    100026: Window Segment.044
+    100028: Window Segment.045
+    400000: AltarCover.001
+    400002: Carpet.001
+    400004: Cube.016
+    400006: Cube.017
+    400008: Cube.018
+    400010: Cube.019
+    400012: Cube.020
+    400014: FloorTile.050
+    400016: Icosphere.001
+    400018: Lantern.010
+    400020: Pillar.008
+    400022: //RootNode
+    400024: Wall Segement.012
+    400026: Window Segment.044
+    400028: Window Segment.045
+    2100000: Cloth
+    2100002: Candleflame
+    2100004: Metal
+    2100006: Wax
+    2100008: Book
+    2100010: Glow
+    2100012: Monolith
+    2100014: No Name
+    2100016: Crystal
+    2100018: Stone
+    2100020: WindowFrame
+    2100022: Glass
+    2100024: Walls
+    2100026: Floor
+    2100028: Ceiling
+    2300000: AltarCover.001
+    2300002: Carpet.001
+    2300004: Cube.016
+    2300006: Cube.017
+    2300008: Cube.018
+    2300010: Cube.019
+    2300012: Cube.020
+    2300014: FloorTile.050
+    2300016: Icosphere.001
+    2300018: Lantern.010
+    2300020: Pillar.008
+    2300022: Wall Segement.012
+    2300024: Window Segment.044
+    2300026: Window Segment.045
+    3300000: AltarCover.001
+    3300002: Carpet.001
+    3300004: Cube.016
+    3300006: Cube.017
+    3300008: Cube.018
+    3300010: Cube.019
+    3300012: Cube.020
+    3300014: FloorTile.050
+    3300016: Icosphere.001
+    3300018: Lantern.010
+    3300020: Pillar.008
+    3300022: Wall Segement.012
+    3300024: Window Segment.044
+    3300026: Window Segment.045
+    4300000: AltarCover.001
+    4300002: Cube.020
+    4300004: Cube.019
+    4300006: Cube.018
+    4300008: Icosphere.001
+    4300010: Cube.017
+    4300012: Cube.016
+    4300014: Carpet.001
+    4300016: Lantern.010
+    4300018: Pillar.008
+    4300020: Window Segment.045
+    4300022: Window Segment.044
+    4300024: Wall Segement.012
+    4300026: FloorTile.050
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Book
+    second: {fileID: 2100000, guid: 1a3d6cd60141b6943a4b13f38f82652d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Candleflame
+    second: {fileID: 2100000, guid: f40dbb54542b125439b7f9d20e1443db, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Ceiling
+    second: {fileID: 2100000, guid: c628fe4de5f8fed4483c0e219521be8a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Cloth
+    second: {fileID: 2100000, guid: ebde2883964caf748b583f452c868548, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Crystal
+    second: {fileID: 2100000, guid: 15caba9dedbe87d49a9a8e2fbfa8c7f1, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Floor
+    second: {fileID: 2100000, guid: 1d40b590ce1641a448c1a0c6733a1f90, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Glass
+    second: {fileID: 2100000, guid: 4fee628b4ee0c8a4ba4760260eb3f15d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Glow
+    second: {fileID: 2100000, guid: 2a30589987941f04ea933760c5b873db, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Metal
+    second: {fileID: 2100000, guid: da5687cfb0df88348ae3ce5c912731ec, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Monolith
+    second: {fileID: 2100000, guid: 4722b6edf6c752e4286dbae6a2fd1434, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Stone
+    second: {fileID: 2100000, guid: 8394312a7ec3f91418fae54f7e05e276, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Walls
+    second: {fileID: 2100000, guid: b473b7e43b14a164fa8f36447ebe5127, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Wax
+    second: {fileID: 2100000, guid: 5e5edf029f75b51489446076ea1abf4e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: WindowFrame
+    second: {fileID: 2100000, guid: ec14e8ae44d61a64ca3454de396e9685, type: 2}
+  materials:
+    importMaterials: 1
+    materialName: 0
+    materialSearch: 1
+    materialLocation: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    motionNodeName: 
+    rigImportErrors: 
+    rigImportWarnings: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    importAnimatedCustomProperties: 0
+    importConstraints: 0
+    animationCompression: 1
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    extraUserProperties: []
+    clipAnimations: []
+    isReadable: 1
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 0
+    importVisibility: 1
+    importBlendShapes: 1
+    importCameras: 1
+    importLights: 1
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    optimizeMeshForGPU: 1
+    keepQuads: 0
+    weldVertices: 1
+    preserveHierarchy: 0
+    indexFormat: 0
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 0
+    tangentImportMode: 3
+    normalCalculationMode: 4
+  importAnimation: 1
+  copyAvatar: 0
+  humanDescription:
+    serializedVersion: 2
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    rootMotionBoneName: 
+    rootMotionBoneRotation: {x: 0, y: 0, z: 0, w: 1}
+    hasTranslationDoF: 0
+    hasExtraRoot: 0
+    skeletonHasParents: 1
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  animationType: 0
+  humanoidOversampling: 1
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

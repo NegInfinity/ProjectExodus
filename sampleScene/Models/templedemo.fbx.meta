@@ -1,0 +1,808 @@
+fileFormatVersion: 2
+guid: f9472cd6a9385614ea746b93bf6f00a1
+ModelImporter:
+  serializedVersion: 22
+  fileIDToRecycleName:
+    100000: AltarCover
+    100002: Camera
+    100004: Carpet
+    100006: Cube.001
+    100008: Cube.002
+    100010: Cube.003
+    100012: Cube.004
+    100014: Cube.005
+    100016: Cube.006
+    100018: Cube.007
+    100020: Cube.008
+    100022: Cube.009
+    100024: Cube.010
+    100026: Cube.011
+    100028: Cube.012
+    100030: Cube.013
+    100032: Cube.014
+    100034: Cube.015
+    100036: Door
+    100038: Door Frame
+    100040: Door.001
+    100042: FloorTile
+    100044: FloorTile.001
+    100046: FloorTile.002
+    100048: FloorTile.003
+    100050: FloorTile.004
+    100052: FloorTile.005
+    100054: FloorTile.006
+    100056: FloorTile.007
+    100058: FloorTile.008
+    100060: FloorTile.009
+    100062: FloorTile.010
+    100064: FloorTile.011
+    100066: FloorTile.012
+    100068: FloorTile.013
+    100070: FloorTile.014
+    100072: FloorTile.015
+    100074: FloorTile.016
+    100076: FloorTile.017
+    100078: FloorTile.018
+    100080: FloorTile.019
+    100082: FloorTile.020
+    100084: FloorTile.021
+    100086: FloorTile.022
+    100088: FloorTile.023
+    100090: FloorTile.024
+    100092: FloorTile.025
+    100094: FloorTile.026
+    100096: FloorTile.027
+    100098: FloorTile.028
+    100100: FloorTile.029
+    100102: FloorTile.030
+    100104: FloorTile.031
+    100106: FloorTile.032
+    100108: FloorTile.033
+    100110: FloorTile.034
+    100112: FloorTile.035
+    100114: FloorTile.036
+    100116: FloorTile.037
+    100118: FloorTile.038
+    100120: FloorTile.039
+    100122: FloorTile.040
+    100124: FloorTile.041
+    100126: FloorTile.042
+    100128: FloorTile.043
+    100130: FloorTile.044
+    100132: FloorTile.045
+    100134: FloorTile.046
+    100136: FloorTile.047
+    100138: FloorTile.048
+    100140: FloorTile.049
+    100142: Icosphere
+    100144: Lantern
+    100146: Lantern.001
+    100148: Lantern.002
+    100150: Lantern.003
+    100152: Lantern.004
+    100154: Lantern.005
+    100156: Lantern.006
+    100158: Lantern.007
+    100160: Lantern.008
+    100162: Lantern.009
+    100164: Pillar
+    100166: Pillar.001
+    100168: Pillar.002
+    100170: Pillar.003
+    100172: Pillar.004
+    100174: Pillar.005
+    100176: Pillar.006
+    100178: Pillar.007
+    100180: Pillar.010
+    100182: Pillar.011
+    100184: //RootNode
+    100186: Wall Segement
+    100188: Wall Segement.001
+    100190: Wall Segement.002
+    100192: Wall Segement.003
+    100194: Wall Segement.004
+    100196: Wall Segement.005
+    100198: Wall Segement.006
+    100200: Wall Segement.007
+    100202: Wall Segement.008
+    100204: Wall Segement.009
+    100206: Wall Segement.010
+    100208: Wall Segement.011
+    100210: Window Segment
+    100212: Window Segment.001
+    100214: Window Segment.002
+    100216: Window Segment.003
+    100218: Window Segment.004
+    100220: Window Segment.005
+    100222: Window Segment.006
+    100224: Window Segment.007
+    100226: Window Segment.008
+    100228: Window Segment.009
+    100230: Window Segment.010
+    100232: Window Segment.011
+    100234: Window Segment.012
+    100236: Window Segment.013
+    100238: Window Segment.014
+    100240: Window Segment.015
+    100242: Window Segment.016
+    100244: Window Segment.017
+    100246: Window Segment.018
+    100248: Window Segment.019
+    100250: Window Segment.020
+    100252: Window Segment.021
+    100254: Window Segment.022
+    100256: Window Segment.023
+    100258: Window Segment.024
+    100260: Window Segment.025
+    100262: Window Segment.026
+    100264: Window Segment.027
+    100266: Window Segment.028
+    100268: Window Segment.029
+    100270: Window Segment.030
+    100272: Window Segment.031
+    100274: Window Segment.032
+    100276: Window Segment.033
+    100278: Window Segment.034
+    100280: Window Segment.035
+    100282: Window Segment.036
+    100284: Window Segment.037
+    100286: Window Segment.038
+    100288: Window Segment.039
+    100290: Window Segment.040
+    100292: Window Segment.041
+    100294: Window Segment.042
+    100296: Window Segment.043
+    100298: AltarBook
+    100300: Candle
+    100302: Candle.001
+    100304: Monolith
+    400000: AltarCover
+    400002: Camera
+    400004: Carpet
+    400006: Cube.001
+    400008: Cube.002
+    400010: Cube.003
+    400012: Cube.004
+    400014: Cube.005
+    400016: Cube.006
+    400018: Cube.007
+    400020: Cube.008
+    400022: Cube.009
+    400024: Cube.010
+    400026: Cube.011
+    400028: Cube.012
+    400030: Cube.013
+    400032: Cube.014
+    400034: Cube.015
+    400036: Door
+    400038: Door Frame
+    400040: Door.001
+    400042: FloorTile
+    400044: FloorTile.001
+    400046: FloorTile.002
+    400048: FloorTile.003
+    400050: FloorTile.004
+    400052: FloorTile.005
+    400054: FloorTile.006
+    400056: FloorTile.007
+    400058: FloorTile.008
+    400060: FloorTile.009
+    400062: FloorTile.010
+    400064: FloorTile.011
+    400066: FloorTile.012
+    400068: FloorTile.013
+    400070: FloorTile.014
+    400072: FloorTile.015
+    400074: FloorTile.016
+    400076: FloorTile.017
+    400078: FloorTile.018
+    400080: FloorTile.019
+    400082: FloorTile.020
+    400084: FloorTile.021
+    400086: FloorTile.022
+    400088: FloorTile.023
+    400090: FloorTile.024
+    400092: FloorTile.025
+    400094: FloorTile.026
+    400096: FloorTile.027
+    400098: FloorTile.028
+    400100: FloorTile.029
+    400102: FloorTile.030
+    400104: FloorTile.031
+    400106: FloorTile.032
+    400108: FloorTile.033
+    400110: FloorTile.034
+    400112: FloorTile.035
+    400114: FloorTile.036
+    400116: FloorTile.037
+    400118: FloorTile.038
+    400120: FloorTile.039
+    400122: FloorTile.040
+    400124: FloorTile.041
+    400126: FloorTile.042
+    400128: FloorTile.043
+    400130: FloorTile.044
+    400132: FloorTile.045
+    400134: FloorTile.046
+    400136: FloorTile.047
+    400138: FloorTile.048
+    400140: FloorTile.049
+    400142: Icosphere
+    400144: Lantern
+    400146: Lantern.001
+    400148: Lantern.002
+    400150: Lantern.003
+    400152: Lantern.004
+    400154: Lantern.005
+    400156: Lantern.006
+    400158: Lantern.007
+    400160: Lantern.008
+    400162: Lantern.009
+    400164: Pillar
+    400166: Pillar.001
+    400168: Pillar.002
+    400170: Pillar.003
+    400172: Pillar.004
+    400174: Pillar.005
+    400176: Pillar.006
+    400178: Pillar.007
+    400180: Pillar.010
+    400182: Pillar.011
+    400184: //RootNode
+    400186: Wall Segement
+    400188: Wall Segement.001
+    400190: Wall Segement.002
+    400192: Wall Segement.003
+    400194: Wall Segement.004
+    400196: Wall Segement.005
+    400198: Wall Segement.006
+    400200: Wall Segement.007
+    400202: Wall Segement.008
+    400204: Wall Segement.009
+    400206: Wall Segement.010
+    400208: Wall Segement.011
+    400210: Window Segment
+    400212: Window Segment.001
+    400214: Window Segment.002
+    400216: Window Segment.003
+    400218: Window Segment.004
+    400220: Window Segment.005
+    400222: Window Segment.006
+    400224: Window Segment.007
+    400226: Window Segment.008
+    400228: Window Segment.009
+    400230: Window Segment.010
+    400232: Window Segment.011
+    400234: Window Segment.012
+    400236: Window Segment.013
+    400238: Window Segment.014
+    400240: Window Segment.015
+    400242: Window Segment.016
+    400244: Window Segment.017
+    400246: Window Segment.018
+    400248: Window Segment.019
+    400250: Window Segment.020
+    400252: Window Segment.021
+    400254: Window Segment.022
+    400256: Window Segment.023
+    400258: Window Segment.024
+    400260: Window Segment.025
+    400262: Window Segment.026
+    400264: Window Segment.027
+    400266: Window Segment.028
+    400268: Window Segment.029
+    400270: Window Segment.030
+    400272: Window Segment.031
+    400274: Window Segment.032
+    400276: Window Segment.033
+    400278: Window Segment.034
+    400280: Window Segment.035
+    400282: Window Segment.036
+    400284: Window Segment.037
+    400286: Window Segment.038
+    400288: Window Segment.039
+    400290: Window Segment.040
+    400292: Window Segment.041
+    400294: Window Segment.042
+    400296: Window Segment.043
+    400298: AltarBook
+    400300: Candle
+    400302: Candle.001
+    400304: Monolith
+    2000000: Camera
+    2100000: Monolith
+    2100002: Candleflame
+    2100004: Metal
+    2100006: Wax
+    2100008: Book
+    2100010: Glow
+    2100012: Cloth
+    2100014: Crystal
+    2100016: Door
+    2100018: Floor
+    2100020: Ceiling
+    2100022: WindowFrame
+    2100024: Glass
+    2100026: Walls
+    2100028: No Name
+    2100030: Stone
+    2300000: AltarCover
+    2300002: Carpet
+    2300004: Cube.001
+    2300006: Cube.002
+    2300008: Cube.003
+    2300010: Cube.004
+    2300012: Cube.005
+    2300014: Cube.006
+    2300016: Cube.007
+    2300018: Cube.008
+    2300020: Cube.009
+    2300022: Cube.010
+    2300024: Cube.011
+    2300026: Cube.012
+    2300028: Cube.013
+    2300030: Cube.014
+    2300032: Cube.015
+    2300034: Door
+    2300036: Door Frame
+    2300038: Door.001
+    2300040: FloorTile
+    2300042: FloorTile.001
+    2300044: FloorTile.002
+    2300046: FloorTile.003
+    2300048: FloorTile.004
+    2300050: FloorTile.005
+    2300052: FloorTile.006
+    2300054: FloorTile.007
+    2300056: FloorTile.008
+    2300058: FloorTile.009
+    2300060: FloorTile.010
+    2300062: FloorTile.011
+    2300064: FloorTile.012
+    2300066: FloorTile.013
+    2300068: FloorTile.014
+    2300070: FloorTile.015
+    2300072: FloorTile.016
+    2300074: FloorTile.017
+    2300076: FloorTile.018
+    2300078: FloorTile.019
+    2300080: FloorTile.020
+    2300082: FloorTile.021
+    2300084: FloorTile.022
+    2300086: FloorTile.023
+    2300088: FloorTile.024
+    2300090: FloorTile.025
+    2300092: FloorTile.026
+    2300094: FloorTile.027
+    2300096: FloorTile.028
+    2300098: FloorTile.029
+    2300100: FloorTile.030
+    2300102: FloorTile.031
+    2300104: FloorTile.032
+    2300106: FloorTile.033
+    2300108: FloorTile.034
+    2300110: FloorTile.035
+    2300112: FloorTile.036
+    2300114: FloorTile.037
+    2300116: FloorTile.038
+    2300118: FloorTile.039
+    2300120: FloorTile.040
+    2300122: FloorTile.041
+    2300124: FloorTile.042
+    2300126: FloorTile.043
+    2300128: FloorTile.044
+    2300130: FloorTile.045
+    2300132: FloorTile.046
+    2300134: FloorTile.047
+    2300136: FloorTile.048
+    2300138: FloorTile.049
+    2300140: Icosphere
+    2300142: Lantern
+    2300144: Lantern.001
+    2300146: Lantern.002
+    2300148: Lantern.003
+    2300150: Lantern.004
+    2300152: Lantern.005
+    2300154: Lantern.006
+    2300156: Lantern.007
+    2300158: Lantern.008
+    2300160: Lantern.009
+    2300162: Pillar
+    2300164: Pillar.001
+    2300166: Pillar.002
+    2300168: Pillar.003
+    2300170: Pillar.004
+    2300172: Pillar.005
+    2300174: Pillar.006
+    2300176: Pillar.007
+    2300178: Pillar.010
+    2300180: Pillar.011
+    2300182: Wall Segement
+    2300184: Wall Segement.001
+    2300186: Wall Segement.002
+    2300188: Wall Segement.003
+    2300190: Wall Segement.004
+    2300192: Wall Segement.005
+    2300194: Wall Segement.006
+    2300196: Wall Segement.007
+    2300198: Wall Segement.008
+    2300200: Wall Segement.009
+    2300202: Wall Segement.010
+    2300204: Wall Segement.011
+    2300206: Window Segment
+    2300208: Window Segment.001
+    2300210: Window Segment.002
+    2300212: Window Segment.003
+    2300214: Window Segment.004
+    2300216: Window Segment.005
+    2300218: Window Segment.006
+    2300220: Window Segment.007
+    2300222: Window Segment.008
+    2300224: Window Segment.009
+    2300226: Window Segment.010
+    2300228: Window Segment.011
+    2300230: Window Segment.012
+    2300232: Window Segment.013
+    2300234: Window Segment.014
+    2300236: Window Segment.015
+    2300238: Window Segment.016
+    2300240: Window Segment.017
+    2300242: Window Segment.018
+    2300244: Window Segment.019
+    2300246: Window Segment.020
+    2300248: Window Segment.021
+    2300250: Window Segment.022
+    2300252: Window Segment.023
+    2300254: Window Segment.024
+    2300256: Window Segment.025
+    2300258: Window Segment.026
+    2300260: Window Segment.027
+    2300262: Window Segment.028
+    2300264: Window Segment.029
+    2300266: Window Segment.030
+    2300268: Window Segment.031
+    2300270: Window Segment.032
+    2300272: Window Segment.033
+    2300274: Window Segment.034
+    2300276: Window Segment.035
+    2300278: Window Segment.036
+    2300280: Window Segment.037
+    2300282: Window Segment.038
+    2300284: Window Segment.039
+    2300286: Window Segment.040
+    2300288: Window Segment.041
+    2300290: Window Segment.042
+    2300292: Window Segment.043
+    2300294: AltarBook
+    2300296: Candle
+    2300298: Candle.001
+    2300300: Monolith
+    3300000: AltarCover
+    3300002: Carpet
+    3300004: Cube.001
+    3300006: Cube.002
+    3300008: Cube.003
+    3300010: Cube.004
+    3300012: Cube.005
+    3300014: Cube.006
+    3300016: Cube.007
+    3300018: Cube.008
+    3300020: Cube.009
+    3300022: Cube.010
+    3300024: Cube.011
+    3300026: Cube.012
+    3300028: Cube.013
+    3300030: Cube.014
+    3300032: Cube.015
+    3300034: Door
+    3300036: Door Frame
+    3300038: Door.001
+    3300040: FloorTile
+    3300042: FloorTile.001
+    3300044: FloorTile.002
+    3300046: FloorTile.003
+    3300048: FloorTile.004
+    3300050: FloorTile.005
+    3300052: FloorTile.006
+    3300054: FloorTile.007
+    3300056: FloorTile.008
+    3300058: FloorTile.009
+    3300060: FloorTile.010
+    3300062: FloorTile.011
+    3300064: FloorTile.012
+    3300066: FloorTile.013
+    3300068: FloorTile.014
+    3300070: FloorTile.015
+    3300072: FloorTile.016
+    3300074: FloorTile.017
+    3300076: FloorTile.018
+    3300078: FloorTile.019
+    3300080: FloorTile.020
+    3300082: FloorTile.021
+    3300084: FloorTile.022
+    3300086: FloorTile.023
+    3300088: FloorTile.024
+    3300090: FloorTile.025
+    3300092: FloorTile.026
+    3300094: FloorTile.027
+    3300096: FloorTile.028
+    3300098: FloorTile.029
+    3300100: FloorTile.030
+    3300102: FloorTile.031
+    3300104: FloorTile.032
+    3300106: FloorTile.033
+    3300108: FloorTile.034
+    3300110: FloorTile.035
+    3300112: FloorTile.036
+    3300114: FloorTile.037
+    3300116: FloorTile.038
+    3300118: FloorTile.039
+    3300120: FloorTile.040
+    3300122: FloorTile.041
+    3300124: FloorTile.042
+    3300126: FloorTile.043
+    3300128: FloorTile.044
+    3300130: FloorTile.045
+    3300132: FloorTile.046
+    3300134: FloorTile.047
+    3300136: FloorTile.048
+    3300138: FloorTile.049
+    3300140: Icosphere
+    3300142: Lantern
+    3300144: Lantern.001
+    3300146: Lantern.002
+    3300148: Lantern.003
+    3300150: Lantern.004
+    3300152: Lantern.005
+    3300154: Lantern.006
+    3300156: Lantern.007
+    3300158: Lantern.008
+    3300160: Lantern.009
+    3300162: Pillar
+    3300164: Pillar.001
+    3300166: Pillar.002
+    3300168: Pillar.003
+    3300170: Pillar.004
+    3300172: Pillar.005
+    3300174: Pillar.006
+    3300176: Pillar.007
+    3300178: Pillar.010
+    3300180: Pillar.011
+    3300182: Wall Segement
+    3300184: Wall Segement.001
+    3300186: Wall Segement.002
+    3300188: Wall Segement.003
+    3300190: Wall Segement.004
+    3300192: Wall Segement.005
+    3300194: Wall Segement.006
+    3300196: Wall Segement.007
+    3300198: Wall Segement.008
+    3300200: Wall Segement.009
+    3300202: Wall Segement.010
+    3300204: Wall Segement.011
+    3300206: Window Segment
+    3300208: Window Segment.001
+    3300210: Window Segment.002
+    3300212: Window Segment.003
+    3300214: Window Segment.004
+    3300216: Window Segment.005
+    3300218: Window Segment.006
+    3300220: Window Segment.007
+    3300222: Window Segment.008
+    3300224: Window Segment.009
+    3300226: Window Segment.010
+    3300228: Window Segment.011
+    3300230: Window Segment.012
+    3300232: Window Segment.013
+    3300234: Window Segment.014
+    3300236: Window Segment.015
+    3300238: Window Segment.016
+    3300240: Window Segment.017
+    3300242: Window Segment.018
+    3300244: Window Segment.019
+    3300246: Window Segment.020
+    3300248: Window Segment.021
+    3300250: Window Segment.022
+    3300252: Window Segment.023
+    3300254: Window Segment.024
+    3300256: Window Segment.025
+    3300258: Window Segment.026
+    3300260: Window Segment.027
+    3300262: Window Segment.028
+    3300264: Window Segment.029
+    3300266: Window Segment.030
+    3300268: Window Segment.031
+    3300270: Window Segment.032
+    3300272: Window Segment.033
+    3300274: Window Segment.034
+    3300276: Window Segment.035
+    3300278: Window Segment.036
+    3300280: Window Segment.037
+    3300282: Window Segment.038
+    3300284: Window Segment.039
+    3300286: Window Segment.040
+    3300288: Window Segment.041
+    3300290: Window Segment.042
+    3300292: Window Segment.043
+    3300294: AltarBook
+    3300296: Candle
+    3300298: Candle.001
+    3300300: Monolith
+    4300000: Cube.015
+    4300002: Cube.014
+    4300004: Cube.010
+    4300006: Cube.004
+    4300008: Icosphere
+    4300010: AltarCover
+    4300012: Lantern.009
+    4300014: Carpet
+    4300016: Door.001
+    4300018: FloorTile.049
+    4300020: Window Segment.043
+    4300022: Wall Segement.003
+    4300024: Door Frame
+    4300026: Window Segment.021
+    4300028: Cube.001
+    4300030: Pillar.011
+    4300032: Monolith
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Book
+    second: {fileID: 2100000, guid: 1a3d6cd60141b6943a4b13f38f82652d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Candleflame
+    second: {fileID: 2100000, guid: f40dbb54542b125439b7f9d20e1443db, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Ceiling
+    second: {fileID: 2100000, guid: c628fe4de5f8fed4483c0e219521be8a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Cloth
+    second: {fileID: 2100000, guid: ebde2883964caf748b583f452c868548, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Crystal
+    second: {fileID: 2100000, guid: 15caba9dedbe87d49a9a8e2fbfa8c7f1, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Door
+    second: {fileID: 2100000, guid: 1299a57901c5bba4389282101f51e3e0, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Floor
+    second: {fileID: 2100000, guid: 1d40b590ce1641a448c1a0c6733a1f90, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Glass
+    second: {fileID: 2100000, guid: 4fee628b4ee0c8a4ba4760260eb3f15d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Glow
+    second: {fileID: 2100000, guid: 2a30589987941f04ea933760c5b873db, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Metal
+    second: {fileID: 2100000, guid: da5687cfb0df88348ae3ce5c912731ec, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Monolith
+    second: {fileID: 2100000, guid: 4722b6edf6c752e4286dbae6a2fd1434, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: No Name
+    second: {fileID: 2100000, guid: fbe277166a319934d9c5764a07a0ec54, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Stone
+    second: {fileID: 2100000, guid: 8394312a7ec3f91418fae54f7e05e276, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Walls
+    second: {fileID: 2100000, guid: b473b7e43b14a164fa8f36447ebe5127, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Wax
+    second: {fileID: 2100000, guid: 5e5edf029f75b51489446076ea1abf4e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: WindowFrame
+    second: {fileID: 2100000, guid: ec14e8ae44d61a64ca3454de396e9685, type: 2}
+  materials:
+    importMaterials: 1
+    materialName: 0
+    materialSearch: 1
+    materialLocation: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    motionNodeName: 
+    rigImportErrors: 
+    rigImportWarnings: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    importAnimatedCustomProperties: 0
+    importConstraints: 0
+    animationCompression: 1
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    extraUserProperties: []
+    clipAnimations: []
+    isReadable: 1
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 0
+    importVisibility: 1
+    importBlendShapes: 1
+    importCameras: 1
+    importLights: 1
+    swapUVChannels: 0
+    generateSecondaryUV: 1
+    useFileUnits: 1
+    optimizeMeshForGPU: 1
+    keepQuads: 0
+    weldVertices: 1
+    preserveHierarchy: 0
+    indexFormat: 0
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 0
+    tangentImportMode: 3
+    normalCalculationMode: 4
+  importAnimation: 1
+  copyAvatar: 0
+  humanDescription:
+    serializedVersion: 2
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    rootMotionBoneName: 
+    rootMotionBoneRotation: {x: 0, y: 0, z: 0, w: 1}
+    hasTranslationDoF: 0
+    hasExtraRoot: 0
+    skeletonHasParents: 1
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  animationType: 0
+  humanoidOversampling: 1
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
