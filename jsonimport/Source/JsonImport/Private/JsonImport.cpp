@@ -14,6 +14,16 @@
 #include "ObjectTools.h"
 #include "PackageTools.h"
 
+#include "Engine/PointLight.h"
+#include "Engine/SpotLight.h"
+#include "Engine/Classes/Components/PointLightComponent.h"
+#include "Engine/Classes/Components/SpotLightComponent.h"
+#include "Engine/StaticMeshActor.h"
+#include "Engine/Classes/Components/StaticMeshComponent.h"
+#include "LevelEditorViewport.h"
+#include "Factories/TextureFactory.h"
+#include "Factories/MaterialFactoryNew.h"
+
 #include "Materials/Material.h"
 #include "Materials/MaterialExpressionTextureSample.h"
 #include "Materials/MaterialExpressionSubtract.h"
@@ -22,7 +32,7 @@
 #include "Materials/MaterialExpressionTextureCoordinate.h"
 #include "Materials/MaterialExpressionVectorParameter.h"
 #include "Materials/MaterialExpressionConstant.h"
-
+	
 #include "RawMesh.h"
 
 #include "DesktopPlatformModule.h"
@@ -802,7 +812,8 @@ void JsonImporter::importObject(JsonObjPtr obj, int32 objId){
 	}
 
 	auto meshComp = worldMesh->GetStaticMeshComponent();
-	meshComp->StaticMesh = meshObject;
+	meshComp->SetStaticMesh(meshObject);
+	//meshComp->StaticMesh = meshObject;
 
 	bool hasShadows = false;
 	bool twoSidedShadows = false;
@@ -834,8 +845,12 @@ void JsonImporter::importObject(JsonObjPtr obj, int32 objId){
 
 	if (meshObject){
 		bool emissiveMesh = false;
-		for(auto cur: meshObject->Materials){
-			auto mat = cur->GetMaterial();
+		//for(auto cur: meshObject->Materials){
+		for(auto cur: meshObject->StaticMaterials){
+			auto matIntr = cur.MaterialInterface;//cur->GetMaterial();
+			if (!matIntr)
+				continue;
+			auto mat = matIntr->GetMaterial();
 			if (!mat)
 				continue;
 			if (mat->EmissiveColor.IsConnected()){
@@ -951,35 +966,6 @@ void JsonImporter::importMesh(JsonObjPtr obj, int32 meshId){
 	srcModel.RawMeshBulkData->LoadRawMesh(newRawMesh);
 	newRawMesh.VertexPositions.SetNum(0);
 
-	/*
-	bool hasNormals = true;
-	{
-		FVector a(0.0f, 0.0f, 0.0f), b(100.0f, 0.0f, 0.0f), c(0.0f, 0.0f, 100.0f);
-		newRawMesh.VertexPositions.Add(a);
-		newRawMesh.VertexPositions.Add(b);
-		newRawMesh.VertexPositions.Add(c);
-
-		newRawMesh.WedgeIndices.Add(0);
-		newRawMesh.WedgeIndices.Add(1);
-		newRawMesh.WedgeIndices.Add(2);
-
-		FVector n(0.0f, 1.0, 0.0f);
-		FVector tanU(1.0f, 0.0, 0.0f);
-		FVector tanV(0.0f, 0.0, 1.0f);
-
-		FVector2D uvA(0.0f, 0.0f), uvB(1.0f, 0.0f), uvC(0.0f, 1.0f);
-
-		newRawMesh.WedgeTexCoords[0].Add(uvA);
-		newRawMesh.WedgeTexCoords[0].Add(uvB);
-		newRawMesh.WedgeTexCoords[0].Add(uvC);
-
-
-		FColor color(255, 255, 255, 255);
-		newRawMesh.FaceMaterialIndices.Add(0);
-		newRawMesh.FaceSmoothingMasks.Add(0);
-	}
-	*/
-
 	bool hasNormals = false;
 	{
 		UE_LOG(JsonLog, Log, TEXT("Generating mesh"));
@@ -1071,21 +1057,6 @@ void JsonImporter::importMesh(JsonObjPtr obj, int32 meshId){
 					processIndex(trigVertIndex);
 					processIndex(trigVertIndex + 2);
 					processIndex(trigVertIndex + 1);
-					/*
-					auto origIndex = trigs[trigVertIdx];
-					newRawMesh.WedgeIndices.Add(origIndex);
-					if (hasNormals)
-						newRawMesh.WedgeTangentZ.Add(unityToUe(getIdxVector3(normalFloats, origIndex)));
-					for(int32 uvIndex = 0; uvIndex < maxUvs; uvIndex++){
-						if (!hasUvs[uvIndex])
-							continue;
-						newRawMesh.WedgeTexCoords[uvIndex].Add(getIdxVector2(uvFloats[uvIndex], origIndex));
-					}
-					if ((trigVertIdx % 3) == 0){
-						newRawMesh.FaceMaterialIndices.Add(matIndex);
-						newRawMesh.FaceSmoothingMasks.Add(0);
-					}
-					*/
 				}
 				UE_LOG(JsonLog, Log, TEXT("New wedge indices %d"), newRawMesh.WedgeIndices.Num());
 				UE_LOG(JsonLog, Log, TEXT("Face mat indices: %d"), newRawMesh.FaceMaterialIndices.Num());
@@ -1109,12 +1080,13 @@ void JsonImporter::importMesh(JsonObjPtr obj, int32 meshId){
 		}
 	}
 
-	mesh->Materials.Empty();
+	mesh->StaticMaterials.Empty();
 	if (materials){
 		auto matIds = toIntArray(*materials);
 		for(auto matId: matIds){
 			UMaterial *material = loadMaterial(matId);
-			mesh->Materials.Add(material);
+			//mesh->Materials.Add(material);
+			mesh->StaticMaterials.Add(material);
 		}
 	}
 

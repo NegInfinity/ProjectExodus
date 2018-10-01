@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class JsonImport : ModuleRules
 {
-	public JsonImport(TargetInfo Target)
+	public JsonImport(ReadOnlyTargetRules Target): base(Target)
 	{
 		
 		PublicIncludePaths.AddRange(
