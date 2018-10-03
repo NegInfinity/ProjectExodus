@@ -526,9 +526,13 @@ namespace SceneExport{
 					}
 				}
 
+				#if !UNITY_EDITOR
 				readable = mesh.isReadable;
-				if (!readable)
+				if (!readable){
+					Debug.LogErrorFormat(string.Format("Mesh {0} is not marked as readable. Canot proceed", name);
 					return;
+				}
+				#endif
 				vertexCount = mesh.vertexCount;
 				if (vertexCount <= 0)
 					return;
