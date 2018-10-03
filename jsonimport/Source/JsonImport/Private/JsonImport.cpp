@@ -16,8 +16,10 @@
 
 #include "Engine/PointLight.h"
 #include "Engine/SpotLight.h"
+#include "Engine/DirectionalLight.h"
 #include "Engine/Classes/Components/PointLightComponent.h"
 #include "Engine/Classes/Components/SpotLightComponent.h"
+#include "Engine/Classes/Components/DirectionalLightComponent.h"
 #include "Engine/StaticMeshActor.h"
 #include "Engine/Classes/Components/StaticMeshComponent.h"
 #include "LevelEditorViewport.h"
@@ -698,19 +700,35 @@ void JsonImporter::importObject(JsonObjPtr obj, int32 objId){
 	if (hasLight){
 		UE_LOG(JsonLog, Log, TEXT("Creating light"));
 		FActorSpawnParameters spawnParams;
-		FTransform transform;
+		FTransform spotLightTransform;
 		FVector lightX, lightY, lightZ;
 		ueMatrix.GetScaledAxes(lightX, lightY, lightZ);
+		logValue("LightX (orig)", lightX);
+		logValue("LightY (orig)", lightY);
+		logValue("LightZ (orig)", lightZ);
 		FVector lightNewX = lightZ;
 		FVector lightNewY = lightY;
 		FVector lightNewZ = -lightX;
 		FMatrix lightMatrix = ueMatrix;
+		logValue("lightNewX", lightNewX);
+		logValue("lightNewY", lightNewY);
+		logValue("lightNewZ", lightNewZ);
+
+		logValue("lightMatrix", lightMatrix);
 		lightMatrix.SetAxes(&lightNewX, &lightNewY, &lightNewZ);
-		transform.SetFromMatrix(lightMatrix);
+		spotLightTransform.SetFromMatrix(lightMatrix);
+		logValue("Transform.Translation", spotLightTransform.GetTranslation());
+		logValue("Transform.Scale3D", spotLightTransform.GetScale3D());
+		logValue("Transform.Rotation", spotLightTransform.GetRotation());
+		logValue("Transform.XAxis", spotLightTransform.GetUnitAxis(EAxis::X));
+		logValue("Transform.YAxis", spotLightTransform.GetUnitAxis(EAxis::Y));
+		logValue("Transform.ZAxis", spotLightTransform.GetUnitAxis(EAxis::Z));
 
 		if (lightType == "Point"){
+			FTransform pointLightTransform;
+			pointLightTransform.SetFromMatrix(ueMatrix);
 			APointLight *actor = Cast<APointLight>(GEditor->AddActor(GCurrentLevelEditingViewportClient->GetWorld()->GetCurrentLevel(),
-				APointLight::StaticClass(), transform));
+				APointLight::StaticClass(), pointLightTransform));//spotLightTransform));
 			if (!actor){
 				UE_LOG(JsonLog, Warning, TEXT("Could not spawn point light"));
 			}
@@ -718,6 +736,9 @@ void JsonImporter::importObject(JsonObjPtr obj, int32 objId){
 				actor->SetActorLabel(name, true);
 				if (folderPath.Len())
 					actor->SetFolderPath(FName(*folderPath));
+
+				auto moveResult = actor->SetActorTransform(pointLightTransform, false, nullptr, ETeleportType::ResetPhysics);
+				logValue("Actor move result: ", moveResult);
 
 				auto light = actor->PointLightComponent;
 				//light->SetIntensity(lightIntensity * 2500.0f);//100W lamp per 1 point of intensity
@@ -740,9 +761,9 @@ void JsonImporter::importObject(JsonObjPtr obj, int32 objId){
 		}
 		else if (lightType == "Spot"){
 			ASpotLight *actor = Cast<ASpotLight>(GEditor->AddActor(GCurrentLevelEditingViewportClient->GetWorld()->GetCurrentLevel(),
-				ASpotLight::StaticClass(), transform));
+				ASpotLight::StaticClass(), spotLightTransform));
 			if (!actor){
-				UE_LOG(JsonLog, Warning, TEXT("Could not spawn point light"));
+				UE_LOG(JsonLog, Warning, TEXT("Could not spawn spot light"));
 			}
 			else{
 				actor->SetActorLabel(name, true);
@@ -771,6 +792,72 @@ void JsonImporter::importObject(JsonObjPtr obj, int32 objId){
 				actor->MarkComponentsRenderStateDirty();
 			}
 		}
+		else if (lightType == "Directional"){
+		#if 0
+			FMatrix dirLightMatrix = ueMatrix;
+			/*
+			FVector lightNewX = lightZ;
+			FVector lightNewY = lightY;
+			FVector lightNewZ = -lightX;
+			*/
+			FVector dirLightZ = lightNewX; // lightZ
+			FVector dirLightX = -lightNewZ; // lightX
+			FVector dirLightY = lightNewY; // lightY
+			dirLightMatrix.SetAxes(&dirLightX, &dirLightY, &dirLightZ);
+		#endif
+
+			FTransform dirLightTransform;
+			dirLightTransform.SetFromMatrix(ueMatrix);//dirLightMatrix);
+
+			ADirectionalLight *dirLightActor = Cast<ADirectionalLight>(GEditor->AddActor(GCurrentLevelEditingViewportClient->GetWorld()->GetCurrentLevel(),
+				ADirectionalLight::StaticClass(), dirLightTransform));
+			//Well, here we go. For some reason data from lightTransform isn't being passed.
+			if (!dirLightActor){
+				UE_LOG(JsonLog, Warning, TEXT("Could not spawn directional light"));
+			}
+			else{
+				dirLightActor->SetActorLabel(name, true);
+				if (folderPath.Len())
+					dirLightActor->SetFolderPath(FName(*folderPath));
+
+				logValue("Dir light rotation (Euler): ", dirLightActor->GetActorRotation().Euler());
+				logValue("Dir light transform: ", dirLightActor->GetActorTransform().ToMatrixWithScale());
+				logValue("Dir light scale: ", dirLightActor->GetActorScale3D());
+				logValue("Dir light location: ", dirLightActor->GetActorLocation());
+				// ??? For some reason it ignores data passed through AddActor. 
+
+				auto moveResult = dirLightActor->SetActorTransform(dirLightTransform, false, nullptr, ETeleportType::ResetPhysics);
+				logValue("Actor move result: ", moveResult);
+
+				logValue("Dir light rotation (Euler): ", dirLightActor->GetActorRotation().Euler());
+				logValue("Dir light transform: ", dirLightActor->GetActorTransform().ToMatrixWithScale());
+				logValue("Dir light scale: ", dirLightActor->GetActorScale3D());
+				logValue("Dir light location: ", dirLightActor->GetActorLocation());
+
+				auto light = dirLightActor->GetLightComponent();
+				//light->SetIntensity(lightIntensity * 2500.0f);//100W lamp per 1 point of intensity
+				light->SetIntensity(lightIntensity);
+				//light->bUseInverseSquaredFalloff = false;
+				//light->LightFalloffExponent = 2.0f;
+				//light->SetLightFalloffExponent(2.0f);
+
+
+				light->SetLightColor(lightColor);
+				//float attenRadius = lightRange*100.0f;//*ueAttenuationBoost;
+				//light->AttenuationRadius = attenRadius;
+				//light->SetAttenuationRadius(attenRadius);
+				light->CastShadows = lightCastShadow;// != FString("None");
+				//light->InnerConeAngle = lightSpotAngle * 0.25f;
+
+				//light->InnerConeAngle = 0.0f;
+				//light->OuterConeAngle = lightSpotAngle * 0.5f;
+
+				//light->SetVisibility(params.visible);
+				if (isStatic)
+					dirLightActor->SetMobility(EComponentMobility::Static);
+				dirLightActor->MarkComponentsRenderStateDirty();
+			}
+		}
 	}
 
 	if (meshId < 0)
@@ -795,16 +882,16 @@ void JsonImporter::importObject(JsonObjPtr obj, int32 objId){
 		return;
 	}
 
-	AActor *actor = world->SpawnActor<AActor>(AStaticMeshActor::StaticClass(), transform, spawnParams);
-	if (!actor){
+	AActor *meshActor = world->SpawnActor<AActor>(AStaticMeshActor::StaticClass(), transform, spawnParams);
+	if (!meshActor){
 		UE_LOG(JsonLog, Warning, TEXT("Couldn't spawn actor"));
 		return;
 	}
 
-	actor->SetActorLabel(name, true);
-	actor->SetFolderPath(FName(*folderPath));
+	meshActor->SetActorLabel(name, true);
+	meshActor->SetFolderPath(FName(*folderPath));
 
-	AStaticMeshActor *worldMesh = Cast<AStaticMeshActor>(actor);
+	AStaticMeshActor *worldMesh = Cast<AStaticMeshActor>(meshActor);
 	//if params is static
 	if (!worldMesh){
 		UE_LOG(JsonLog, Warning, TEXT("Wrong actor class"));
