@@ -9,6 +9,17 @@ namespace SceneExport{
 		public static void saveBytesToFile(string filename, byte[] data){
 			System.IO.File.WriteAllBytes(filename, data);
 		}
+		
+		public static int beginHash(){
+			return 17;
+		}
+
+		public static int combineHash<T>(int prevHash, T obj){
+			int nextHash = 0;
+			if ((object)obj != null)
+				nextHash = obj.GetHashCode();
+			return prevHash * 23 + nextHash;
+		}		
 	}
 	
 	public partial class Exporter{

@@ -11,6 +11,10 @@ namespace SceneExport{
 			public List<JsonMesh> meshes = new List<JsonMesh>();
 			public List<JsonTexture> textures = new List<JsonTexture>();
 			public List<string> resources = new List<string>();
+			
+			public void saveToFile(string filename){
+				Utility.saveStringToFile(filename, toJsonString());							
+			}
 
 			public string toJsonString(){
 				FastJsonWriter writer = new FastJsonWriter();
@@ -35,6 +39,10 @@ namespace SceneExport{
 					writer.writeKeyVal("occluderStatic", cur.occluderStatic);
 					writer.writeKeyVal("occludeeStatic", cur.occludeeStatic);
 					writer.writeKeyVal("reflectionProbeStatic", cur.reflectionProbeStatic);
+					
+					writer.writeKeyVal("nameClash", cur.nameClash);
+					writer.writeKeyVal("uniqueName", cur.uniqueName);
+					
 					writer.beginKeyArray("renderer");
 					if (cur.renderer != null){
 						foreach(var r in cur.renderer){

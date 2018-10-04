@@ -25,6 +25,10 @@ namespace SceneExport{
 			public bool occludeeStatic = true;
 			public bool navigationStatic = true;
 			public bool reflectionProbeStatic = true;
+			
+			public bool nameClash = false;
+			public string uniqueName = "";
+			
 			public JsonGameObject(GameObject obj, Exporter exp){
 				name = obj.name;
 				instanceId = obj.GetInstanceID();

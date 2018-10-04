@@ -1,7 +1,26 @@
 ﻿using UnityEngine;
+using System.Collections.Generic;
 
 namespace SceneExport{
 	static class Extensions{
+		static public Val getValOrGenerate<Key, Val>(this IDictionary<Key, Val> dict, Key key, System.Func<Key, Val> generator){
+			if (generator == null)
+				throw new System.ArgumentNullException("generator");
+			Val result;
+			if (dict.TryGetValue(key, out result))
+				return result;
+			result = generator(key);
+			dict.Add(key, result);
+			return result;
+		}
+		
+		static public Val getValOrDefault<Key, Val>(this IDictionary<Key, Val> dict, Key key, Val defaultVal){
+			Val result;
+			if (dict.TryGetValue(key, out result))
+				return result;
+			return defaultVal;
+		}
+	
 		static public float[] toFloatArray(this Matrix4x4 arg){
 			float[] result = new float[16];
 			for(int i = 0; i < 4; i++){

@@ -1,14 +1,28 @@
 ﻿using UnityEngine;
 using UnityEditor;
-using System.IO;
-using System.Text;
-using System.Collections;
 using System.Collections.Generic;
+using UnityEditor.SceneManagement;
 
 namespace SceneExport{
-	public class ExportMenu: MonoBehaviour{
-		[MenuItem("GameObject/Scene Export/Export selected objects", false, 0)]
+	public class ExportMenu /*: MonoBehaviour*/{
+		[MenuItem("GameObject/Scene Export/Export current scene", false, 0)]
 		public static void  exportJsonScene(MenuCommand menuCommand){
+			var scene = EditorSceneManager.GetActiveScene();
+			if (!scene.IsValid()){
+				Debug.LogWarningFormat("No active scene, cannot export.");
+			}
+			
+			var path = EditorUtility.SaveFilePanel("Save category config", "", scene.name, "json");
+			if (path == string.Empty)
+				return;
+			var exporter = new Exporter();
+
+			var jsonObj = exporter.exportScene(scene);
+			jsonObj.saveToFile(path);
+		}
+		
+		[MenuItem("GameObject/Scene Export/Export selected objects", false, 0)]
+		public static void  exportSelectedObjects(MenuCommand menuCommand){
 			if (Selection.transforms.Length <= 0)
 				return;
 
@@ -30,11 +44,11 @@ namespace SceneExport{
 			var exporter = new Exporter();
 
 			var jsonObj = exporter.exportObjects(objects.ToArray());
-			Utility.saveStringToFile(path, jsonObj.toJsonString());
+			jsonObj.saveToFile(path);
 		}
 
 		[MenuItem("GameObject/Scene Export/Export current object", false, 0)]
-		public static void  exportJsonObject(MenuCommand menuCommand){
+		public static void  exportCurrentObject(MenuCommand menuCommand){
 			if (Selection.activeObject == null)
 				return;
 			var obj = Selection.activeGameObject;
@@ -44,7 +58,7 @@ namespace SceneExport{
 			var exporter = new Exporter();
 
 			var jsonObj = exporter.exportOneObject(obj);
-			Utility.saveStringToFile(path, jsonObj.toJsonString());
+			jsonObj.saveToFile(path);
 		}
 	}
 }
