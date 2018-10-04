@@ -18,7 +18,7 @@ namespace SceneExport{
 			var exporter = new Exporter();
 
 			var jsonObj = exporter.exportScene(scene);
-			jsonObj.saveToFile(path);
+			jsonObj.saveToFile(path, true);
 		}
 		
 		[MenuItem("GameObject/Scene Export/Export selected objects", false, 0)]
@@ -44,7 +44,7 @@ namespace SceneExport{
 			var exporter = new Exporter();
 
 			var jsonObj = exporter.exportObjects(objects.ToArray());
-			jsonObj.saveToFile(path);
+			jsonObj.saveToFile(path, true);
 		}
 
 		[MenuItem("GameObject/Scene Export/Export current object", false, 0)]
@@ -58,7 +58,7 @@ namespace SceneExport{
 			var exporter = new Exporter();
 
 			var jsonObj = exporter.exportOneObject(obj);
-			jsonObj.saveToFile(path);
+			jsonObj.saveToFile(path, true);
 		}
 	}
 }

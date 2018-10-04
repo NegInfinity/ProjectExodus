@@ -19,26 +19,39 @@ namespace SceneExport{
 			public bool alphaTransparency = false;
 			public float anisoLevel = 0.0f;
 			public string base64;
+			public bool sRGB = true;
+			public string textureType = "default";
+			public bool normalMapFlag = false;
+
+			public Texture textureRef = null;			
 			public JsonTexture(Texture tex, Exporter exp){
 				name = tex.name;
 				id = exp.textures.findId(tex);
-				var filePath = AssetDatabase.GetAssetPath(tex);
-				exp.registerResource(filePath);
-				path = filePath;
+				var assetPath = AssetDatabase.GetAssetPath(tex);
+				exp.registerResource(assetPath);
+				path = assetPath;
 				filterMode = tex.filterMode.ToString();
 				width = tex.width;
 				height = tex.height;
-				wrapMode = tex.wrapMode.ToString();
+				wrapMode = tex.wrapMode.ToString();				
 				var tex2D = tex as Texture2D;
 				var rendTarget = tex as RenderTexture;
 				isTex2D = tex2D != null;
 				isRenderTarget = rendTarget != null;
+				var importer = AssetImporter.GetAtPath(assetPath);
+				var texImporter = (TextureImporter)importer;
 				if (isTex2D){
 					alphaTransparency = tex2D.alphaIsTransparency;
 				}
 				if (isRenderTarget){
 					anisoLevel = rendTarget.anisoLevel;
 				}
+				if (texImporter){
+					sRGB = texImporter.sRGBTexture;
+					textureType = texImporter.textureType.ToString();
+					normalMapFlag = (texImporter.textureType == TextureImporterType.NormalMap);
+				}
+				textureRef = tex;
 			}
 		}
 	}
