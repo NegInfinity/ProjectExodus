@@ -7,6 +7,9 @@ using JsonReaderRef = TSharedRef<TJsonReader<>>;
 using JsonObjPtrs = TArray<JsonObjPtr>;
 using JsonValPtrs = TArray<JsonValPtr>;
 using IdNameMap = TMap<int, FString>;
+
+class AActor;
+using IdActorMap = TMap<int, AActor*>;
 using IdSet = TSet<int>;
 
 class UMaterialExpression;
@@ -26,6 +29,7 @@ protected:
 	IdNameMap texIdMap;
 	IdNameMap matIdMap;
 	IdNameMap objectFolderPaths;
+	IdActorMap objectActors;
 	IdSet emissiveMaterials;
 
 	UMaterialExpression* createMaterialInput(UMaterial *material, int32 matTextureId, 

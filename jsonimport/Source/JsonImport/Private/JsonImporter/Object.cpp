@@ -27,6 +27,18 @@
 
 #include "DesktopPlatformModule.h"
 
+static void setParentAndFolder(AActor *actor, AActor *parentActor, const FString& folderPath){
+	if (!actor)
+		return;
+	if (parentActor){
+		actor->AttachToActor(parentActor, FAttachmentTransformRules::KeepWorldTransform);
+	}
+	else{
+		if (folderPath.Len())
+			actor->SetFolderPath(*folderPath);
+	}
+}
+
 void JsonImporter::importObject(JsonObjPtr obj, int32 objId){
 	UE_LOG(JsonLog, Log, TEXT("Importing object %d"), objId);
 
@@ -54,7 +66,7 @@ void JsonImporter::importObject(JsonObjPtr obj, int32 objId){
 	//renderer
 	//light
 #undef GETPARAM
-#undef GETPARAM
+#undef GETPARAM2
 	auto rendererArray = obj->GetArrayField("renderer");
 	auto lightArray = obj->GetArrayField("light");
 
@@ -66,19 +78,21 @@ void JsonImporter::importObject(JsonObjPtr obj, int32 objId){
 		name = uniqueName;
 	}
 
-	FString curFolderPath = name;
+	AActor *parentActor = objectActors.FindRef(parentId);
+
+	FString childFolderPath = name;
 	if (parentId >= 0){
 		const FString* found = objectFolderPaths.Find(parentId);
 		if (found){
 			folderPath = *found;
-			curFolderPath = folderPath + "/" + name;
+			childFolderPath = folderPath + "/" + name;
 		}
 		else{
 			UE_LOG(JsonLog, Warning, TEXT("Object parent not found, folder path may be invalid"));
 		}
 	}
 	UE_LOG(JsonLog, Log, TEXT("Folder path for object: %d: %s"), id, *folderPath);
-	objectFolderPaths.Add(id, curFolderPath);
+	objectFolderPaths.Add(id, childFolderPath);
 
 	bool hasRenderer = false, hasLight = false;
 	bool receiveShadows = true;
@@ -186,8 +200,6 @@ void JsonImporter::importObject(JsonObjPtr obj, int32 objId){
 			}
 			else{
 				actor->SetActorLabel(name, true);
-				if (folderPath.Len())
-					actor->SetFolderPath(FName(*folderPath));
 
 				auto moveResult = actor->SetActorTransform(pointLightTransform, false, nullptr, ETeleportType::ResetPhysics);
 				logValue("Actor move result: ", moveResult);
@@ -209,6 +221,9 @@ void JsonImporter::importObject(JsonObjPtr obj, int32 objId){
 				if (isStatic)
 					actor->SetMobility(EComponentMobility::Static);
 				actor->MarkComponentsRenderStateDirty();
+
+				//createdActors.Add(actor);
+				setParentAndFolder(actor, parentActor, folderPath);
 			}
 		}
 		else if (lightType == "Spot"){
@@ -219,8 +234,6 @@ void JsonImporter::importObject(JsonObjPtr obj, int32 objId){
 			}
 			else{
 				actor->SetActorLabel(name, true);
-				if (folderPath.Len())
-					actor->SetFolderPath(FName(*folderPath));
 
 				auto light = actor->SpotLightComponent;
 				//light->SetIntensity(lightIntensity * 2500.0f);//100W lamp per 1 point of intensity
@@ -242,6 +255,9 @@ void JsonImporter::importObject(JsonObjPtr obj, int32 objId){
 				if (isStatic)
 					actor->SetMobility(EComponentMobility::Static);
 				actor->MarkComponentsRenderStateDirty();
+
+				//createdActors.Add(actor);
+				setParentAndFolder(actor, parentActor, folderPath);
 			}
 		}
 		else if (lightType == "Directional"){
@@ -269,8 +285,6 @@ void JsonImporter::importObject(JsonObjPtr obj, int32 objId){
 			}
 			else{
 				dirLightActor->SetActorLabel(name, true);
-				if (folderPath.Len())
-					dirLightActor->SetFolderPath(FName(*folderPath));
 
 				logValue("Dir light rotation (Euler): ", dirLightActor->GetActorRotation().Euler());
 				logValue("Dir light transform: ", dirLightActor->GetActorTransform().ToMatrixWithScale());
@@ -308,6 +322,8 @@ void JsonImporter::importObject(JsonObjPtr obj, int32 objId){
 				if (isStatic)
 					dirLightActor->SetMobility(EComponentMobility::Static);
 				dirLightActor->MarkComponentsRenderStateDirty();
+
+				setParentAndFolder(dirLightActor, parentActor, folderPath);
 			}
 		}
 	}
@@ -341,7 +357,6 @@ void JsonImporter::importObject(JsonObjPtr obj, int32 objId){
 	}
 
 	meshActor->SetActorLabel(name, true);
-	meshActor->SetFolderPath(FName(*folderPath));
 
 	AStaticMeshActor *worldMesh = Cast<AStaticMeshActor>(meshActor);
 	//if params is static
@@ -405,13 +420,12 @@ void JsonImporter::importObject(JsonObjPtr obj, int32 objId){
 				emissiveMesh = true;
 				break;
 			}
-//			if (mat->
-			//cur->Emi
 		}
 		meshComp->LightmassSettings.bUseEmissiveForStaticLighting = emissiveMesh;
 	}
-	//meshComp->LightmassSettings
 
+	objectActors.Add(id, meshActor);
+	setParentAndFolder(meshActor, parentActor, folderPath);
 
 	meshComp->SetCastShadow(hasShadows);
 	meshComp->bCastShadowAsTwoSided = twoSidedShadows;
