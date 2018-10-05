@@ -912,6 +912,15 @@ void JsonImporter::importObject(JsonObjPtr obj, int32 objId){
 	meshComp->SetStaticMesh(meshObject);
 	//meshComp->StaticMesh = meshObject;
 
+	//materials
+	if (materials.Num() > 0){
+		for(int i = 0; i < materials.Num(); i++){
+			auto matId = materials[i];
+			UMaterial *material = loadMaterial(matId);
+			meshComp->SetMaterial(i, material);
+		}
+	}
+
 	bool hasShadows = false;
 	bool twoSidedShadows = false;
 	bool hideInGame = false;
