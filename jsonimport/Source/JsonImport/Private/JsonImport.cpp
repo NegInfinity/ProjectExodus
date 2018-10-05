@@ -66,15 +66,17 @@ protected:
 	IdSet emissiveMaterials;
 
 	UMaterialExpression* createMaterialInput(UMaterial *material, int32 matTextureId, 
-		const FLinearColor *matColor, FExpressionInput &matInput, bool normalMap, UMaterialExpressionTextureSample ** outTexNode = 0,
+		const FLinearColor *matColor, FExpressionInput &matInput, bool normalMap, const TCHAR* paramName, UMaterialExpressionTextureSample ** outTexNode = 0,
 		UMaterialExpressionVectorParameter **outVecParameter = 0);
 	UMaterialExpression* createMaterialInputMultiply(UMaterial *material, int32 matTextureId, 
-		const FLinearColor *matColor, FExpressionInput &matInput, UMaterialExpressionTextureSample ** outTexNode = 0,
+		const FLinearColor *matColor, FExpressionInput &matInput, 
+		const TCHAR* texParamName, const TCHAR* vecParamName,
+		UMaterialExpressionTextureSample ** outTexNode = 0,
 		UMaterialExpressionVectorParameter **outVecParameter = 0);
-	UMaterialExpression* createMaterialSingleInput(UMaterial *material, float value, FExpressionInput &matInput);
-	UMaterialExpressionTextureSample *createTextureExpression(UMaterial *material, int32 matTextureId, bool normalMap = false);
-	UMaterialExpressionVectorParameter *createVectorExpression(UMaterial *material, FLinearColor color);
-	UMaterialExpressionConstant* createConstantExpression(UMaterial *material, float value);
+	UMaterialExpression* createMaterialSingleInput(UMaterial *material, float value, FExpressionInput &matInput, const TCHAR* inputName);
+	UMaterialExpressionTextureSample *createTextureExpression(UMaterial *material, int32 matTextureId, const TCHAR* inputName, bool normalMap = false);
+	UMaterialExpressionVectorParameter *createVectorExpression(UMaterial *material, FLinearColor color, const TCHAR* inputName);
+	UMaterialExpressionConstant* createConstantExpression(UMaterial *material, float value, const TCHAR* constantName);
 	template<typename Exp> Exp* createExpression(UMaterial *material){
 		Exp* result = NewObject<Exp>(material);
 		material->Expressions.Add(result);
@@ -429,22 +431,30 @@ public:
 	}
 };
 
-UMaterialExpressionConstant* createConstantExpression(UMaterial *material, float value){
+UMaterialExpressionConstant* createConstantExpression(UMaterial *material, float value, const TCHAR* constantName){
 	auto matConstant = NewObject<UMaterialExpressionConstant>(material);
+	if (constantName){
+		matConstant->SetParameterName(constantName);
+		matConstant->Desc = constantName;
+	}
 	material->Expressions.Add(matConstant);
 	matConstant->R = value;
 	return matConstant;
 }
 
-UMaterialExpression* JsonImporter::createMaterialSingleInput(UMaterial *unrealMaterial, float value, FExpressionInput &matInput){
+UMaterialExpression* JsonImporter::createMaterialSingleInput(UMaterial *unrealMaterial, float value, FExpressionInput &matInput, const TCHAR* inputName){
 	auto matConstant = NewObject<UMaterialExpressionConstant>(unrealMaterial);
+	if (inputName){
+		matConstant->SetParameterName(inputName);
+		matConstant->Desc = inputName;
+	}
 	unrealMaterial->Expressions.Add(matConstant);
 	matConstant->R = value;
 	matInput.Expression = matConstant;
 	return matConstant;
 }
 
-UMaterialExpressionVectorParameter* JsonImporter::createVectorExpression(UMaterial *material, FLinearColor color){
+UMaterialExpressionVectorParameter* JsonImporter::createVectorExpression(UMaterial *material, FLinearColor color, const TCHAR* inputName){
 	UMaterialExpressionVectorParameter* vecExpression = 
 		NewObject<UMaterialExpressionVectorParameter>(material);
 	material->Expressions.Add(vecExpression);
@@ -454,10 +464,14 @@ UMaterialExpressionVectorParameter* JsonImporter::createVectorExpression(UMateri
 	vecExpression->DefaultValue.G = color.G;
 	vecExpression->DefaultValue.B = color.B;
 	vecExpression->DefaultValue.A = color.A;
+	if (inputName){
+		vecExpression->SetParameterName(inputName);
+		vecExpression->Desc = inputName;
+	}
 	return vecExpression;
 }
 
-UMaterialExpressionTextureSample* JsonImporter::createTextureExpression(UMaterial *material, int32 matTextureId, bool normalMap){
+UMaterialExpressionTextureSample* JsonImporter::createTextureExpression(UMaterial *material, int32 matTextureId, const TCHAR* inputName, bool normalMap){
 	UMaterialExpressionTextureSample *result = 0;
 	UE_LOG(JsonLog, Log, TEXT("Creating texture sample expression"));
 
@@ -472,23 +486,30 @@ UMaterialExpressionTextureSample* JsonImporter::createTextureExpression(UMateria
 	material->Expressions.Add(result);
 	result->Texture = unrealTex;
 
+	if (inputName){
+		result->SetParameterName(inputName);
+		result->Desc = inputName;
+	}
+
 	return result;
 }
 
 UMaterialExpression* JsonImporter::createMaterialInputMultiply(UMaterial *material, int32 matTextureId, 
-		const FLinearColor *matColor, FExpressionInput &matInput, UMaterialExpressionTextureSample ** outTexNode,
+		const FLinearColor *matColor, FExpressionInput &matInput, 
+		const TCHAR* texParamName, const TCHAR* vecParamName,
+		UMaterialExpressionTextureSample ** outTexNode,
 		UMaterialExpressionVectorParameter **outVecParameter){
 	UE_LOG(JsonLog, Log, TEXT("Creating multiply material input"));
 	UMaterialExpressionTextureSample *texExp = 0;
 	UMaterialExpressionVectorParameter *vecExp = 0;
 	bool hasTex = matTextureId >= 0;
 	if (hasTex){
-		texExp = createTextureExpression(material, matTextureId);
+		texExp = createTextureExpression(material, matTextureId, texParamName);
 		if (outTexNode)
 			*outTexNode = texExp;
 	}
 	if (matColor && ((*matColor != FLinearColor(1.0f, 1.0f, 1.0f, 1.0f)) || !hasTex)){
-		vecExp = createVectorExpression(material, *matColor);
+		vecExp = createVectorExpression(material, *matColor, vecParamName);
 		if (outVecParameter)
 			*outVecParameter = vecExp;
 	}
@@ -515,7 +536,7 @@ UMaterialExpression* JsonImporter::createMaterialInputMultiply(UMaterial *materi
 }
 
 UMaterialExpression* JsonImporter::createMaterialInput(UMaterial *unrealMaterial, int32 matTextureId, const FLinearColor *matColor, FExpressionInput &matInput, bool normalMap, 
-		UMaterialExpressionTextureSample **outTexNode, UMaterialExpressionVectorParameter **outVecParameter){
+		const TCHAR* paramName, UMaterialExpressionTextureSample **outTexNode, UMaterialExpressionVectorParameter **outVecParameter){
 	UE_LOG(JsonLog, Log, TEXT("Creating material input"));
 	logValue(TEXT("texId: "), matTextureId);
 	auto unrealTex = loadTexture(matTextureId);
@@ -529,6 +550,10 @@ UMaterialExpression* JsonImporter::createMaterialInput(UMaterial *unrealMaterial
 		texExpression->SamplerType = normalMap ? SAMPLERTYPE_Normal: SAMPLERTYPE_Color;
 		if (outTexNode)
 			*outTexNode = texExpression;
+		if (paramName){
+			texExpression->SetParameterName(paramName);
+			texExpression->Desc = paramName;
+		}
 		return texExpression;
 	}
 	else{
@@ -544,6 +569,10 @@ UMaterialExpression* JsonImporter::createMaterialInput(UMaterial *unrealMaterial
 			vecExpression->DefaultValue.A = matColor->A;
 			if (outVecParameter)
 				*outVecParameter = vecExpression;
+			if (paramName){
+				vecExpression->SetParameterName(paramName);
+				vecExpression->Desc = paramName;
+			}
 			return vecExpression;
 		}
 	}
@@ -1234,10 +1263,14 @@ void JsonImporter::importMaterial(JsonObjPtr obj, int32 matId){
 	GETPARAM(useAlphaTest, getBool)
 	GETPARAM(useAlphaPremultiply, getBool)
 	GETPARAM(useEmission, getBool)
+	GETPARAM(hasEmission, getBool)
+	GETPARAM(hasEmissionColor, getBool)
 	GETPARAM(useParallax, getBool)
 	GETPARAM(useDetailMap, getBool)
 	GETPARAM(useMetallic, getBool)
+	GETPARAM(hasMetallic, getBool)
 	GETPARAM(useSpecular, getBool)
+	GETPARAM(hasSpecular, getBool)
 	GETPARAM(albedoTex, getInt)
 	GETPARAM(specularTex, getInt)
 	GETPARAM(normalMapTex, getInt)
@@ -1292,61 +1325,47 @@ void JsonImporter::importMaterial(JsonObjPtr obj, int32 matId){
 	UE_LOG(JsonLog, Log, TEXT("Creating albedo"));
 	UMaterialExpressionTextureSample *albedoTexExpression = 0;
 	UMaterialExpressionVectorParameter *albedoColorExpression = 0;
-	createMaterialInputMultiply(material, mainTexture, &color, material->BaseColor, &albedoTexExpression, &albedoColorExpression);
+	auto albedoSource = createMaterialInputMultiply(material, mainTexture, &color, material->BaseColor, 
+		TEXT("Albedo(Texture)"), TEXT("Albedo(Color)"), &albedoTexExpression, &albedoColorExpression);
 	if (useNormalMap){
 		UE_LOG(JsonLog, Log, TEXT("Creating normal map"));
-		createMaterialInput(material, normalMapTex, nullptr, material->Normal, true);
+		createMaterialInput(material, normalMapTex, nullptr, material->Normal, true, TEXT("Normal"));
 	}
 
 	UE_LOG(JsonLog, Log, TEXT("Creating specular"));//TODO: connect specular alpha to smoothness
 
 	UMaterialExpressionTextureSample *specTexExpression = 0;//, *metalTexExpression = 0; no metallic textures, huh.
 
-	createMaterialInput(material, specularTex, &specularColor, material->Specular, false, &specTexExpression);
+	if (hasSpecular){
+		createMaterialInput(material, specularTex, &specularColor, material->Specular, false, 
+			TEXT("Specular Color"), &specTexExpression);
+	}
+	else{
+		// ?? Not sure if this is correct
+		material->Specular.Expression = albedoSource;
+	}
 
-	createMaterialInput(material, occlusionTex, nullptr, material->AmbientOcclusion, false);
+	createMaterialInput(material, occlusionTex, nullptr, material->AmbientOcclusion, false, TEXT("Ambient Occlusion"));
 
-	useEmission = useEmission || (emissionTex >= 0);
-	if (useEmission){
+	//useEmission = useEmission || (emissionTex >= 0);
+	if (hasEmission){
 		UE_LOG(JsonLog, Log, TEXT("Creating emissive"));
 
 		UMaterialExpressionTextureSample *emissiveTexExp = 0;
 
-		createMaterialInputMultiply(material, emissionTex, &emissionColor, material->EmissiveColor);
+		createMaterialInputMultiply(material, emissionTex, hasEmissionColor ? &emissionColor: 0, material->EmissiveColor, 
+			TEXT("Emission Texture"), TEXT("Emission Color"));
 		material->bUseEmissiveForDynamicAreaLighting = true;
-		/*
-		if (emissionTex >= 0){
-			emissiveTexExp = createTextureExpression(material, emissionTex, false);
-		}
-		auto emissiveColorExp = createVectorExpression(material, emissionColor);
-
-		if (emissiveTexExp){
-			auto mulExp = createExpression<UMaterialExpressionMultiply>(material);
-
-			mulExp->A.Expression = emissiveTexExp;
-			mulExp->B.Expression = emissiveTexExp;
-			material->EmissiveColor.Expression = mulExp;
-		}
-		else
-			material->EmissiveColor.Expression = emissiveColorExp;
-		*/
 		emissiveMaterials.Add(matId);
-
-		//createMaterialInput(material, emissionTex, &emissionColor, material->EmissiveColor, false);
 	}
 
-	if (useMetallic){
+	//if (useMetallic){
+	if (hasMetallic){
 		UE_LOG(JsonLog, Log, TEXT("Creating metallic value"));
-		createMaterialSingleInput(material, metallic, material->Metallic);
+		createMaterialSingleInput(material, metallic, material->Metallic, TEXT("Metallic"));
 	}
 
-	//UMaterialExpressionSubtract *smoothToRough = NewObject<UMaterialExpressionSubtract>(material);
-	/*
-	UMaterialExpressionSubtract *smoothToRough = NewObject<UMaterialExpressionSubtract>(material);
-	material->Expressions.Add(smoothToRough);
-	material->Roughness.Expression = smoothToRough;
-	smoothToRough->ConstA = 1.0f;*/
-
+	UE_LOG(JsonLog, Log, TEXT("hasMetallic: %d; hasSpecular: %d"), (int)(hasSpecular), (int)hasMetallic);
 	UE_LOG(JsonLog, Log, TEXT("specularMode:%d"), (int)(useSpecular));
 	UE_LOG(JsonLog, Log, TEXT("specTex exiss:%d"), (int)(specTexExpression != nullptr));
 	if (specTexExpression)
@@ -1354,12 +1373,8 @@ void JsonImporter::importMaterial(JsonObjPtr obj, int32 matId){
 
 	//if (useSpecular && (specTexExpression != nullptr) && (specTexExpression->Outputs.Num() == 5)){
 	//useSpecular is false? the heck..
-	//auto tmpNode1 = NewObject<UMaterialExpressionAdd>(material);
-	//material->Expressions.Add(tmpNode1);
-	//auto tmpNode2 = NewObject<UMaterialExpressionSubtract>(material);
-	//material->Expressions.Add(tmpNode2);
-
-	if ((specTexExpression != nullptr) && (specTexExpression->Outputs.Num() == 5)){
+	//if ((specTexExpression != nullptr) && (specTexExpression->Outputs.Num() == 5)){
+	if (hasSpecular && (specTexExpression != nullptr) && (specTexExpression->Outputs.Num() == 5)){
 		auto mulNode = NewObject<UMaterialExpressionMultiply>(material);
 		material->Expressions.Add(mulNode);
 		auto addNode = NewObject<UMaterialExpressionAdd>(material);
@@ -1372,8 +1387,7 @@ void JsonImporter::importMaterial(JsonObjPtr obj, int32 matId){
 		material->Roughness.Expression = addNode;
 	}
 	else{
-		//material->Roughness.Expression = addNode;
-		createMaterialSingleInput(material, 1.0f - smoothness, material->Roughness);
+		createMaterialSingleInput(material, 1.0f - smoothness, material->Roughness, TEXT("Roughness"));
 	}
 
 	if (isTransparentQueue)
@@ -1398,7 +1412,6 @@ void JsonImporter::importMaterial(JsonObjPtr obj, int32 matId){
 			albedoColorExpression->ConnectExpression(&opacityTarget, 4);
 		else{
 			UE_LOG(JsonLog, Warning, TEXT("Could not find matchin opacity source in material %s"), *name);
-			//createMaterialSingleInput(material, alphaCutoff, opacityTarget);
 		}
 	}
 

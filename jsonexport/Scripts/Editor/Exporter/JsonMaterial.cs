@@ -24,7 +24,13 @@ namespace SceneExport{
 			public bool useEmission = false;
 			public bool useParallax = false;
 			public bool useDetailMap = false;
-			public bool useMetallic = false;
+			public bool useMetallic = false;//this is unrealiable
+			
+			public bool hasMetallic = false;
+			public bool hasSpecular = false;
+			public bool hasEmissionColor = false;
+			public bool hasEmission = false;
+			
 			public bool useSpecular = false;
 			public int albedoTex = -1;
 			public int specularTex = -1;
@@ -67,6 +73,12 @@ namespace SceneExport{
 				writer.writeKeyVal("useParallax", useParallax);
 				writer.writeKeyVal("useDetailMap", useDetailMap);
 				writer.writeKeyVal("useMetallic", useMetallic);
+				
+				writer.writeKeyVal("hasMetallic", hasMetallic);
+				writer.writeKeyVal("hasSpecular", hasSpecular);
+				writer.writeKeyVal("hasEmission", hasEmission);
+				writer.writeKeyVal("hasEmissionColor", hasEmissionColor);
+				
 				writer.writeKeyVal("useSpecular", useSpecular);
 				writer.writeKeyVal("albedoTex", albedoTex);
 				writer.writeKeyVal("specularTex", specularTex);
@@ -129,28 +141,40 @@ namespace SceneExport{
 						return defaultVal;
 					return mat.GetColor(paramName);
 				};
+				
+				var metallicParamName = "_Metallic";
+				var metallicTexParamName = "_MetallicGlossMap";
+				var specParamName = "_SpecColor";
+				var specTexParamName = "_SpecGlossMap";
+				var emissionTexParamName = "_EmissionMap";
+				var emissionParamName = "_EmissionColor";
 
 				albedoTex = getTexId("_MainTex");
-				specularTex = getTexId("_SpecGlossMap");
-				metallicTex= getTexId("_MetallicGlossMap");
+				specularTex = getTexId(specTexParamName);
+				metallicTex= getTexId(metallicTexParamName);
 				normalMapTex = getTexId("_BumpMap");
 				occlusionTex = getTexId("_OcclusionMap");
 				parallaxTex = getTexId("_ParallaxMap");
-				emissionTex = getTexId("_EmissionMap");
+				emissionTex = getTexId(emissionTexParamName);
 				detailMaskTex = getTexId("_DetailMask");
 				detailAlbedoTex = getTexId("_DetailAlbedoMap");
 				detailNormalMapTex= getTexId("_DetailNormalMap");
 
 				alphaCutoff = getFloat("_Cutoff", 1.0f);
 				smoothness = getFloat("_Glossiness", 0.5f);
-				specularColor = getColor("_SpecColor", Color.white);
-				metallic = getFloat("_Metallic", 0.5f);
+				specularColor = getColor(specParamName, Color.white);
+				metallic = getFloat(metallicParamName, 0.5f);
 				bumpScale = getFloat("_BumpScale", 1.0f);
 				parallaxScale = getFloat("_Parallax", 1.0f);
 				occlusionStrength = getFloat("_OcclusionStrength", 1.0f);
-				emissionColor = getColor("_EmissionColor", Color.black);
+				emissionColor = getColor(emissionParamName, Color.black);
 				detailMapScale = getFloat("_DetailNormalMapScale", 1.0f);
 				secondaryUv = getFloat("_UVSec", 1.0f);
+				
+				hasMetallic = mat.HasProperty(metallicParamName) && mat.HasProperty(metallicTexParamName);
+				hasSpecular = mat.HasProperty(specTexParamName) && mat.HasProperty(specParamName);
+				hasEmissionColor = mat.HasProperty(emissionParamName) && (emissionColor.maxColorComponent > 0.01f);
+				hasEmission = hasEmissionColor || (emissionTex >= 0);
 			}
 		}
 	}
