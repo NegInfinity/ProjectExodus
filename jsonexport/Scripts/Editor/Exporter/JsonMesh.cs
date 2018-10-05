@@ -24,10 +24,39 @@ namespace SceneExport{
 			[System.Serializable]
 			public class SubMesh{
 				public int[] triangles = null;//new int[0];
+				public void writeJsonValue(FastJsonWriter writer){
+					writer.beginObjectValue();
+					writer.writeKeyVal("triangles", triangles);
+					writer.endObject();
+				}
 			};
 
 			public List<SubMesh> subMeshes = new List<SubMesh>();
 			public int subMeshCount = 0;
+			
+			public void writeJsonValue(FastJsonWriter writer){
+				writer.beginObjectValue();
+				writer.writeKeyVal("name", name);
+				writer.writeKeyVal("id", id);
+				writer.writeKeyVal("path", path);
+				writer.writeKeyVal("materials", materials);
+				writer.writeKeyVal("readable", readable);
+				writer.writeKeyVal("vertexCount", vertexCount);
+				writer.writeKeyVal("colors", colors);
+				writer.writeKeyVal("verts", verts);
+				writer.writeKeyVal("normals", normals);
+				writer.writeKeyVal("uv0", uv0);
+				writer.writeKeyVal("uv1", uv1);
+				writer.writeKeyVal("uv2", uv2);
+				writer.writeKeyVal("uv3", uv3);
+				writer.writeKeyVal("subMeshCount", subMeshCount);
+				writer.beginKeyArray("subMeshes");
+				foreach(var curSubMesh in subMeshes){
+					curSubMesh.writeJsonValue(writer);
+				}
+				writer.endArray();
+				writer.endObject();			
+			}
 
 			public JsonMesh(Mesh mesh, Exporter exp){
 				id = exp.meshes.findId(mesh);

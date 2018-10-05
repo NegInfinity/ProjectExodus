@@ -11,6 +11,16 @@ namespace SceneExport{
 			public int lightmapIndex = -1;
 			public Vector4 lightmapScaleOffset = new Vector4(1.0f, 1.0f, 0.0f, 0.0f);
 			public List<int> materials = new List<int>();
+			
+			public void writeJsonValue(FastJsonWriter writer){
+				writer.beginObjectValue();
+				writer.writeKeyVal("lightmapIndex", lightmapIndex);
+				writer.writeKeyVal("shadowCastingMode", shadowCastingMode);
+				writer.writeKeyVal("lightmapScaleOffset", lightmapScaleOffset);
+				writer.writeKeyVal("materials", materials);
+				writer.writeKeyVal("receiveShadows", receiveShadows);
+				writer.endObject();
+			}
 		};
 		
 		public JsonRendererData[] makeRenderer(Renderer r){

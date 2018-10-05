@@ -15,6 +15,20 @@ namespace SceneExport{
 			public string renderMode;
 			public string shadows;
 			public float bounceIntensity = 0.0f;
+			
+			public void writeJsonValue(FastJsonWriter writer){
+				writer.beginObjectValue();
+				writer.writeKeyVal("bounceIntensity", bounceIntensity);
+				writer.writeKeyVal("color", color);
+				writer.writeKeyVal("intensity", intensity);
+				writer.writeKeyVal("range", range);
+				writer.writeKeyVal("renderMode", renderMode);
+				writer.writeKeyVal("shadows", shadows);
+				writer.writeKeyVal("shadowStrength", shadowStrength);
+				writer.writeKeyVal("spotAngle", spotAngle);
+				writer.writeKeyVal("type", type);
+				writer.endObject();
+			}
 		};
 		
 		public JsonLight[] makeLight(Light l){

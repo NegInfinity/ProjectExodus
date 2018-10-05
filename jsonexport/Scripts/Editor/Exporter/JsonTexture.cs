@@ -19,11 +19,33 @@ namespace SceneExport{
 			public bool alphaTransparency = false;
 			public float anisoLevel = 0.0f;
 			public string base64;
+			public bool importDataFound = false;
 			public bool sRGB = true;
 			public string textureType = "default";
 			public bool normalMapFlag = false;
 
-			public Texture textureRef = null;			
+			public Texture textureRef = null;
+			
+			public void writeJsonValue(FastJsonWriter writer){
+				writer.beginObjectValue();
+				writer.writeKeyVal("name", name);
+				writer.writeKeyVal("id", id);
+				writer.writeKeyVal("path", path);
+				writer.writeKeyVal("filterMode", filterMode);
+				writer.writeKeyVal("mipMapBias", mipMapBias);
+				writer.writeKeyVal("width", width);
+				writer.writeKeyVal("height", height);
+				writer.writeKeyVal("wrapMode", wrapMode);
+				writer.writeKeyVal("isTex2D", isTex2D);
+				writer.writeKeyVal("isRenderTarget", isRenderTarget);
+				writer.writeKeyVal("alphaTransparency", alphaTransparency);
+				writer.writeKeyVal("anisoLevel", anisoLevel);
+				writer.writeKeyVal("sRGB", sRGB);
+				writer.writeKeyVal("normalMapFlag", normalMapFlag);
+				writer.writeKeyVal("importDataFound", importDataFound);
+				writer.endObject();
+			}
+			
 			public JsonTexture(Texture tex, Exporter exp){
 				name = tex.name;
 				id = exp.textures.findId(tex);
@@ -47,6 +69,7 @@ namespace SceneExport{
 					anisoLevel = rendTarget.anisoLevel;
 				}
 				if (texImporter){
+					importDataFound = true;
 					sRGB = texImporter.sRGBTexture;
 					textureType = texImporter.textureType.ToString();
 					normalMapFlag = (texImporter.textureType == TextureImporterType.NormalMap);

@@ -46,6 +46,50 @@ namespace SceneExport{
 			public Color emissionColor = Color.black;
 			public float detailMapScale = 1.0f;
 			public float secondaryUv = 1.0f;
+			
+			public void writeJsonValue(FastJsonWriter writer){
+				writer.beginObjectValue();
+				writer.writeKeyVal("id", id);
+				writer.writeKeyVal("renderQueue", renderQueue);
+				writer.writeKeyVal("name", name);
+				writer.writeKeyVal("path", path);
+				writer.writeKeyVal("shader", shader);
+				//writer.writeKeyVal("renderType", cur.renderType);
+				writer.writeKeyVal("mainTexture", mainTexture);
+				writer.writeKeyVal("mainTextureOffset", mainTextureOffset);
+				writer.writeKeyVal("mainTextureScale", mainTextureScale);
+				writer.writeKeyVal("color", color);
+				writer.writeKeyVal("useNormalMap", useNormalMap);
+				writer.writeKeyVal("useAlphaTest", useAlphaTest);
+				writer.writeKeyVal("useAlphaBlend", useAlphaBlend);
+				writer.writeKeyVal("useAlphaPremultiply", useAlphaPremultiply);
+				writer.writeKeyVal("useEmission", useEmission);
+				writer.writeKeyVal("useParallax", useParallax);
+				writer.writeKeyVal("useDetailMap", useDetailMap);
+				writer.writeKeyVal("useMetallic", useMetallic);
+				writer.writeKeyVal("useSpecular", useSpecular);
+				writer.writeKeyVal("albedoTex", albedoTex);
+				writer.writeKeyVal("specularTex", specularTex);
+				writer.writeKeyVal("metallicTex", metallicTex);
+				writer.writeKeyVal("normalMapTex", normalMapTex);
+				writer.writeKeyVal("occlusionTex", occlusionTex);
+				writer.writeKeyVal("parallaxTex", parallaxTex);
+				writer.writeKeyVal("emissionTex", emissionTex);
+				writer.writeKeyVal("detailMaskTex", detailMaskTex);
+				writer.writeKeyVal("detailAlbedoTex", detailAlbedoTex);
+				writer.writeKeyVal("detailNormalMapTex", detailNormalMapTex);
+				writer.writeKeyVal("alphaCutoff", alphaCutoff);
+				writer.writeKeyVal("smoothness", smoothness);
+				writer.writeKeyVal("specularColor", specularColor);
+				writer.writeKeyVal("metallic", metallic);
+				writer.writeKeyVal("bumpScale", bumpScale);
+				writer.writeKeyVal("parallaxScale", parallaxScale);
+				writer.writeKeyVal("occlusionStrength", occlusionStrength);
+				writer.writeKeyVal("emissionColor", emissionColor);
+				writer.writeKeyVal("detailMapScale", detailMapScale);
+				writer.writeKeyVal("secondaryUv", secondaryUv);
+				writer.endObject();			
+			}
 
 			public JsonMaterial(Material mat, Exporter exp){
 				name = mat.name;

@@ -29,6 +29,46 @@ namespace SceneExport{
 			public bool nameClash = false;
 			public string uniqueName = "";
 			
+			public void writeJsonValue(FastJsonWriter writer){
+				writer.beginObjectValue();
+				writer.writeKeyVal("name", name);
+				writer.writeKeyVal("instanceId", instanceId);
+				writer.writeKeyVal("id", id);
+				writer.writeKeyVal("localPosition", localPosition);
+				writer.writeKeyVal("localRotation", localRotation);
+				writer.writeKeyVal("localScale", localScale);
+				writer.writeKeyVal("worldMatrix", worldMatrix);
+				writer.writeKeyVal("localMatrix", localMatrix);
+				writer.writeKeyVal("children", children);
+				writer.writeKeyVal("parent", parent);
+				writer.writeKeyVal("mesh", mesh);
+				writer.writeKeyVal("isStatic", isStatic);
+				writer.writeKeyVal("lightMapStatic", lightMapStatic);
+				writer.writeKeyVal("navigationStatic", navigationStatic);
+				writer.writeKeyVal("occluderStatic", occluderStatic);
+				writer.writeKeyVal("occludeeStatic", occludeeStatic);
+				writer.writeKeyVal("reflectionProbeStatic", reflectionProbeStatic);
+					
+				writer.writeKeyVal("nameClash", nameClash);
+				writer.writeKeyVal("uniqueName", uniqueName);
+				
+				writer.beginKeyArray("renderer");
+				if (renderer != null){
+					foreach(var r in renderer){
+						r.writeJsonValue(writer);
+					}
+				}
+				writer.endArray();
+				writer.beginKeyArray("light");
+				if (light != null){
+					foreach(var l in light){
+						l.writeJsonValue(writer);
+					}
+				}
+				writer.endArray();
+				writer.endObject();
+			}
+			
 			public JsonGameObject(GameObject obj, Exporter exp){
 				name = obj.name;
 				instanceId = obj.GetInstanceID();
