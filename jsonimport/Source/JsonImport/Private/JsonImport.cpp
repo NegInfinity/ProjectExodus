@@ -606,6 +606,9 @@ void JsonImporter::importObject(JsonObjPtr obj, int32 objId){
 	GETPARAM(navigationStatic, getBool)
 	GETPARAM(occluderStatic, getBool)
 	GETPARAM(occludeeStatic, getBool)
+
+	GETPARAM(nameClash, getBool)
+	GETPARAM(uniqueName, getString)
 	//renderer
 	//light
 #undef GETPARAM
@@ -614,6 +617,13 @@ void JsonImporter::importObject(JsonObjPtr obj, int32 objId){
 	auto lightArray = obj->GetArrayField("light");
 
 	FString folderPath;
+
+	if (nameClash && (uniqueName.Len() > 0)){
+		UE_LOG(JsonLog, Warning, TEXT("Name clash detected on object %d: %s. Renaming to %s"), 
+			id, *name, *uniqueName);		
+		name = uniqueName;
+	}
+
 	FString curFolderPath = name;
 	if (parentId >= 0){
 		const FString* found = objectFolderPaths.Find(parentId);
@@ -622,7 +632,7 @@ void JsonImporter::importObject(JsonObjPtr obj, int32 objId){
 			curFolderPath = folderPath + "/" + name;
 		}
 		else{
-			UE_LOG(JsonLog, Log, TEXT("Object parent not found, folder path may be invalid"));
+			UE_LOG(JsonLog, Warning, TEXT("Object parent not found, folder path may be invalid"));
 		}
 	}
 	UE_LOG(JsonLog, Log, TEXT("Folder path for object: %d: %s"), id, *folderPath);
@@ -1423,17 +1433,28 @@ void JsonImporter::importTexture(JsonObjPtr obj, const FString &rootPath){
 	auto width = getInt(obj, "width");
 	auto height = getInt(obj, "height");
 	auto wrapMode = getString(obj, "wrapMode");
+	auto sRGB = getBool(obj, "sRGB");
+	auto normalMapFlag = getBool(obj, "normalMapFlag");
+	auto importDataFound = getBool(obj, "importDataFound");
+
 	//isTex2D, isRenderTarget, alphaTransparency, anisoLevel
 
 	UE_LOG(JsonLog, Log, TEXT("Texture: %s, %s, %d x %d"), *filename, *name, width, height);
 
-	bool isNormalMap = name.EndsWith(FString("_n")) || name.EndsWith(FString("Normals"));
+	bool isNormalMap = false;//name.EndsWith(FString("_n")) || name.EndsWith(FString("Normals"));
+	
+	if (importDataFound && normalMapFlag){
+		isNormalMap = true;
+	}
+	else{
+		isNormalMap = name.EndsWith(FString("_n")) || name.EndsWith(FString("Normals"));
+	}
+
 	if (isNormalMap){
 		UE_LOG(JsonLog, Log, TEXT("Texture recognized as normalmap: %s(%s)"), *name, *filename);
 	}
 
 	UTexture* existingTexture = 0;
-	//auto fileSystemPath = FPaths::Combine(*rootPath, *filename);
 	FString ext = FPaths::GetExtension(filename);
 	UE_LOG(JsonLog, Log, TEXT("filename: %s, ext: %s, assetRootPath: %s"), *filename, *ext, *rootPath);
 
