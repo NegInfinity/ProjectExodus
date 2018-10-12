@@ -29,6 +29,9 @@
 
 #define LOCTEXT_NAMESPACE "FJsonImportModule"
 
+void JsonImporter::importProject(const FString& filename){
+}
+
 void JsonImporter::importScene(const FString& filename){
 	assetRootPath = FPaths::GetPath(filename);
 	sourceBaseName = FPaths::GetBaseFilename(filename);
