@@ -1,10 +1,10 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEditor;
 using System.Collections.Generic;
 
 namespace SceneExport{
 	[System.Serializable]
-	public class JsonMaterial{
+	public class JsonMaterial: IFastJsonValue{
 		public int id = -1;
 		public int renderQueue = 0;
 		public string name;
@@ -52,8 +52,8 @@ namespace SceneExport{
 		public float detailMapScale = 1.0f;
 		public float secondaryUv = 1.0f;
 			
-		public void writeJsonValue(FastJsonWriter writer){
-			writer.beginObjectValue();
+		public void writeRawJsonValue(FastJsonWriter writer){
+			writer.beginRawObject();
 			writer.writeKeyVal("id", id);
 			writer.writeKeyVal("renderQueue", renderQueue);
 			writer.writeKeyVal("name", name);
@@ -102,15 +102,15 @@ namespace SceneExport{
 			writer.endObject();			
 		}
 
-		public JsonMaterial(Material mat, Exporter exp){
+		public JsonMaterial(Material mat, ResourceMapper resMap){
 			name = mat.name;
 			//TODO: Further investigation shows that this is likely going to return -1 for all new materials.
-			id = exp.findMaterialId(mat);//exp.materials.findId(mat);
+			id = resMap.findMaterialId(mat);//exp.materials.findId(mat);
 			renderQueue = mat.renderQueue;
 			var path = AssetDatabase.GetAssetPath(mat);
 			this.path = path;
 			shader = mat.shader.name;
-			mainTexture = exp.getTextureId(mat.mainTexture);
+			mainTexture = resMap.getTextureId(mat.mainTexture);
 			mainTextureOffset = mat.mainTextureOffset;
 			mainTextureScale = mat.mainTextureScale;
 			color = mat.color;
@@ -129,7 +129,7 @@ namespace SceneExport{
 			System.Func<string, int> getTexId = (texName) => {
 				if (!mat.HasProperty(texName))
 					return -1;
-				return exp.getTextureId(mat.GetTexture(texName));
+				return resMap.getTextureId(mat.GetTexture(texName));
 			};
 			System.Func<string, float, float> getFloat = (paramName, defaultVal) => {
 				if (!mat.HasProperty(paramName))

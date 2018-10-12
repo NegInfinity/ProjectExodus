@@ -356,6 +356,7 @@ public class ExporterWindow: EditorWindow{
 	void processExportProgress(){
 	}
 	
+	/*
 	IEnumerator waitCoroutine(float seconds){
 		var launchTime = Time.realtimeSinceStartup;//Time.time;
 		while(true){
@@ -378,6 +379,13 @@ public class ExporterWindow: EditorWindow{
 		}
 	}
 	
+	void processTestCoroutine(){
+		if (GUILayout.Button("Launch coroutine")){
+			EditorCoroutine.startCoroutine(testCoroutine());
+		}
+	}
+	*/
+	
 	void OnGUI(){
 		initGuiStyles();
 		
@@ -398,9 +406,7 @@ public class ExporterWindow: EditorWindow{
 		processExportProgress();
 		processCloseButton();	
 		
-		if (GUILayout.Button("Launch coroutine")){
-			EditorCoroutine.startCoroutine(testCoroutine());
-		}
+		//processTestCoroutine();
 		
 		GUILayout.EndVertical();
 		EditorGUILayout.EndScrollView();

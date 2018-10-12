@@ -1,10 +1,10 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEditor;
 using System.Collections.Generic;
 
 namespace SceneExport{
 	[System.Serializable]
-	public class JsonTexture{		
+	public class JsonTexture: IFastJsonValue{		
 		public string name;
 		public int id = -1;
 		public string path;
@@ -25,8 +25,8 @@ namespace SceneExport{
 
 		public Texture textureRef = null;
 			
-		public void writeJsonValue(FastJsonWriter writer){
-			writer.beginObjectValue();
+		public void writeRawJsonValue(FastJsonWriter writer){
+			writer.beginRawObject();
 			writer.writeKeyVal("name", name);
 			writer.writeKeyVal("id", id);
 			writer.writeKeyVal("path", path);
@@ -45,11 +45,11 @@ namespace SceneExport{
 			writer.endObject();
 		}
 			
-		public JsonTexture(Texture tex, Exporter exp){
+		public JsonTexture(Texture tex, ResourceMapper resMap){
 			name = tex.name;
-			id = exp.findTextureId(tex);//exp.textures.findId(tex);
+			id = resMap.findTextureId(tex);//exp.textures.findId(tex);
 			var assetPath = AssetDatabase.GetAssetPath(tex);
-			exp.registerResource(assetPath);
+			resMap.registerResource(assetPath);
 			path = assetPath;
 			filterMode = tex.filterMode.ToString();
 			width = tex.width;

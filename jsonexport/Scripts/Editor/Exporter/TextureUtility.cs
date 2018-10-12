@@ -1,8 +1,77 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SceneExport{
 	public static class TextureUtility{	
+		static readonly string[] supportedTexExtensions = new string[]{".bmp", ".float", ".pcx", ".png", 
+			".psd", ".tga", ".jpg", ".jpeg", ".exr", ".dds", ".hdr"};
+		
+		static bool isSupportedTexExtension(string ext){
+			return supportedTexExtensions.Contains(ext);
+		}
+		
+		public static void copyTexture(JsonTexture jsonTex, string targetDir, string projectDir){
+			var texPath = jsonTex.path;
+			var ext = System.IO.Path.GetExtension(texPath).ToLower();
+			//Debug.LogFormat("Tex {0}, ext {1}", texPath, ext);
+			var srcPath = System.IO.Path.Combine(projectDir, texPath);//TODO: The asset can be elswhere.
+				
+			bool supportedFile = isSupportedTexExtension(ext);
+			if (!supportedFile){
+				Debug.LogWarningFormat("Unsupported extension: \"{0}\" in texture \"{1}\"\nPNG conversion will be attempted.", ext, texPath);
+			}
+			bool exists = System.IO.File.Exists(srcPath);
+				
+			var dstPath = System.IO.Path.Combine(targetDir, texPath);
+			var dstDir = System.IO.Path.GetDirectoryName(dstPath);
+			System.IO.Directory.CreateDirectory(dstDir);
+				
+			if (exists){
+				if (supportedFile){
+					System.IO.File.Copy(srcPath, dstPath, true);
+					return;
+				}
+				else{
+					var unsupportedPath = System.IO.Path.Combine(targetDir, "!Unsupported!");
+					unsupportedPath = System.IO.Path.Combine(unsupportedPath, texPath);
+					System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(unsupportedPath));
+					//System.IO.File.Copy(srcPath, dstPath, true);					
+					System.IO.File.Copy(srcPath, unsupportedPath, true);					
+				}
+			}
+			else{
+				Debug.LogWarningFormat("Asset {0} not found on disk, attempting recovery from texture data", srcPath);	
+			}
+				
+			bool useExr = false;
+			var formatExt = useExr ? ".exr" : ".png";
+			Debug.LogWarningFormat("Attempting to write image data in {1} format for: {0}\nData Loss possible.", texPath, formatExt);
+			var tex2D = (Texture2D)(jsonTex.textureRef);
+			if (!tex2D){
+				Debug.LogWarningFormat("Not a 2d texture: {0}", texPath);
+				return;
+			}
+				
+			var savePath = System.IO.Path.ChangeExtension(dstPath, formatExt);
+			/*
+			bool encodeSuccessful = true;
+			try{
+				var bytes = useExr ? tex2D.EncodeToEXR() : tex2D.EncodeToPNG();
+				Utility.saveBytesToFile(savePath, bytes);				
+			}
+			catch(System.Exception e){
+				Debug.LogWarningFormat("Normal saving failed for {0}. Exception message: {1}", jsonTex.path, e.Message);
+				encodeSuccessful = false;
+			}
+				
+			if (encodeSuccessful)
+				return;*/
+			
+			TextureUtility.saveReadOnlyTexture(savePath, tex2D, jsonTex, useExr);
+		}
+			
+	
 		/*
 		Have to do it the hard way, unless we implement tiff reader in C#.
 		*/

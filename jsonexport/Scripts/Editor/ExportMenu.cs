@@ -5,6 +5,21 @@ using UnityEditor.SceneManagement;
 
 namespace SceneExport{
 	public class ExportMenu /*: MonoBehaviour*/{	
+		[MenuItem("GameObject/Scene Export/Export current scene (project)", false, 0)]
+		public static void  exportJsonSceneProj(MenuCommand menuCommand){
+			var scene = EditorSceneManager.GetActiveScene();
+			if (!scene.IsValid()){
+				Debug.LogWarningFormat("No active scene, cannot export.");
+			}
+			
+			var path = EditorUtility.SaveFilePanel("Save category config", "", scene.name, "json");
+			if (path == string.Empty)
+				return;
+				
+			var proj = JsonProject.fromScene(scene);
+			proj.saveToFile(path, true);
+		}
+		
 		[MenuItem("GameObject/Scene Export/Export current scene", false, 0)]
 		public static void  exportJsonScene(MenuCommand menuCommand){
 			var scene = EditorSceneManager.GetActiveScene();
@@ -17,7 +32,8 @@ namespace SceneExport{
 				return;
 			var exporter = new Exporter();
 
-			var jsonObj = exporter.exportScene(scene);
+			var resCollector = new ResourceMapper();
+			var jsonObj = exporter.exportScene(scene, resCollector);
 			jsonObj.saveToFile(path, true);
 		}
 		
@@ -43,7 +59,8 @@ namespace SceneExport{
 				return;
 			var exporter = new Exporter();
 
-			var jsonObj = exporter.exportObjects(objects.ToArray());
+			var resCollector = new ResourceMapper();
+			var jsonObj = exporter.exportObjects(objects.ToArray(), resCollector);
 			jsonObj.saveToFile(path, true);
 		}
 
@@ -57,7 +74,8 @@ namespace SceneExport{
 				return;
 			var exporter = new Exporter();
 
-			var jsonObj = exporter.exportOneObject(obj);
+			var resCollector = new ResourceMapper();
+			var jsonObj = exporter.exportOneObject(obj, resCollector);
 			jsonObj.saveToFile(path, true);
 		}
 	}

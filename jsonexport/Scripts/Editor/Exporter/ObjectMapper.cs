@@ -9,20 +9,21 @@ namespace SceneExport{
 		public List<Resource> objectList = new List<Resource>();
 			
 		public int findId(Resource obj){
-			int result = -1;
-			if (Object.Equals(obj, null))
-				return result;
-			if (objectMap.TryGetValue(obj, out result))
-				return result;
-			return -1;
+			return getId(obj, false, null);
+		}
+		
+		public int getId(Resource obj){
+			return getId(obj, true, null);
 		}
 
-		public int getId(Resource obj, OnNewObjectAdded onAddCallback = null){
+		public int getId(Resource obj, bool createMissing, OnNewObjectAdded onAddCallback = null){
 			int result = -1;
 			if (Object.Equals(obj, null))
 				return result;
 			if (objectMap.TryGetValue(obj, out result))
 				return result;
+			if (!createMissing)
+				return -1;
 			result = nextId;
 			objectMap[obj] = result;
 			objectList.Add(obj);

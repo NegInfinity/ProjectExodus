@@ -2,13 +2,13 @@
 using System.Collections.Generic;
 
 namespace SceneExport{
-	public class ResourceIdMaper{
-		ObjectMapper<GameObject> objects = new ObjectMapper<GameObject>();
-		ObjectMapper<Texture> textures = new ObjectMapper<Texture>();
-		ObjectMapper<Mesh> meshes = new ObjectMapper<Mesh>();
-		ObjectMapper<Material> materials = new ObjectMapper<Material>();
+	public class ResourceMapper{
+		public ObjectMapper<GameObject> objects = new ObjectMapper<GameObject>();
+		public ObjectMapper<Texture> textures = new ObjectMapper<Texture>();
+		public ObjectMapper<Mesh> meshes = new ObjectMapper<Mesh>();
+		public ObjectMapper<Material> materials = new ObjectMapper<Material>();
 		Dictionary<Mesh, List<Material>> meshMaterials = new Dictionary<Mesh, List<Material>>();
-		HashSet<string> resources = new HashSet<string>();
+		public HashSet<string> resources = new HashSet<string>();
 		
 		public List<Material> findMeshMaterials(Mesh mesh){
 			List<Material> result = null;
@@ -18,35 +18,35 @@ namespace SceneExport{
 		}
 
 		public int getObjectId(GameObject obj){
-			return objects.getId(obj);
+			return objects.getId(obj, true);
 		}
 
 		public int findObjectId(GameObject obj){
-			return objects.findId(obj);
+			return objects.getId(obj, false);
 		}
 
 		public int getTextureId(Texture tex){
-			return textures.getId(tex);
+			return textures.getId(tex, true);
 		}
 		
 		public int findTextureId(Texture tex){
-			return textures.findId(tex);
+			return textures.getId(tex, false);
 		}
 
 		public int getMeshId(Mesh obj){
-			return meshes.getId(obj);
+			return meshes.getId(obj, true);
 		}
 		
 		public int findMeshId(Mesh obj){
-			return meshes.findId(obj);
+			return meshes.getId(obj, false);
 		}
 
 		public int getMaterialId(Material obj){
-			return materials.getId(obj);
+			return materials.getId(obj, true);
 		}
 		
 		public int findMaterialId(Material obj){
-			return materials.findId(obj);
+			return materials.getId(obj, false);
 		}
 
 		public void registerResource(string path){
@@ -60,7 +60,7 @@ namespace SceneExport{
 				return result;
 
 			var mesh = meshFilter.sharedMesh;
-			result = meshes.getId(mesh);
+			result = meshes.getId(mesh, true, null);
 
 			if (meshMaterials.ContainsKey(mesh))
 				return result;
@@ -70,27 +70,10 @@ namespace SceneExport{
 			}
 			return result;
 		}
-
-		/*		
-		public JsonScene exportScene(Scene scene){
-			var rootObjects = scene.GetRootGameObjects();
-			return exportObjects(rootObjects);
-		}
 		
-		public JsonScene exportObjects(GameObject[] args){
-			var result = new JsonScene();
-			foreach(var cur in args){
-				if (!cur)
-					continue;
-				objects.getId(cur);
-			}
+		public JsonResourceList makeResourceList(){
+			var result = new JsonResourceList();
 			
-			for(int i = 0; i < objects.objectList.Count; i++){
-				result.objects.Add(new JsonGameObject(objects.objectList[i], this));
-			}
-			
-			result.fixNameClashes();
-
 			foreach(var cur in meshes.objectList){
 				result.meshes.Add(new JsonMesh(cur, this));
 			}
@@ -105,13 +88,8 @@ namespace SceneExport{
 
 			result.resources = new List<string>(resources);
 			result.resources.Sort();
-
+			
 			return result;
 		}
-
-		public JsonScene exportOneObject(GameObject obj){
-			return exportObjects(new GameObject[]{obj});
-		}
-		*/
 	}
 }

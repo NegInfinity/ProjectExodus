@@ -2,6 +2,7 @@
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SceneExport{
 	public class EditorCoroutine{
@@ -11,21 +12,37 @@ namespace SceneExport{
 			return (routineData == null) || routineData.Count == 0;
 		}
 		
+		public static void unrollCoroutine(IEnumerator e){
+			if (e == null)
+				return;
+			while(e.MoveNext()){
+				object cur = e.Current;
+				var child = cur as IEnumerator;
+				if (child != null)
+					unrollCoroutine(child);
+			}
+		}
+		
 		bool update(){
 			if (isFinished())
 				return false;
-			var top = routineData.Peek();
-			if (!top.MoveNext()){
-				routineData.Pop();
-			}
-			else{
-				var cur = top.Current;
-				IEnumerator child = cur as IEnumerator;
-				if (child != null){
-					routineData.Push(child);
+			while(routineData.Count > 0){
+				var top = routineData.Peek();
+				if (!top.MoveNext()){
+					routineData.Pop();
+					continue;
 				}
+				else{
+					var cur = top.Current;
+					IEnumerator child = cur as IEnumerator;
+					if (child != null){
+						routineData.Push(child);
+						continue;
+					}
+				}
+				break;
 			}
-			return true;
+			return isFinished();//true;
 		}
 		
 		EditorCoroutine(IEnumerator e){

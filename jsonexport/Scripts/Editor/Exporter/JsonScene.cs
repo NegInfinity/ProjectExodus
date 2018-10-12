@@ -2,81 +2,42 @@
 using UnityEditor;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine.SceneManagement;
 
 namespace SceneExport{
 	[System.Serializable]
-	public class JsonScene{
+	public class JsonScene: IFastJsonValue{
 		public List<JsonGameObject> objects = new List<JsonGameObject>();
 		public List<JsonMaterial> materials = new List<JsonMaterial>();
 		public List<JsonMesh> meshes = new List<JsonMesh>();
 		public List<JsonTexture> textures = new List<JsonTexture>();
 		public List<string> resources = new List<string>();
 			
-		static readonly string[] supportedTexExtensions = new string[]{".bmp", ".float", ".pcx", ".png", 
-			".psd", ".tga", ".jpg", ".jpeg", ".exr", ".dds", ".hdr"};
-		
-		bool isSupportedTexExtension(string ext){
-			return supportedTexExtensions.Contains(ext);
+		public static JsonScene fromScene(Scene scene, ResourceMapper resMap){
+			var rootObjects = scene.GetRootGameObjects();
+			return fromObjects(rootObjects, resMap);
 		}
+		
+		public static JsonScene fromObject(GameObject arg, ResourceMapper resMap){
+			return fromObjects(new GameObject[]{arg}, resMap);
+		}
+		
+		public static JsonScene fromObjects(GameObject[] args, ResourceMapper resMap){
+			var result = new JsonScene();
 			
-		void copyTexture(JsonTexture jsonTex, string targetDir, string projectDir){
-			var texPath = jsonTex.path;
-			var ext = System.IO.Path.GetExtension(texPath).ToLower();
-			//Debug.LogFormat("Tex {0}, ext {1}", texPath, ext);
-			var srcPath = System.IO.Path.Combine(projectDir, texPath);//TODO: The asset can be elswhere.
-				
-			bool supportedFile = isSupportedTexExtension(ext);
-			if (!supportedFile){
-				Debug.LogWarningFormat("Unsupported extension: \"{0}\" in texture \"{1}\"\nPNG conversion will be attempted.", ext, texPath);
+			foreach(var cur in args){
+				if (!cur)
+					continue;
+				resMap.getObjectId(cur);
 			}
-			bool exists = System.IO.File.Exists(srcPath);
-				
-			var dstPath = System.IO.Path.Combine(targetDir, texPath);
-			var dstDir = System.IO.Path.GetDirectoryName(dstPath);
-			System.IO.Directory.CreateDirectory(dstDir);
-				
-			if (exists){
-				if (supportedFile){
-					System.IO.File.Copy(srcPath, dstPath, true);
-					return;
-				}
-				else{
-					var unsupportedPath = System.IO.Path.Combine(targetDir, "!Unsupported!");
-					unsupportedPath = System.IO.Path.Combine(unsupportedPath, texPath);
-					System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(unsupportedPath));
-					//System.IO.File.Copy(srcPath, dstPath, true);					
-					System.IO.File.Copy(srcPath, unsupportedPath, true);					
-				}
-			}
-			else{
-				Debug.LogWarningFormat("Asset {0} not found on disk, attempting recovery from texture data", srcPath);	
-			}
-				
-			bool useExr = false;
-			var formatExt = useExr ? ".exr" : ".png";
-			Debug.LogWarningFormat("Attempting to write image data in {1} format for: {0}\nData Loss possible.", texPath, formatExt);
-			var tex2D = (Texture2D)(jsonTex.textureRef);
-			if (!tex2D){
-				Debug.LogWarningFormat("Not a 2d texture: {0}", texPath);
-				return;
-			}
-				
-			var savePath = System.IO.Path.ChangeExtension(dstPath, formatExt);
-			/*
-			bool encodeSuccessful = true;
-			try{
-				var bytes = useExr ? tex2D.EncodeToEXR() : tex2D.EncodeToPNG();
-				Utility.saveBytesToFile(savePath, bytes);				
-			}
-			catch(System.Exception e){
-				Debug.LogWarningFormat("Normal saving failed for {0}. Exception message: {1}", jsonTex.path, e.Message);
-				encodeSuccessful = false;
-			}
-				
-			if (encodeSuccessful)
-				return;*/
 			
-			TextureUtility.saveReadOnlyTexture(savePath, tex2D, jsonTex, useExr);
+			for(int i = 0; i < resMap.objects.objectList.Count; i++){
+				/*TODO: This is very awkward, as constructor adds more data to the exporter
+				Should be split into two methods.*/
+				result.objects.Add(new JsonGameObject(resMap.objects.objectList[i], resMap));
+			}
+			
+			return result;
 		}
 			
 		void saveResources(string baseFilename){
@@ -97,7 +58,7 @@ namespace SceneExport{
 			}
 				
 			foreach(var curTex in textures){
-				copyTexture(curTex, targetDir, projectPath);
+				TextureUtility.copyTexture(curTex, targetDir, projectPath);
 			}
 		}
 			
@@ -108,44 +69,63 @@ namespace SceneExport{
 			saveResources(filename);
 		}
 			
-		public void writeJsonValueBody(FastJsonWriter writer){
+		public void writeJsonObjectFields(FastJsonWriter writer){
+			writer.writeKeyVal("objects", objects);
+			/*
 			writer.beginKeyArray("objects");
 			foreach(var cur in objects){
-				cur.writeJsonValue(writer);
+				writer.writeValue(cur);
+				//cur.writeRawJsonValue(writer);
 			}
 			writer.endArray();
+			*/
+			writer.writeKeyVal("materials", materials);
+			/*
 			writer.beginKeyArray("materials");
 			foreach(var cur in materials){
-				cur.writeJsonValue(writer);
+				writer.writeValue(cur);
+				//cur.writeRawJsonValue(writer);
 			}
 			writer.endArray();
+			*/
+			writer.writeKeyVal("meshes", meshes);
+			/*
 			writer.beginKeyArray("meshes");
 			foreach(var cur in meshes){
-				cur.writeJsonValue(writer);
+				writer.writeValue(cur);
+				//cur.writeRawJsonValue(writer);
 			}
 			writer.endArray();
+			*/
+			writer.writeKeyVal("textures", textures);
+			/*
 			writer.beginKeyArray("textures");
 			foreach(var cur in textures){
-				cur.writeJsonValue(writer);
+				writer.writeValue(cur);
+				//cur.writeRawJsonValue(writer);
 			}
 			writer.endArray();
+			*/
+			writer.writeKeyVal("resources", resources);
+			/*
 			writer.beginKeyArray("resources");
 			foreach(var cur in resources){
 				writer.writeValue(cur);
 			}
 			writer.endArray();
+			*/
 		}
 			
-		public void writeJsonValue(FastJsonWriter writer){
-			writer.beginObjectValue();
-			writeJsonValueBody(writer);
+		public void writeRawJsonValue(FastJsonWriter writer){
+			writer.beginRawObject();
+			writeJsonObjectFields(writer);
 			writer.endObject();
 		}
 
 		public string toJsonString(){
 			FastJsonWriter writer = new FastJsonWriter();
 			writer.beginDocument();
-			writeJsonValueBody(writer);
+			writeJsonObjectFields(writer);
 			writer.endDocument();
 			return writer.getString();
 		}

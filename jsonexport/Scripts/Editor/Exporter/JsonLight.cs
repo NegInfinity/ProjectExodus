@@ -1,10 +1,10 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEditor;
 using System.Collections.Generic;
 
 namespace SceneExport{
 	[System.Serializable]
-	public class JsonLight{
+	public class JsonLight: IFastJsonValue{
 		public Color color = Color.white;
 		public float range = 0.0f;
 		public float spotAngle = 0.0f;
@@ -15,8 +15,8 @@ namespace SceneExport{
 		public string shadows;
 		public float bounceIntensity = 0.0f;
 			
-		public void writeJsonValue(FastJsonWriter writer){
-			writer.beginObjectValue();
+		public void writeRawJsonValue(FastJsonWriter writer){
+			writer.beginRawObject();
 			writer.writeKeyVal("bounceIntensity", bounceIntensity);
 			writer.writeKeyVal("color", color);
 			writer.writeKeyVal("intensity", intensity);
@@ -29,6 +29,13 @@ namespace SceneExport{
 			writer.endObject();
 		}
 		
+		public static JsonLight[] makeLightArray(Light l){
+			if (!l)
+				return null;
+			var result = new JsonLight(l);
+			return new JsonLight[]{result};
+		}
+		
 		public JsonLight(Light l){
 			color  = l.color;
 			range = l.range;
@@ -39,24 +46,5 @@ namespace SceneExport{
 			shadows = l.shadows.ToString();
 			intensity = l.intensity;
 		}
-	};
-	
-	public partial class Exporter{		
-		public JsonLight[] makeLight(Light l){
-			if (!l)
-				return null;
-			var result = new JsonLight(l);
-			/*
-			result.color  = l.color;
-			result.range = l.range;
-			result.spotAngle = l.spotAngle;
-			result.type = l.type.ToString();
-			result.renderMode = l.renderMode.ToString();
-			result.shadowStrength = l.shadowStrength;
-			result.shadows = l.shadows.ToString();
-			result.intensity = l.intensity;
-			*/
-			return new JsonLight[]{result};
-		}
-	}
+	};	
 }

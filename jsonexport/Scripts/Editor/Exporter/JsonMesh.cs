@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace SceneExport{
 	[System.Serializable]
-	public class JsonMesh{
+	public class JsonMesh: IFastJsonValue{
 		public int id = -1;
 		public string name;
 		public string path;
@@ -21,10 +21,10 @@ namespace SceneExport{
 		public float[] uv3 = null;
 
 		[System.Serializable]
-		public class SubMesh{
+		public class SubMesh: IFastJsonValue{
 			public int[] triangles = null;//new int[0];
-			public void writeJsonValue(FastJsonWriter writer){
-				writer.beginObjectValue();
+			public void writeRawJsonValue(FastJsonWriter writer){
+				writer.beginRawObject();
 				writer.writeKeyVal("triangles", triangles);
 				writer.endObject();
 			}
@@ -33,8 +33,8 @@ namespace SceneExport{
 		public List<SubMesh> subMeshes = new List<SubMesh>();
 		public int subMeshCount = 0;
 			
-		public void writeJsonValue(FastJsonWriter writer){
-			writer.beginObjectValue();
+		public void writeRawJsonValue(FastJsonWriter writer){
+			writer.beginRawObject();
 			writer.writeKeyVal("name", name);
 			writer.writeKeyVal("id", id);
 			writer.writeKeyVal("path", path);
@@ -49,15 +49,19 @@ namespace SceneExport{
 			writer.writeKeyVal("uv2", uv2);
 			writer.writeKeyVal("uv3", uv3);
 			writer.writeKeyVal("subMeshCount", subMeshCount);
+			/*
 			writer.beginKeyArray("subMeshes");
 			foreach(var curSubMesh in subMeshes){
 				curSubMesh.writeJsonValue(writer);
 			}
 			writer.endArray();
+			*/
+			writer.writeKeyVal("subMeshes", subMeshes);
+			//writer.writeKeyArray("subMeshes", subMeshes);
 			writer.endObject();			
 		}
 
-		public JsonMesh(Mesh mesh, Exporter exp){
+		public JsonMesh(Mesh mesh, ResourceMapper exp){
 			id = exp.findMeshId(mesh);//exp.meshes.findId(mesh);
 			name = mesh.name;
 			//Debug.LogFormat("Processing mesh {0}", name);

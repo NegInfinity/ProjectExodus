@@ -1,10 +1,10 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEditor;
 using System.Collections.Generic;
 
 namespace SceneExport{
 	[System.Serializable]
-	public class JsonGameObject{
+	public class JsonGameObject: IFastJsonValue{
 		public string name;
 		public int instanceId = -1;
 		public int id = -1;
@@ -28,8 +28,8 @@ namespace SceneExport{
 		public bool nameClash = false;
 		public string uniqueName = "";
 			
-		public void writeJsonValue(FastJsonWriter writer){
-			writer.beginObjectValue();
+		public void writeRawJsonValue(FastJsonWriter writer){
+			writer.beginRawObject();
 			writer.writeKeyVal("name", name);
 			writer.writeKeyVal("instanceId", instanceId);
 			writer.writeKeyVal("id", id);
@@ -51,27 +51,35 @@ namespace SceneExport{
 			writer.writeKeyVal("nameClash", nameClash);
 			writer.writeKeyVal("uniqueName", uniqueName);
 				
+			/*
 			writer.beginKeyArray("renderer");
 			if (renderer != null){
 				foreach(var r in renderer){
-					r.writeJsonValue(writer);
+					writer.writeValue(r);
+					//r.writeRawJsonValue(writer);
 				}
 			}
 			writer.endArray();
+			*/
+			writer.writeKeyVal("renderer", renderer);
+			writer.writeKeyVal("light", light);
+			/*
 			writer.beginKeyArray("light");
 			if (light != null){
 				foreach(var l in light){
-					l.writeJsonValue(writer);
+					writer.writeValue(l);
+					//l.writeRawJsonValue(writer);
 				}
 			}
 			writer.endArray();
+			*/
 			writer.endObject();
 		}
 			
-		public JsonGameObject(GameObject obj, Exporter exp){
+		public JsonGameObject(GameObject obj, ResourceMapper resMap){
 			name = obj.name;
 			instanceId = obj.GetInstanceID();
-			id = exp.getObjectId(obj);
+			id = resMap.getObjectId(obj);
 			localPosition = obj.transform.localPosition;
 			localRotation = obj.transform.localRotation;
 			localScale = obj.transform.localScale;
@@ -89,16 +97,17 @@ namespace SceneExport{
 			if (obj.transform.parent){
 				localMatrix = obj.transform.parent.worldToLocalMatrix * localMatrix;
 			}
-			renderer = exp.makeRenderer(obj.GetComponent<Renderer>());
-			light = exp.makeLight(obj.GetComponent<Light>());
+			renderer = JsonRendererData.makeRendererArray(obj.GetComponent<Renderer>(), resMap);
+			//light = exp.makeLight(obj.GetComponent<Light>());
+			light = JsonLight.makeLightArray(obj.GetComponent<Light>());
 
-			mesh = exp.getMeshId(obj);
+			mesh = resMap.getMeshId(obj);
 
 			foreach(Transform curChild in obj.transform){
-				children.Add(exp.getObjectId(curChild.gameObject));
+				children.Add(resMap.getObjectId(curChild.gameObject));
 			}
 			if (obj.transform.parent)
-				parent = exp.findObjectId(obj.transform.parent.gameObject);
+				parent = resMap.findObjectId(obj.transform.parent.gameObject);
 		}
 	}
 }
