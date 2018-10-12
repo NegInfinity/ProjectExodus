@@ -3,79 +3,77 @@ using UnityEditor;
 using System.Collections.Generic;
 
 namespace SceneExport{
-	public partial class Exporter{
-		[System.Serializable]
-		public class JsonTexture{		
-			public string name;
-			public int id = -1;
-			public string path;
-			public string filterMode;
-			public float mipMapBias = 0.0f;
-			public int width = 0;
-			public int height = 0;
-			public string wrapMode;
-			public bool isTex2D = false;
-			public bool isRenderTarget = false;
-			public bool alphaTransparency = false;
-			public float anisoLevel = 0.0f;
-			public string base64;
-			public bool importDataFound = false;
-			public bool sRGB = true;
-			public string textureType = "default";
-			public bool normalMapFlag = false;
+	[System.Serializable]
+	public class JsonTexture{		
+		public string name;
+		public int id = -1;
+		public string path;
+		public string filterMode;
+		public float mipMapBias = 0.0f;
+		public int width = 0;
+		public int height = 0;
+		public string wrapMode;
+		public bool isTex2D = false;
+		public bool isRenderTarget = false;
+		public bool alphaTransparency = false;
+		public float anisoLevel = 0.0f;
+		public string base64;
+		public bool importDataFound = false;
+		public bool sRGB = true;
+		public string textureType = "default";
+		public bool normalMapFlag = false;
 
-			public Texture textureRef = null;
+		public Texture textureRef = null;
 			
-			public void writeJsonValue(FastJsonWriter writer){
-				writer.beginObjectValue();
-				writer.writeKeyVal("name", name);
-				writer.writeKeyVal("id", id);
-				writer.writeKeyVal("path", path);
-				writer.writeKeyVal("filterMode", filterMode);
-				writer.writeKeyVal("mipMapBias", mipMapBias);
-				writer.writeKeyVal("width", width);
-				writer.writeKeyVal("height", height);
-				writer.writeKeyVal("wrapMode", wrapMode);
-				writer.writeKeyVal("isTex2D", isTex2D);
-				writer.writeKeyVal("isRenderTarget", isRenderTarget);
-				writer.writeKeyVal("alphaTransparency", alphaTransparency);
-				writer.writeKeyVal("anisoLevel", anisoLevel);
-				writer.writeKeyVal("sRGB", sRGB);
-				writer.writeKeyVal("normalMapFlag", normalMapFlag);
-				writer.writeKeyVal("importDataFound", importDataFound);
-				writer.endObject();
-			}
+		public void writeJsonValue(FastJsonWriter writer){
+			writer.beginObjectValue();
+			writer.writeKeyVal("name", name);
+			writer.writeKeyVal("id", id);
+			writer.writeKeyVal("path", path);
+			writer.writeKeyVal("filterMode", filterMode);
+			writer.writeKeyVal("mipMapBias", mipMapBias);
+			writer.writeKeyVal("width", width);
+			writer.writeKeyVal("height", height);
+			writer.writeKeyVal("wrapMode", wrapMode);
+			writer.writeKeyVal("isTex2D", isTex2D);
+			writer.writeKeyVal("isRenderTarget", isRenderTarget);
+			writer.writeKeyVal("alphaTransparency", alphaTransparency);
+			writer.writeKeyVal("anisoLevel", anisoLevel);
+			writer.writeKeyVal("sRGB", sRGB);
+			writer.writeKeyVal("normalMapFlag", normalMapFlag);
+			writer.writeKeyVal("importDataFound", importDataFound);
+			writer.endObject();
+		}
 			
-			public JsonTexture(Texture tex, Exporter exp){
-				name = tex.name;
-				id = exp.textures.findId(tex);
-				var assetPath = AssetDatabase.GetAssetPath(tex);
-				exp.registerResource(assetPath);
-				path = assetPath;
-				filterMode = tex.filterMode.ToString();
-				width = tex.width;
-				height = tex.height;
-				wrapMode = tex.wrapMode.ToString();				
-				var tex2D = tex as Texture2D;
-				var rendTarget = tex as RenderTexture;
-				isTex2D = tex2D != null;
-				isRenderTarget = rendTarget != null;
-				var importer = AssetImporter.GetAtPath(assetPath);
-				var texImporter = (TextureImporter)importer;
-				if (isTex2D){
-					alphaTransparency = tex2D.alphaIsTransparency;
-				}
-				if (isRenderTarget){
-					anisoLevel = rendTarget.anisoLevel;
-				}
-				if (texImporter){
-					importDataFound = true;
-					sRGB = texImporter.sRGBTexture;
-					textureType = texImporter.textureType.ToString();
-					normalMapFlag = (texImporter.textureType == TextureImporterType.NormalMap);
-				}
-				textureRef = tex;
+		public JsonTexture(Texture tex, Exporter exp){
+			name = tex.name;
+			id = exp.findTextureId(tex);//exp.textures.findId(tex);
+			var assetPath = AssetDatabase.GetAssetPath(tex);
+			exp.registerResource(assetPath);
+			path = assetPath;
+			filterMode = tex.filterMode.ToString();
+			width = tex.width;
+			height = tex.height;
+			wrapMode = tex.wrapMode.ToString();				
+			var tex2D = tex as Texture2D;
+			var rendTarget = tex as RenderTexture;
+			isTex2D = tex2D != null;
+			isRenderTarget = rendTarget != null;
+			var importer = AssetImporter.GetAtPath(assetPath);
+			var texImporter = (TextureImporter)importer;
+			if (isTex2D){
+				alphaTransparency = tex2D.alphaIsTransparency;
 			}
+			if (isRenderTarget){
+				anisoLevel = rendTarget.anisoLevel;
+			}
+			if (texImporter){
+				importDataFound = true;
+				sRGB = texImporter.sRGBTexture;
+				textureType = texImporter.textureType.ToString();
+				normalMapFlag = (texImporter.textureType == TextureImporterType.NormalMap);
+			}
+			textureRef = tex;
 		}
 	}
 }

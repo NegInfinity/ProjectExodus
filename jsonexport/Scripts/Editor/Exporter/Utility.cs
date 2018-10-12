@@ -19,10 +19,24 @@ namespace SceneExport{
 			if ((object)obj != null)
 				nextHash = obj.GetHashCode();
 			return prevHash * 23 + nextHash;
-		}		
-	}
-	
-	public partial class Exporter{
+		}
+		
+		public static bool isInProjectPath(string path){
+			var targetDir = System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(path));
+			var projectPath = getProjectPath();
+			return projectPath == targetDir;
+		}
+		
+		public static string getProjectPath(){
+			if (!Application.isEditor){
+				throw new System.ArgumentException("The application is not running in editor mode");
+			}
+				
+			var dataPath = System.IO.Path.GetFullPath(Application.dataPath);
+			var projectPath = System.IO.Path.GetDirectoryName(dataPath);
+			return projectPath;
+		}
+		
 		static public Vector3[] copyArray(Vector3[] arg){
 			int size = 0;
 			if (arg != null)

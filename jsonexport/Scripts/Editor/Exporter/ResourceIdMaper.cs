@@ -1,13 +1,8 @@
 ﻿using UnityEngine;
-using UnityEditor;
-using System.IO;
-using System.Text;
-using System.Collections;
 using System.Collections.Generic;
-using UnityEngine.SceneManagement;
 
 namespace SceneExport{
-	public partial class Exporter{
+	public class ResourceIdMaper{
 		ObjectMapper<GameObject> objects = new ObjectMapper<GameObject>();
 		ObjectMapper<Texture> textures = new ObjectMapper<Texture>();
 		ObjectMapper<Mesh> meshes = new ObjectMapper<Mesh>();
@@ -75,7 +70,8 @@ namespace SceneExport{
 			}
 			return result;
 		}
-		
+
+		/*		
 		public JsonScene exportScene(Scene scene){
 			var rootObjects = scene.GetRootGameObjects();
 			return exportObjects(rootObjects);
@@ -90,8 +86,6 @@ namespace SceneExport{
 			}
 			
 			for(int i = 0; i < objects.objectList.Count; i++){
-				/*TODO: This is very awkward, as constructor adds more data to the exporter
-				Should be split into two methods.*/
 				result.objects.Add(new JsonGameObject(objects.objectList[i], this));
 			}
 			
@@ -118,5 +112,6 @@ namespace SceneExport{
 		public JsonScene exportOneObject(GameObject obj){
 			return exportObjects(new GameObject[]{obj});
 		}
+		*/
 	}
 }

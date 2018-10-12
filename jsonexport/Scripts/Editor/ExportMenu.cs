@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEditor.SceneManagement;
 
 namespace SceneExport{
-	public class ExportMenu /*: MonoBehaviour*/{
+	public class ExportMenu /*: MonoBehaviour*/{	
 		[MenuItem("GameObject/Scene Export/Export current scene", false, 0)]
 		public static void  exportJsonScene(MenuCommand menuCommand){
 			var scene = EditorSceneManager.GetActiveScene();
@@ -38,7 +38,7 @@ namespace SceneExport{
 			if (objects.Count <= 0)
 				return;
 			
-			var path = EditorUtility.SaveFilePanel("Save category config", "", objects[0].name, "json");
+			var path = EditorUtility.SaveFilePanel("Export selected objects", "", objects[0].name, "json");
 			if (path == string.Empty)
 				return;
 			var exporter = new Exporter();
@@ -52,7 +52,7 @@ namespace SceneExport{
 			if (Selection.activeObject == null)
 				return;
 			var obj = Selection.activeGameObject;
-			var path = EditorUtility.SaveFilePanel("Save category config", "", obj.name, "json");
+			var path = EditorUtility.SaveFilePanel("Export current object", "", obj.name, "json");
 			if (path == string.Empty)
 				return;
 			var exporter = new Exporter();
