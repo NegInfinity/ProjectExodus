@@ -119,6 +119,7 @@ public:
 	static FQuat getQuat(JsonObjPtr data, const char* name, const FQuat &defaultVal = FQuat());
 
 	void importScene(const FString& path);
+	void importProject(const FString& path);
 
 	void importTexture(JsonObjPtr obj, const FString &rootPath);
 	void importMaterial(JsonObjPtr obj, int32 matId);
