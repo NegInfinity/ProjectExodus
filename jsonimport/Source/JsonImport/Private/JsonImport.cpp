@@ -103,15 +103,8 @@ void FJsonImportModule::PluginButtonClicked(){
 
 	auto filename = FPaths::ConvertRelativePathToFull(files[0]);
 	JsonImporter importer;
-	importer.importScene(filename);
-
-	/*
-	FText DialogText = FText::Format(
-							LOCTEXT("PluginButtonDialogText", "Add code to {0} in {1} to override this button's actions"),
-							FText::FromString(TEXT("FJsonImportModule::PluginButtonClicked()")),
-							FText::FromString(TEXT("JsonImport.cpp"))
-					   );
-	FMessageDialog::Open(EAppMsgType::Ok, DialogText);*/
+	importer.importProject(filename);
+	//importer.importScene(filename);
 }
 
 void FJsonImportModule::AddMenuExtension(FMenuBuilder& Builder){
