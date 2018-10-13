@@ -121,6 +121,16 @@ public:
 	void importScene(const FString& path);
 	void importProject(const FString& path);
 
+	void importResources(JsonObjPtr jsonNode);
+	void loadTextures(const JsonValPtrs* textures);
+	void loadMaterials(const JsonValPtrs* materials);
+	void loadMeshes(const JsonValPtrs* meshes);
+	void loadObjects(const JsonValPtrs* objects);
+
+	void setupAssetPaths(const FString &jsonFilename);
+
+	JsonObjPtr loadJsonFromFile(const FString &filename);
+
 	void importTexture(JsonObjPtr obj, const FString &rootPath);
 	void importMaterial(JsonObjPtr obj, int32 matId);
 	void importMesh(JsonObjPtr obj, int32 meshId);

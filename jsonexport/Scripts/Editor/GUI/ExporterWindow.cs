@@ -7,6 +7,13 @@ using System.Linq;
 
 namespace SceneExport{
 
+	public enum ExportType{
+		CurrentObject,
+		SelectedObjects,
+		CurrentScene,
+		WholeProject
+	}
+	
 [System.Serializable]
 public class ExporterWindow: EditorWindow{
 	//[MenuItem("Window/Project Exodus/Exporter Window")]
@@ -20,22 +27,6 @@ public class ExporterWindow: EditorWindow{
 	[SerializeField]Vector2 disclaimerScrollPos;
 	[SerializeField]Vector2 messagesScrollPos;
 	[SerializeField]string targetPath = "";
-	//[SerializeField]bool targetPathInProject = false;
-	
-	
-	
-	/*
-	public enum MigrationPhase{
-		Start
-	}
-	*/
-	
-	public enum ExportType{
-		CurrentObject,
-		SelectedObjects,
-		CurrentScene,
-		WholeProject
-	}
 	
 	[System.Serializable]
 	public class GuiStyles{
@@ -101,23 +92,20 @@ public class ExporterWindow: EditorWindow{
 		}
 	}
 	
-	void onEditorUpdate(){
-	}
+	[SerializeField]AsyncExportTask exportTask = new AsyncExportTask();
+	[SerializeField]EditorCoroutine editorCoroutine = null;
 	
 	void OnEnable(){
 		minSize = new Vector2(320.0f, 240.0f);
-		
-		EditorApplication.update += onEditorUpdate;
 	}
 	
 	void OnDisable(){
-		EditorApplication.update -= onEditorUpdate;
 	}
 	
 	/*[SerializeField]*/GuiStyles guiStyles = new GuiStyles();
 	[SerializeField]ExportType exportType = ExportType.CurrentObject;
 
-	string getDefaultJsonFileName(){
+	static string getDefaultJsonFileName(ExportType exportType){
 		switch(exportType){
 			case(ExportType.CurrentObject):{
 				var obj = Selection.activeGameObject;
@@ -277,9 +265,9 @@ public class ExporterWindow: EditorWindow{
 			return;
 		using(var tmp = scopedGuiEnabled(false)){
 			EditorGUILayout.TextArea(getDisclaimerText(), guiStyles.disclaimerTextArea);
-			if (GUILayout.Button("View full Disclaimer")){
-				DisclaimerWindow.openDisclaimerWindow();
-			}
+		}
+		if (GUILayout.Button("View full Disclaimer")){
+			DisclaimerWindow.openDisclaimerWindow();
 		}
 	}
 	
@@ -326,7 +314,7 @@ public class ExporterWindow: EditorWindow{
 		GUILayout.BeginHorizontal();
 		if (GUILayout.Button("Select Target Path")){
 			clearMessages();
-			var defaultName = getDefaultJsonFileName();//"name";
+			var defaultName = getDefaultJsonFileName(exportType);//"name";
 			var filePath = EditorUtility.SaveFilePanel("Export selected objects", "", defaultName, "json");
 			if (!string.IsNullOrEmpty(filePath)){
 				targetPath = filePath;
@@ -336,7 +324,7 @@ public class ExporterWindow: EditorWindow{
 			}
 		}
 
-		using(var tmp = scopedGuiEnabled(canExport())){
+		using(var tmp = scopedGuiEnabled(canExport() && !hasRunningTask())){
 			if (GUILayout.Button("Begin export")){
 				processExport();
 			}
@@ -346,6 +334,8 @@ public class ExporterWindow: EditorWindow{
 	}
 	
 	void processCloseButton(){
+		if (hasRunningTask())
+			return;
 		GUILayout.BeginHorizontal();
 		if (GUILayout.Button("Close")){
 			Close();
@@ -356,35 +346,24 @@ public class ExporterWindow: EditorWindow{
 	void processExportProgress(){
 	}
 	
-	/*
-	IEnumerator waitCoroutine(float seconds){
-		var launchTime = Time.realtimeSinceStartup;//Time.time;
-		while(true){
-			var curTime = Time.realtimeSinceStartup;
-			//Debug.LogFormat("Cur time: {0}", curTime);
-			var diff = curTime - launchTime;
-			if (diff >= seconds)
-				break;
-			yield return null;
+	void terminateBackgroundTasks(){
+		if (editorCoroutine != null){
+			editorCoroutine.terminate();
+			editorCoroutine = null;
+		}
+		if (exportTask != null){
+			exportTask.markRunning(false);
+			exportTask.markComplete();
 		}
 	}
 	
-	IEnumerator testCoroutine(){
-		for(int i = 0; i < 10; i++){
-			Debug.LogFormat("Value from coroutine: {0}", i);
-			Debug.LogFormat("Waiting");
-			yield return EditorCoroutine.waitSeconds(1.0f);//waitCoroutine(1.0f);
-			Debug.LogFormat("Waiting complete");
-			yield return null;
-		}
+	bool hasRunningTask(){
+		return (exportTask != null) && (exportTask.running);
 	}
 	
-	void processTestCoroutine(){
-		if (GUILayout.Button("Launch coroutine")){
-			EditorCoroutine.startCoroutine(testCoroutine());
-		}
+	bool exportTaskFinished(){
+		return (exportTask != null) && (exportTask.finished);
 	}
-	*/
 	
 	void OnGUI(){
 		initGuiStyles();
@@ -416,7 +395,77 @@ public class ExporterWindow: EditorWindow{
 		return isValidExportState() && !string.IsNullOrEmpty(targetPath);
 	}
 	
-	void processExport(){		
+	bool checkTargetPath(string targetPath){
+		if (string.IsNullOrEmpty(targetPath)){
+			Debug.LogErrorFormat("No target path, cannot proceed");
+			return false;
+		}
+		return true;
+	}
+	
+	void beginSingleObjectExport(){
+		if (Selection.activeObject == null){
+			Debug.LogErrorFormat("No active object, cannot proceed with export");
+			return;
+		}
+		var obj = Selection.activeGameObject;
+		if (!checkTargetPath(targetPath))
+			return;
+				
+		var proj = JsonProject.fromObject(obj);
+		proj.saveToFile(targetPath, true);
+	}
+	
+	void beginSelectedObjectsExport(){
+		var objects = ExportUtility.getSelectedGameObjects();
+		if (objects.Count <= 0)
+			return;
+
+		if (!checkTargetPath(targetPath))
+			return;			
+				
+		var proj = JsonProject.fromObjects(objects.ToArray());
+		proj.saveToFile(targetPath, true);
+	}
+	
+	void beginCurrentSceneExport(){
+		var scene = EditorSceneManager.GetActiveScene();
+		if (!scene.IsValid()){
+			Debug.LogWarningFormat("No active scene, cannot export.");
+		}
+		
+		if (!checkTargetPath(targetPath))
+			return;
+					
+		var proj = JsonProject.fromScene(scene);
+		editorCoroutine = EditorCoroutine.start(proj.saveToFile(targetPath, true, exportTask));
+		//proj.saveToFile(targetPath, true);
+	}
+	
+	void beginFullProjectExport(){
+		Debug.LogErrorFormat("Full project export is not currently supported.");
+	}
+	
+	void processExport(){
+		terminateBackgroundTasks();
+		switch(exportType){
+			case(ExportType.CurrentObject):{
+				beginSingleObjectExport();
+				break;
+			}
+			case(ExportType.SelectedObjects):{
+				beginSelectedObjectsExport();
+				break;
+			}
+			case(ExportType.CurrentScene):{
+				beginCurrentSceneExport();
+				break;
+			}
+			case(ExportType.WholeProject):{
+				beginFullProjectExport();
+				break;
+			}
+		}		
 	}
 }
 

@@ -30,95 +30,61 @@
 #define LOCTEXT_NAMESPACE "FJsonImportModule"
 
 void JsonImporter::importProject(const FString& filename){
+	setupAssetPaths(filename);
+	auto jsonData = loadJsonFromFile(filename);
+	if (!jsonData){
+		UE_LOG(JsonLog, Error, TEXT("Json loading failed, aborting. \"%s\""), *filename);
+		return;
+	}
+
+	auto configPtr = getObject(jsonData, "config");
+	const JsonValPtrs *scenes;
+	//auto scenesPtr = jsonData->GetArrayField("scenes");
+	loadArray(jsonData, scenes, "scenes");
+	auto resources = getObject(jsonData, "resources");//jsonData->GetObjectField("resources");
+
+	if (configPtr && scenes && resources){
+		UE_LOG(JsonLog, Display, TEXT("Project nodes detected in file \"%s\". Loading as project"), *filename);
+		importResources(resources);
+
+		UE_LOG(JsonLog, Display, TEXT("%d scenes found in file \"%s\"."), scenes->Num(), *filename);
+		for(int i = 0; i < scenes->Num(); i++){
+			JsonValPtr curSceneData = (*scenes)[i];
+			auto curSceneDataObj = curSceneData->AsObject();
+			if (!curSceneDataObj)
+				continue;
+
+			const JsonValPtrs *sceneObjects = 0;
+			loadArray(curSceneDataObj, sceneObjects, TEXT("objects"), TEXT("Scene objects"));
+			loadObjects(sceneObjects);
+
+			UE_LOG(JsonLog, Warning, TEXT("Only one scene is currently supported"));
+			break;
+		}
+		//project
+	}
+	else{
+		UE_LOG(JsonLog, Warning, TEXT("Project nodes not found. Attempting to load as scene"), *filename);
+		importResources(jsonData);
+
+		const JsonValPtrs *objects = 0;
+		loadArray(jsonData, objects, TEXT("objects"), TEXT("Objects"));
+		loadObjects(objects);
+	}
 }
 
 void JsonImporter::importScene(const FString& filename){
-	assetRootPath = FPaths::GetPath(filename);
-	sourceBaseName = FPaths::GetBaseFilename(filename);
+	setupAssetPaths(filename);
 
-	FString jsonString;
-	if (!FFileHelper::LoadFileToString(jsonString, *filename)){
-		UE_LOG(JsonLog, Warning, TEXT("Could not load file %s"), *filename);
+	auto jsonData = loadJsonFromFile(filename);
+	if (!jsonData){
+		UE_LOG(JsonLog, Error, TEXT("Json loading failed, aborting. \"%s\""), *filename);
 		return;
 	}
 
-	UE_LOG(JsonLog, Log, TEXT("Loaded file %s"), *filename);
-	JsonReaderRef reader = TJsonReaderFactory<>::Create(jsonString);
+	importResources(jsonData);
 
-	JsonObjPtr jsonData = MakeShareable(new FJsonObject());
-	if (!FJsonSerializer::Deserialize(reader, jsonData)){
-		UE_LOG(JsonLog, Warning, TEXT("Could not parse file %s"), *filename);
-		return;
-	}
-
-	const JsonValPtrs *resources = 0, *objects = 0, *textures = 0, *materials = 0, *meshes = 0;
-
-	loadArray(jsonData, resources, TEXT("resources"), TEXT("Resources"));
+	const JsonValPtrs *objects = 0;
 	loadArray(jsonData, objects, TEXT("objects"), TEXT("Objects"));
-	loadArray(jsonData, textures, TEXT("textures"), TEXT("Textures"));
-	loadArray(jsonData, materials, TEXT("materials"), TEXT("Materials"));
-	loadArray(jsonData, meshes, TEXT("meshes"), TEXT("Meshes"));
-
-	assetCommonPath = findCommonPath(resources);
-
-	if (textures){
-		FScopedSlowTask texProgress(textures->Num(), LOCTEXT("Importing textures", "Importing textures"));
-		texProgress.MakeDialog();
-		UE_LOG(JsonLog, Log, TEXT("Processing textures"));
-		for(auto cur: *textures){
-			auto obj = cur->AsObject();
-			if (!obj.IsValid())
-				continue;
-			importTexture(obj, assetRootPath);
-			texProgress.EnterProgressFrame(1.0f);
-		}
-	}
-
-	if (materials){
-		FScopedSlowTask matProgress(materials->Num(), LOCTEXT("Importing materials", "Importing materials"));
-		matProgress.MakeDialog();
-		UE_LOG(JsonLog, Log, TEXT("Processing materials"));
-		int32 matId = 0;
-		for(auto cur: *materials){
-			auto obj = cur->AsObject();
-			auto curId = matId;
-			matId++;
-			if (!obj.IsValid())
-				continue;
-			importMaterial(obj, curId);
-			matProgress.EnterProgressFrame(1.0f);
-		}
-	}
-
-	if (meshes){
-		FScopedSlowTask meshProgress(materials->Num(), LOCTEXT("Importing materials", "Importing meshes"));
-		meshProgress.MakeDialog();
-		UE_LOG(JsonLog, Log, TEXT("Processing meshes"));
-		int32 meshId = 0;
-		for(auto cur: *meshes){
-			auto obj = cur->AsObject();
-			auto curId = meshId;
-			meshId++;
-			if (!obj.IsValid())
-				continue;
-			importMesh(obj, curId);
-			meshProgress.EnterProgressFrame(1.0f);
-		}
-	}
-
-	if (objects){
-		FScopedSlowTask objProgress(objects->Num(), LOCTEXT("Importing objects", "Importing objects"));
-		objProgress.MakeDialog();
-		UE_LOG(JsonLog, Log, TEXT("Import objects"));
-		int32 objId = 0;
-		for(auto cur: *objects){
-			auto obj = cur->AsObject();
-			auto curId = objId;
-			objId++;
-			if (!obj.IsValid())
-				continue;
-			importObject(obj, objId);
-			objProgress.EnterProgressFrame(1.0f);
-		}
-	}
+	loadObjects(objects);
 }

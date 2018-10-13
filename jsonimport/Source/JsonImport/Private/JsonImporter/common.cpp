@@ -100,7 +100,11 @@ FString JsonImporter::getString(JsonObjPtr data, const char* name){
 }
 
 JsonObjPtr JsonImporter::getObject(JsonObjPtr data, const char* name){
-	return data->GetObjectField(FString(name));
+	if (!data || !data->HasField(name))
+		return 0;
+	auto result = data->GetObjectField(FString(name));
+	return result;
+	//if (!result || !result->IsvV
 }
 
 FLinearColor JsonImporter::getLinearColor(JsonObjPtr data, const char* name, const FLinearColor &defaultVal){
