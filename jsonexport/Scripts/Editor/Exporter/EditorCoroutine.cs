@@ -12,6 +12,10 @@ namespace SceneExport{
 			return (routineData == null) || routineData.Count == 0;
 		}
 		
+		public void terminate(){
+			routineData.Clear();
+		}
+		
 		public static void unrollCoroutine(IEnumerator e){
 			if (e == null)
 				return;
@@ -51,7 +55,7 @@ namespace SceneExport{
 				routineData.Push(e);
 		}
 		
-		public static EditorCoroutine startCoroutine(IEnumerator e){
+		public static EditorCoroutine start(IEnumerator e){
 			return Manager.instance.createCoroutine(e);
 		}
 		

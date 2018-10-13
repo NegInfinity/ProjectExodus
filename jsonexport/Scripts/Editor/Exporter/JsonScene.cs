@@ -71,49 +71,10 @@ namespace SceneExport{
 			
 		public void writeJsonObjectFields(FastJsonWriter writer){
 			writer.writeKeyVal("objects", objects);
-			/*
-			writer.beginKeyArray("objects");
-			foreach(var cur in objects){
-				writer.writeValue(cur);
-				//cur.writeRawJsonValue(writer);
-			}
-			writer.endArray();
-			*/
 			writer.writeKeyVal("materials", materials);
-			/*
-			writer.beginKeyArray("materials");
-			foreach(var cur in materials){
-				writer.writeValue(cur);
-				//cur.writeRawJsonValue(writer);
-			}
-			writer.endArray();
-			*/
 			writer.writeKeyVal("meshes", meshes);
-			/*
-			writer.beginKeyArray("meshes");
-			foreach(var cur in meshes){
-				writer.writeValue(cur);
-				//cur.writeRawJsonValue(writer);
-			}
-			writer.endArray();
-			*/
 			writer.writeKeyVal("textures", textures);
-			/*
-			writer.beginKeyArray("textures");
-			foreach(var cur in textures){
-				writer.writeValue(cur);
-				//cur.writeRawJsonValue(writer);
-			}
-			writer.endArray();
-			*/
 			writer.writeKeyVal("resources", resources);
-			/*
-			writer.beginKeyArray("resources");
-			foreach(var cur in resources){
-				writer.writeValue(cur);
-			}
-			writer.endArray();
-			*/
 		}
 			
 		public void writeRawJsonValue(FastJsonWriter writer){

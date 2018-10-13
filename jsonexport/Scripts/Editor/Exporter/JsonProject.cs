@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using UnityEditor;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.SceneManagement;
 
@@ -15,7 +16,14 @@ namespace SceneExport{
 			writer.writeKeyVal("scenes", scenes);
 			writer.writeKeyVal("resources", resourceList);
 		}
-
+		
+		public void clear(){
+			config = new JsonProjectConfig();
+			scenes.Clear();
+			resourceList = new JsonResourceList();
+			resourceMapper = new ResourceMapper();
+		}
+		
 		public static JsonProject fromObject(GameObject obj){
 			return fromObjects(new GameObject[]{obj});
 		}		
@@ -37,22 +45,42 @@ namespace SceneExport{
 			return fromObjects(rootObjects);
 		}
 		
-		void saveResources(string baseFilename){
-			var targetDir = System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(baseFilename));
+		bool checkResourceFolder(string baseFilename, out string targetDir, out string projectPath){
+			targetDir = System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(baseFilename));
 			if (!Application.isEditor){
 				throw new System.ArgumentException("The application is not running in editor mode");
 			}
 				
 			var dataPath = System.IO.Path.GetFullPath(Application.dataPath);
-			var projectPath = System.IO.Path.GetDirectoryName(dataPath);
-			Debug.LogFormat("data Path: {0}", dataPath);
-			Debug.LogFormat("projectPath: {0}", projectPath);
-			Debug.LogFormat("targetDir: {0}", targetDir);
+			projectPath = System.IO.Path.GetDirectoryName(dataPath);
 				
 			if (projectPath == targetDir){
 				Debug.LogWarningFormat("You're saving into project directory, files will not be copied");
-				return;
+				return false;
 			}
+			return true;
+		}
+		
+		IEnumerator saveResources(string baseFilename, AsyncExportTask exportTask){
+			exportTask.markRunning();
+			string targetDir, projectPath;
+			if (!checkResourceFolder(baseFilename, out targetDir, out projectPath))
+				yield break;
+				
+			exportTask.setStatus("Copying files");
+			exportTask.beginProgress(resourceList.textures.Count);
+			foreach(var curTex in resourceList.textures){
+				TextureUtility.copyTexture(curTex, targetDir, projectPath);
+				exportTask.incProgress();
+				if (exportTask.needsPause())
+					yield return null;
+			}			
+		}
+		
+		void saveResources(string baseFilename){
+			string targetDir, projectPath;
+			if (!checkResourceFolder(baseFilename, out targetDir, out projectPath))
+				return;
 				
 			foreach(var curTex in resourceList.textures){
 				TextureUtility.copyTexture(curTex, targetDir, projectPath);
@@ -63,6 +91,16 @@ namespace SceneExport{
 			FastJsonWriter writer = new FastJsonWriter();
 			writeRawJsonValue(writer);
 			return writer.getString();
+		}
+			
+		public IEnumerator saveToFile(string filename, bool saveResourceFiles, AsyncExportTask exportTask){
+			exportTask.markRunning();
+			exportTask.setStatus("Saving project to file");
+			Utility.saveStringToFile(filename, toJsonString());
+			if (!saveResourceFiles)
+				yield break;
+				
+			yield return saveResources(filename, exportTask);
 		}
 			
 		public void saveToFile(string filename, bool saveResourceFiles = false){
