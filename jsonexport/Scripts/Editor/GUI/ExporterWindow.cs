@@ -38,6 +38,7 @@ public class ExporterWindow: EditorWindow{
 		public GUIStyle logTextArea = null;
 		public GUIStyle logLabel = null;
 		public GUIStyle logPanel = null;
+		public GUIStyle progressBar = null;
 		public void init(){
 			if (normalLabel == null){
 				normalLabel = new GUIStyle(EditorStyles.label);
@@ -89,14 +90,21 @@ public class ExporterWindow: EditorWindow{
 			if (logPanel == null){
 				logPanel = new GUIStyle(EditorStyles.helpBox);
 			}
+			
+			if (progressBar == null){
+				progressBar = new GUIStyle(EditorStyles.label);
+				progressBar.richText = true;
+			}
 		}
 	}
 	
 	[SerializeField]AsyncExportTask exportTask = new AsyncExportTask();
-	[SerializeField]EditorCoroutine editorCoroutine = null;
+	[SerializeField]EditorCoroutine exportCoroutine = null;
 	
 	void OnEnable(){
 		minSize = new Vector2(320.0f, 240.0f);
+		if (exportTask != null)
+			exportTask.exporterWindow = this;
 	}
 	
 	void OnDisable(){
@@ -333,6 +341,25 @@ public class ExporterWindow: EditorWindow{
 		GUILayout.EndHorizontal();
 	}
 	
+	void processExportProgress(){
+		if (!hasRunningTask())
+			return;
+		GUILayout.BeginHorizontal();
+		var rect = GUILayoutUtility.GetRect(new GUIContent(exportTask.currentStatus), guiStyles.richTextArea);
+		EditorGUI.ProgressBar(rect, exportTask.getFloatProgress(), exportTask.currentStatus);
+		GUILayout.EndHorizontal();
+	}
+	
+	void processCancelButton(){
+		if (!hasRunningTask())
+			return;
+		GUILayout.BeginHorizontal();
+		if (GUILayout.Button("Cancel")){
+			terminateBackgroundTasks();
+		}
+		GUILayout.EndHorizontal();
+	}
+	
 	void processCloseButton(){
 		if (hasRunningTask())
 			return;
@@ -343,22 +370,19 @@ public class ExporterWindow: EditorWindow{
 		GUILayout.EndHorizontal();
 	}
 	
-	void processExportProgress(){
-	}
-	
 	void terminateBackgroundTasks(){
-		if (editorCoroutine != null){
-			editorCoroutine.terminate();
-			editorCoroutine = null;
+		if (exportCoroutine != null){
+			exportCoroutine.terminate();
+			exportCoroutine = null;
 		}
 		if (exportTask != null){
 			exportTask.markRunning(false);
-			exportTask.markComplete();
+			exportTask.markFinished();
 		}
 	}
 	
 	bool hasRunningTask(){
-		return (exportTask != null) && (exportTask.running);
+		return (exportTask != null) && (exportTask.running) && !exportTask.finished;
 	}
 	
 	bool exportTaskFinished(){
@@ -384,6 +408,7 @@ public class ExporterWindow: EditorWindow{
 		processExportButtons();
 		processExportProgress();
 		processCloseButton();	
+		processCancelButton();
 		
 		//processTestCoroutine();
 		
@@ -413,7 +438,8 @@ public class ExporterWindow: EditorWindow{
 			return;
 				
 		var proj = JsonProject.fromObject(obj);
-		proj.saveToFile(targetPath, true);
+		exportCoroutine = EditorCoroutine.start(proj.saveToFile(targetPath, true, exportTask));
+		//proj.saveToFile(targetPath, true);
 	}
 	
 	void beginSelectedObjectsExport(){
@@ -425,7 +451,8 @@ public class ExporterWindow: EditorWindow{
 			return;			
 				
 		var proj = JsonProject.fromObjects(objects.ToArray());
-		proj.saveToFile(targetPath, true);
+		exportCoroutine = EditorCoroutine.start(proj.saveToFile(targetPath, true, exportTask));
+		//proj.saveToFile(targetPath, true);
 	}
 	
 	void beginCurrentSceneExport(){
@@ -438,7 +465,7 @@ public class ExporterWindow: EditorWindow{
 			return;
 					
 		var proj = JsonProject.fromScene(scene);
-		editorCoroutine = EditorCoroutine.start(proj.saveToFile(targetPath, true, exportTask));
+		exportCoroutine = EditorCoroutine.start(proj.saveToFile(targetPath, true, exportTask));
 		//proj.saveToFile(targetPath, true);
 	}
 	

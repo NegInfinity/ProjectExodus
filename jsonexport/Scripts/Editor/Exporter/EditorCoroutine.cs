@@ -27,26 +27,39 @@ namespace SceneExport{
 			}
 		}
 		
-		bool update(){
-			if (isFinished())
-				return false;
+		void update(){
+			//Debug.LogFormat("Updating a coroutine");
+			if (isFinished()){
+				//Debug.LogFormat("Coroutine is terminated");
+				return;// false;
+			}
 			while(routineData.Count > 0){
+				//Debug.LogFormat("Couroutine cycle starting. {0} level(s) in current coroutine", routineData.Count);
 				var top = routineData.Peek();
 				if (!top.MoveNext()){
+					//Debug.LogFormat("Current routine level is exhausted. Popping");
 					routineData.Pop();
+					//Debug.LogFormat("Stack levels: {0}", routineData.Count);
 					continue;
 				}
 				else{
 					var cur = top.Current;
 					IEnumerator child = cur as IEnumerator;
 					if (child != null){
+						//Debug.LogFormat("Child subroutine has been created. Pushing.");
 						routineData.Push(child);
+						//Debug.LogFormat("Stack levels: {0}", routineData.Count);
 						continue;
 					}
 				}
+				//Debug.LogFormat("Current cycle is over");
 				break;
 			}
-			return isFinished();//true;
+			/*
+			var result = isFinished();//true;
+			Debug.LogFormat("Finished: {0}", result);
+			return result;
+			*/
 		}
 		
 		EditorCoroutine(IEnumerator e){
@@ -82,13 +95,21 @@ namespace SceneExport{
 					return cachedInstance;
 				}
 			}
+			
+			void unsubscribeFromEvents(){
+				EditorApplication.update -= update;
+			}
+			
+			void subscribeToEvents(){
+				EditorApplication.update += update;
+			}
 		
 			public void Dispose(){
-				EditorApplication.update -= update;
+				unsubscribeFromEvents();
 			}
 		
 			Manager(){
-				EditorApplication.update += update;
+				subscribeToEvents();
 			}
 		
 			public EditorCoroutine createCoroutine(IEnumerator e){
@@ -98,9 +119,16 @@ namespace SceneExport{
 			}
 		
 			void update(){
+				if (coroutines.Count > 0){
+					//Debug.LogFormat("Updating editor coroutines. {0} coroutines total", coroutines.Count);
+				}
 				for(int i = 0; i < coroutines.Count;){
 					var cur = coroutines[i];
-					if (!cur.update()){
+					//Debug.LogFormat("Updating coroutine {0}", i);
+					cur.update();
+					//Debug.LogFormat("Coroutine {0} is finished: {1}", i, cur.isFinished());
+					if (cur.isFinished()){
+						//Debug.LogFormat("Removing coroutine {0}", i);
 						coroutines.RemoveAt(i);
 						continue;
 					}

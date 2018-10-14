@@ -9,7 +9,26 @@ namespace SceneExport{
 		public string currentStatus = "";
 		public bool finished = false;
 		public bool running = false;
+		public EditorWindow exporterWindow = null;
+		
+		public void repaintWindow(){
+			if (!exporterWindow)
+				return;
+			exporterWindow.Repaint();
+		}
+		
 		public SlowTaskDetector slowTaskDetector = new SlowTaskDetector(0.25f);
+		public SlowTaskDetector repaintTrigger = new SlowTaskDetector(0.5f);
+		
+		public void startNew(){
+			running = true;
+			finished = false;
+		}
+		
+		public void finish(){
+			running = false;
+			finished = true;
+		}
 		
 		public void markRunning(bool running_ = true){
 			running = running_;
@@ -23,14 +42,22 @@ namespace SceneExport{
 			finished = false;
 		}
 		
-		public void markComplete(){
-			finished = true;
+		public void markFinished(bool finished_ = true){
+			finished = finished_;
+		}
+		
+		public void checkRepaint(){
+			if (repaintTrigger == null)
+				return;
+			if (repaintTrigger.checkWithinTimeLimit())
+				return;
+			repaintWindow();
 		}
 		
 		public bool needsPause(){
 			if (slowTaskDetector == null)
 				return false;
-			return slowTaskDetector.checkTimeLimit();
+			return slowTaskDetector.checkWithinTimeLimit();
 		}
 		
 		public void setStatus(string newStatus_){
