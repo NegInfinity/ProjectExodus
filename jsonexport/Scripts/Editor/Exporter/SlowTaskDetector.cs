@@ -6,14 +6,16 @@ namespace SceneExport{
 		public static bool safeCheckTimeLimit(this SlowTaskDetector task){
 			if (task == null)
 				return true;
-			return task.checkTimeLimit();
+			return task.checkWithinTimeLimit();
 		}
 	}
 	
 	public class SlowTaskDetector{
-		float lastTime;
+		//BAH. System.Diagnoistics.Stopwatch is broken.
+		//System.Diagnostics.Stopwatch stopWatch = new System.Diagnostics.Stopwatch();
 		float maxTime;
-		
+		float lastTime;
+				
 		static float getTime(){
 			return Time.realtimeSinceStartup;
 		}
@@ -25,16 +27,22 @@ namespace SceneExport{
 		public SlowTaskDetector(float maxTime_ = 0.5f){
 			maxTime = maxTime_;
 			lastTime = -1.0f;			
-			//updateLastTime(); realtimeSinceStartup cannot be called from constructor;
 		}
 		
-		public bool checkTimeLimit(){
-			if (lastTime < 0){
-				updateLastTime();
-				return true;
-			}
-			if ((getTime() - lastTime) > maxTime){
-				updateLastTime();
+		float getElapsedTime(){
+			if (lastTime < 0)
+				lastTime = getTime();
+			return getTime() - lastTime;
+		}
+		
+		void resetElapsedTime(){
+			lastTime = getTime();
+		}
+		
+		public bool checkWithinTimeLimit(){
+			float elapsed  = getElapsedTime();
+			if (elapsed  > maxTime){
+				resetElapsedTime();
 				return false;
 			}
 			

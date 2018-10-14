@@ -67,14 +67,18 @@ namespace SceneExport{
 			if (!checkResourceFolder(baseFilename, out targetDir, out projectPath))
 				yield break;
 				
-			exportTask.setStatus("Copying files");
 			exportTask.beginProgress(resourceList.textures.Count);
+			int fileIndex = 0;
 			foreach(var curTex in resourceList.textures){
+				fileIndex++;
+				exportTask.setStatus(string.Format("Copying files {0}/{1}", fileIndex, resourceList.textures.Count));
 				TextureUtility.copyTexture(curTex, targetDir, projectPath);
 				exportTask.incProgress();
-				if (exportTask.needsPause())
+				exportTask.checkRepaint();
+				if (exportTask.needsPause()){
 					yield return null;
-			}			
+				}
+			}
 		}
 		
 		void saveResources(string baseFilename){
@@ -94,13 +98,15 @@ namespace SceneExport{
 		}
 			
 		public IEnumerator saveToFile(string filename, bool saveResourceFiles, AsyncExportTask exportTask){
-			exportTask.markRunning();
+			exportTask.startNew();
 			exportTask.setStatus("Saving project to file");
 			Utility.saveStringToFile(filename, toJsonString());
 			if (!saveResourceFiles)
 				yield break;
 				
 			yield return saveResources(filename, exportTask);
+			exportTask.finish();
+			exportTask.repaintWindow();
 		}
 			
 		public void saveToFile(string filename, bool saveResourceFiles = false){
