@@ -8,11 +8,7 @@ namespace SceneExport{
 	[System.Serializable]
 	public class JsonScene: IFastJsonValue{
 		public List<JsonGameObject> objects = new List<JsonGameObject>();
-		public List<JsonMaterial> materials = new List<JsonMaterial>();
-		public List<JsonMesh> meshes = new List<JsonMesh>();
-		public List<JsonTexture> textures = new List<JsonTexture>();
-		public List<string> resources = new List<string>();
-			
+		
 		public static JsonScene fromScene(Scene scene, ResourceMapper resMap){
 			var rootObjects = scene.GetRootGameObjects();
 			return fromObjects(rootObjects, resMap);
@@ -40,41 +36,8 @@ namespace SceneExport{
 			return result;
 		}
 			
-		void saveResources(string baseFilename){
-			var targetDir = System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(baseFilename));
-			if (!Application.isEditor){
-				throw new System.ArgumentException("The application is not running in editor mode");
-			}
-				
-			var dataPath = System.IO.Path.GetFullPath(Application.dataPath);
-			var projectPath = System.IO.Path.GetDirectoryName(dataPath);
-			Debug.LogFormat("data Path: {0}", dataPath);
-			Debug.LogFormat("projectPath: {0}", projectPath);
-			Debug.LogFormat("targetDir: {0}", targetDir);
-				
-			if (projectPath == targetDir){
-				Debug.LogWarningFormat("You're saving into project directory, files will not be copied");
-				return;
-			}
-				
-			foreach(var curTex in textures){
-				TextureUtility.copyTexture(curTex, targetDir, projectPath);
-			}
-		}
-			
-		public void saveToFile(string filename, bool saveResourceFiles = false){
-			Utility.saveStringToFile(filename, toJsonString());
-			if (!saveResourceFiles)
-				return;
-			saveResources(filename);
-		}
-			
 		public void writeJsonObjectFields(FastJsonWriter writer){
 			writer.writeKeyVal("objects", objects);
-			writer.writeKeyVal("materials", materials);
-			writer.writeKeyVal("meshes", meshes);
-			writer.writeKeyVal("textures", textures);
-			writer.writeKeyVal("resources", resources);
 		}
 			
 		public void writeRawJsonValue(FastJsonWriter writer){
@@ -83,14 +46,6 @@ namespace SceneExport{
 			writer.endObject();
 		}
 
-		public string toJsonString(){
-			FastJsonWriter writer = new FastJsonWriter();
-			writer.beginDocument();
-			writeJsonObjectFields(writer);
-			writer.endDocument();
-			return writer.getString();
-		}
-			
 		public void fixNameClashes(){
 			var nameClashes = new Dictionary<NameClashKey, List<int>>();
 			for(int i = 0; i < objects.Count; i++){

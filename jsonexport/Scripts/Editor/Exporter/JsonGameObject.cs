@@ -18,6 +18,7 @@ namespace SceneExport{
 		public int mesh = -1;
 		public JsonRendererData[] renderer = null;
 		public JsonLight[] light = null;
+		public JsonReflectionProbe[] reflectionProbes = null;
 		public bool isStatic = true;
 		public bool lightMapStatic = true;
 		public bool occluderStatic = true;
@@ -51,28 +52,10 @@ namespace SceneExport{
 			writer.writeKeyVal("nameClash", nameClash);
 			writer.writeKeyVal("uniqueName", uniqueName);
 				
-			/*
-			writer.beginKeyArray("renderer");
-			if (renderer != null){
-				foreach(var r in renderer){
-					writer.writeValue(r);
-					//r.writeRawJsonValue(writer);
-				}
-			}
-			writer.endArray();
-			*/
 			writer.writeKeyVal("renderer", renderer);
 			writer.writeKeyVal("light", light);
-			/*
-			writer.beginKeyArray("light");
-			if (light != null){
-				foreach(var l in light){
-					writer.writeValue(l);
-					//l.writeRawJsonValue(writer);
-				}
-			}
-			writer.endArray();
-			*/
+			writer.writeKeyVal("reflectionProbes", reflectionProbes);
+			
 			writer.endObject();
 		}
 			
@@ -98,8 +81,11 @@ namespace SceneExport{
 				localMatrix = obj.transform.parent.worldToLocalMatrix * localMatrix;
 			}
 			renderer = JsonRendererData.makeRendererArray(obj.GetComponent<Renderer>(), resMap);
-			//light = exp.makeLight(obj.GetComponent<Light>());
 			light = JsonLight.makeLightArray(obj.GetComponent<Light>());
+			reflectionProbes = 
+				ExportUtility.convertComponents<ReflectionProbe, JsonReflectionProbe>(obj,
+					(c) => new JsonReflectionProbe(c));
+			//JsonReflectionProbe.gatherReflectionProbes(obj);
 
 			mesh = resMap.getMeshId(obj);
 

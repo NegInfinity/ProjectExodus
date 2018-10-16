@@ -23,22 +23,8 @@ namespace SceneExport{
 		[MenuItem("GameObject/Scene Export/Export selected objects", false, 0)]
 		public static void  exportSelectedObjectsProj(MenuCommand menuCommand){
 			var objects = ExportUtility.getSelectedGameObjects();
-			/*			
-			if (Selection.transforms.Length <= 0)
-				return;
-
-			List<GameObject> objects = new List<GameObject>();
-			foreach(var cur in Selection.transforms){
-				if (cur == null)
-					continue;
-				var curObj = cur.gameObject;
-				if (!curObj)
-					continue;
-				objects.Add(curObj);
-			}*/
 			if (objects.Count <= 0)
 				return;
-				
 			
 			var path = EditorUtility.SaveFilePanel("Export selected objects", "", objects[0].name, "json");
 			if (path == string.Empty)
