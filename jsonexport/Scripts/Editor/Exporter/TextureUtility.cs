@@ -11,15 +11,18 @@ namespace SceneExport{
 			return supportedTexExtensions.Contains(ext);
 		}
 		
-		public static void copyTexture(JsonTexture jsonTex, string targetDir, string projectDir){
+		public static void copyTexture(JsonTexture jsonTex, string targetDir, string projectDir, Logger logger = null){
+			logger = Logger.getValid(logger);
 			var texPath = jsonTex.path;
 			var ext = System.IO.Path.GetExtension(texPath).ToLower();
-			//Debug.LogFormat("Tex {0}, ext {1}", texPath, ext);
 			var srcPath = System.IO.Path.Combine(projectDir, texPath);//TODO: The asset can be elswhere.
 				
 			bool supportedFile = isSupportedTexExtension(ext);
 			if (!supportedFile){
-				Debug.LogWarningFormat("Unsupported extension: \"{0}\" in texture \"{1}\"\nPNG conversion will be attempted.", ext, texPath);
+				logger.logWarningFormat(
+					"Import of \"{0}\" format used by \"{1}\" is not supported.\n" + 
+					"Attempting conversion to \"*.png\"\n" + 
+					"Target material will be remapped to use converted texture.", ext, texPath);
 			}
 			bool exists = System.IO.File.Exists(srcPath);
 				
@@ -41,41 +44,28 @@ namespace SceneExport{
 				}
 			}
 			else{
-				Debug.LogWarningFormat("Asset {0} not found on disk, attempting recovery from texture data", srcPath);	
+				logger.logWarningFormat("Asset \"{0}\" is not found on disk, attempting recovery from texture data.", srcPath);	
 			}
 				
 			bool useExr = false;
 			var formatExt = useExr ? ".exr" : ".png";
-			Debug.LogWarningFormat("Attempting to write image data in {1} format for: {0}\nData Loss possible.", texPath, formatExt);
+			logger.logWarningFormat("Attempting to write image data in {1} format for: {0}\nData Loss possible.", texPath, formatExt);
 			var tex2D = (Texture2D)(jsonTex.textureRef);
 			if (!tex2D){
-				Debug.LogWarningFormat("Not a 2d texture: {0}", texPath);
+				logger.logWarningFormat("Not a 2d texture: \"{0}\". Texture not saved.", texPath);
 				return;
 			}
 				
 			var savePath = System.IO.Path.ChangeExtension(dstPath, formatExt);
-			/*
-			bool encodeSuccessful = true;
-			try{
-				var bytes = useExr ? tex2D.EncodeToEXR() : tex2D.EncodeToPNG();
-				Utility.saveBytesToFile(savePath, bytes);				
-			}
-			catch(System.Exception e){
-				Debug.LogWarningFormat("Normal saving failed for {0}. Exception message: {1}", jsonTex.path, e.Message);
-				encodeSuccessful = false;
-			}
-				
-			if (encodeSuccessful)
-				return;*/
 			
 			TextureUtility.saveReadOnlyTexture(savePath, tex2D, jsonTex, useExr);
 		}
-			
 	
 		/*
 		Have to do it the hard way, unless we implement tiff reader in C#.
 		*/
-		public static void saveReadOnlyTexture(string path, Texture2D tex, JsonTexture jsonTex, bool useExr){//Texture2D tex, bool sRGB, bool useExr){
+		public static void saveReadOnlyTexture(string path, Texture2D tex, JsonTexture jsonTex, bool useExr, Logger logger = null){
+			logger = Logger.getValid(logger);
 			bool compressedNormalMap = jsonTex.normalMapFlag && 
 				((tex.format == TextureFormat.DXT5) || (tex.format == TextureFormat.DXT1) || (tex.format == TextureFormat.BC5));
 			var texFmt = TextureFormat.ARGB32;
@@ -92,9 +82,11 @@ namespace SceneExport{
 			tmpTex2d.ReadPixels(new Rect(0, 0, tmpRend.width, tmpRend.height), 0, 0);
 			tmpTex2d.Apply();
 				
-			Debug.LogFormat("Format of processed normalmap : {0}", tex.format);
+			logger.logFormat("Format of processed normalmap : {0}", tex.format);
 			if (compressedNormalMap){
-				Debug.LogWarningFormat("Compressed normalmap detected: \"{0}\" ({1}). Data loss may occur while saving to png", jsonTex.path, tex.format);
+				logger.logWarningFormat("Compressed normalmap detected: \"{0}\" ({1}).\n" + 
+					"Texture conversion will be performed.\n" + 
+					"Data loss may occur while saving to png.", jsonTex.path, tex.format);
 				var pixels = tmpTex2d.GetPixels();
 				for(int i = 0; i < pixels.Length; i++){
 					var packed = pixels[i];

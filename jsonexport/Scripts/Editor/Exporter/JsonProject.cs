@@ -24,25 +24,25 @@ namespace SceneExport{
 			resourceMapper = new ResourceMapper();
 		}
 		
-		public static JsonProject fromObject(GameObject obj){
-			return fromObjects(new GameObject[]{obj});
+		public static JsonProject fromObject(GameObject obj, bool showGui){
+			return fromObjects(new GameObject[]{obj}, showGui);
 		}		
 		
 		public void generateResourceList(){
 			resourceList = resourceMapper.makeResourceList();
 		}
 		
-		public static JsonProject fromObjects(GameObject[] obj){
+		public static JsonProject fromObjects(GameObject[] obj, bool showGui){
 			var result = new JsonProject();
-			var scene = JsonScene.fromObjects(obj, result.resourceMapper);
+			var scene = JsonScene.fromObjects(obj, result.resourceMapper, showGui);
 			result.scenes.Add(scene);
 			result.generateResourceList();
 			return result;
 		}
 		
-		public static JsonProject fromScene(Scene scene){
+		public static JsonProject fromScene(Scene scene, bool showGui){
 			var rootObjects = scene.GetRootGameObjects();
-			return fromObjects(rootObjects);
+			return fromObjects(rootObjects, showGui);
 		}
 		
 		bool checkResourceFolder(string baseFilename, out string targetDir, out string projectPath){
@@ -81,13 +81,27 @@ namespace SceneExport{
 			}
 		}
 		
-		void saveResources(string baseFilename){
+		void saveResources(string baseFilename, bool showGui, Logger logger = null){
 			string targetDir, projectPath;
 			if (!checkResourceFolder(baseFilename, out targetDir, out projectPath))
 				return;
 				
+			var texIndex = 0;
+			var numTextures = resourceList.textures.Count;
+			var title = string.Format("Saving textures for {0}",
+				baseFilename);
 			foreach(var curTex in resourceList.textures){
-				TextureUtility.copyTexture(curTex, targetDir, projectPath);
+				if (showGui){
+					ExportUtility.showProgressBar(title, 
+						string.Format("Saving texture {0}/{1}", texIndex, numTextures),
+						texIndex, numTextures);
+				}
+				
+				TextureUtility.copyTexture(curTex, targetDir, projectPath, logger);
+				texIndex++;
+			}
+			if (showGui){
+				ExportUtility.hideProgressBar();
 			}
 		}
 		
@@ -109,11 +123,20 @@ namespace SceneExport{
 			exportTask.repaintWindow();
 		}
 			
-		public void saveToFile(string filename, bool saveResourceFiles = false){
+		public void saveToFile(string filename, bool showGui, bool saveResourceFiles, Logger logger = null){
+			if (showGui){
+				ExportUtility.showProgressBar(
+					string.Format("Saving file {0}", System.IO.Path.GetFileName(filename)), 
+					"Writing json data", 0, 1);
+			}
 			Utility.saveStringToFile(filename, toJsonString());
+			if (showGui){
+				ExportUtility.hideProgressBar();
+			}
 			if (!saveResourceFiles)
 				return;
-			saveResources(filename);
+
+			saveResources(filename, showGui, logger);
 		}		
 	}	
 }

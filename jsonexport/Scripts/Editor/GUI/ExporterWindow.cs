@@ -17,92 +17,17 @@ namespace SceneExport{
 [System.Serializable]
 public class ExporterWindow: EditorWindow{
 	//[MenuItem("Window/Project Exodus/Exporter Window")]
-	[MenuItem("Window/Migrate to Unreal 4/Migrate")]
-	public static void showWindow(){
-		EditorWindow.GetWindow(typeof(ExporterWindow), true, "Project Exodus Exporter");
-	}
-	
-	[SerializeField]bool disclaimerVisible = false;
+	[SerializeField]bool disclaimerVisible = true;
 	[SerializeField]Vector2 windowScrollPos;
 	[SerializeField]Vector2 disclaimerScrollPos;
 	[SerializeField]Vector2 messagesScrollPos;
 	[SerializeField]string targetPath = "";
 	
-	[System.Serializable]
-	public class GuiStyles{
-		public GUIStyle normalLabel = null;
-		public GUIStyle errorLabel = null;
-		public GUIStyle warningLabel = null;
-		public GUIStyle disclaimerTextArea = null;
-		public GUIStyle richTextArea = null;
-		public GUIStyle logTextArea = null;
-		public GUIStyle logLabel = null;
-		public GUIStyle logPanel = null;
-		public GUIStyle progressBar = null;
-		public void init(){
-			if (normalLabel == null){
-				normalLabel = new GUIStyle(EditorStyles.label);
-				normalLabel.wordWrap = true;
-			}
-			
-			if (errorLabel == null){	
-				errorLabel = new GUIStyle(EditorStyles.label);
-				errorLabel.wordWrap = true;
-				errorLabel.normal.textColor = new Color(1.0f, 0.0f, 0.0f);
-				errorLabel.active.textColor = new Color(1.0f, 0.5f, 0.0f);
-				errorLabel.focused.textColor = new Color(1.0f, 0.25f, 0.0f);
-			}
-			
-			warningLabel = new GUIStyle(EditorStyles.label);
-			if (warningLabel == null){
-				warningLabel.normal.textColor = Color.yellow;
-				warningLabel.wordWrap = true;
-				warningLabel.normal.textColor = new Color(1.0f, 1.0f, 0.0f);
-				warningLabel.active.textColor = new Color(1.0f, 1.0f, 0.5f);
-				warningLabel.focused.textColor = new Color(1.0f, 1.0f, 0.25f);
-			}
-
-			if (disclaimerTextArea == null){
-				disclaimerTextArea = new GUIStyle(EditorStyles.textArea);
-				disclaimerTextArea.wordWrap = true;
-				disclaimerTextArea.normal.textColor = Color.black;
-				disclaimerTextArea.active.textColor = Color.black;
-				disclaimerTextArea.focused.textColor = Color.black;
-			}
-			
-			if (richTextArea == null){
-				richTextArea = new GUIStyle(EditorStyles.textArea);
-				richTextArea.richText = true;
-			}
-			
-			if (logTextArea == null){
-				logTextArea = new GUIStyle(EditorStyles.textArea);
-				logTextArea.wordWrap = true;
-				logTextArea.richText = true;
-			}
-			
-			if (logLabel == null){
-				logLabel = new GUIStyle(EditorStyles.label);
-				logLabel.wordWrap = true;
-				logLabel.richText = true;
-			}
-			
-			if (logPanel == null){
-				logPanel = new GUIStyle(EditorStyles.helpBox);
-			}
-			
-			if (progressBar == null){
-				progressBar = new GUIStyle(EditorStyles.label);
-				progressBar.richText = true;
-			}
-		}
-	}
-	
 	[SerializeField]AsyncExportTask exportTask = new AsyncExportTask();
 	[SerializeField]EditorCoroutine exportCoroutine = null;
 	
 	void OnEnable(){
-		minSize = new Vector2(320.0f, 240.0f);
+		minSize = new Vector2(640.0f, 480.0f);
 		if (exportTask != null)
 			exportTask.exporterWindow = this;
 	}
@@ -110,7 +35,7 @@ public class ExporterWindow: EditorWindow{
 	void OnDisable(){
 	}
 	
-	/*[SerializeField]*/GuiStyles guiStyles = new GuiStyles();
+	[SerializeField]ExportGuiStyles guiStyles = new ExportGuiStyles();
 	[SerializeField]ExportType exportType = ExportType.CurrentObject;
 
 	static string getDefaultJsonFileName(ExportType exportType){
@@ -244,26 +169,9 @@ public class ExporterWindow: EditorWindow{
 	void initGuiStyles(){
 		//minSize = new Vector2(320.0f, 240.0f);
 		if (guiStyles == null){
-			guiStyles = new GuiStyles();
+			guiStyles = new ExportGuiStyles();
 		}
 		guiStyles.init();
-	}
-	
-	[System.Serializable]
-	class GuiEnabledGuard: System.IDisposable{
-		[SerializeField]bool oldValue = false;
-		public void Dispose(){
-			GUI.enabled = oldValue;
-		}
-		
-		public GuiEnabledGuard(bool newVal){
-			oldValue = GUI.enabled;
-			GUI.enabled = newVal;
-		}
-	}
-	
-	GuiEnabledGuard scopedGuiEnabled(bool newVal){
-		return new GuiEnabledGuard(newVal);
 	}
 	
 	void processDisclaimerArea(){
@@ -271,7 +179,7 @@ public class ExporterWindow: EditorWindow{
 		EditorGUILayout.Foldout(disclaimerVisible, GuiContents.disclaimerSection);
 		if (!disclaimerVisible)
 			return;
-		using(var tmp = scopedGuiEnabled(false)){
+		using(var tmp = ExportGuiUtility.scopedGuiEnabled(false)){
 			EditorGUILayout.TextArea(getDisclaimerText(), guiStyles.disclaimerTextArea);
 		}
 		if (GUILayout.Button("View full Disclaimer")){
@@ -332,7 +240,7 @@ public class ExporterWindow: EditorWindow{
 			}
 		}
 
-		using(var tmp = scopedGuiEnabled(canExport() && !hasRunningTask())){
+		using(var tmp = ExportGuiUtility.scopedGuiEnabled(canExport() && !hasRunningTask())){
 			if (GUILayout.Button("Begin export")){
 				processExport();
 			}
@@ -437,7 +345,7 @@ public class ExporterWindow: EditorWindow{
 		if (!checkTargetPath(targetPath))
 			return;
 				
-		var proj = JsonProject.fromObject(obj);
+		var proj = JsonProject.fromObject(obj, true);
 		exportCoroutine = EditorCoroutine.start(proj.saveToFile(targetPath, true, exportTask));
 		//proj.saveToFile(targetPath, true);
 	}
@@ -450,7 +358,7 @@ public class ExporterWindow: EditorWindow{
 		if (!checkTargetPath(targetPath))
 			return;			
 				
-		var proj = JsonProject.fromObjects(objects.ToArray());
+		var proj = JsonProject.fromObjects(objects.ToArray(), true);
 		exportCoroutine = EditorCoroutine.start(proj.saveToFile(targetPath, true, exportTask));
 		//proj.saveToFile(targetPath, true);
 	}
@@ -464,7 +372,7 @@ public class ExporterWindow: EditorWindow{
 		if (!checkTargetPath(targetPath))
 			return;
 					
-		var proj = JsonProject.fromScene(scene);
+		var proj = JsonProject.fromScene(scene, true);
 		exportCoroutine = EditorCoroutine.start(proj.saveToFile(targetPath, true, exportTask));
 		//proj.saveToFile(targetPath, true);
 	}

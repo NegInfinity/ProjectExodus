@@ -7,6 +7,28 @@ using UnityEditor.SceneManagement;
 
 namespace SceneExport{
 	public static class ExportUtility{
+		public static string formatString(string fmt, params object[] args){
+			return string.Format(fmt, args);
+		}
+		
+		public static bool showCancellableProgressBar(string title, string info, int progress, int maxProgress){
+			float floatProgress = 0.0f;
+			if (maxProgress != 0)
+				floatProgress = (float)progress/(float)maxProgress;
+			return EditorUtility.DisplayCancelableProgressBar(title, info, floatProgress);
+		}
+		
+		public static void showProgressBar(string title, string info, int progress, int maxProgress){
+			float floatProgress = 0.0f;
+			if (maxProgress != 0)
+				floatProgress = (float)progress/(float)maxProgress;
+			EditorUtility.DisplayProgressBar(title, info, floatProgress);
+		}
+		
+		public static void hideProgressBar(){
+			EditorUtility.ClearProgressBar();
+		}
+		
 		public static JsonType[] convertComponents<CompType, JsonType>(GameObject gameObject, 
 				System.Func<CompType, JsonType> converter) //thanks for not letting me specify constructor with parameters constraint, I guess?
 				where CompType: Component {				

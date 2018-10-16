@@ -3,7 +3,6 @@ using System.Collections.Generic;
 
 namespace SceneExport{
 	public class ResourceMapper{
-		public ObjectMapper<GameObject> objects = new ObjectMapper<GameObject>();
 		public ObjectMapper<Texture> textures = new ObjectMapper<Texture>();
 		public ObjectMapper<Mesh> meshes = new ObjectMapper<Mesh>();
 		public ObjectMapper<Material> materials = new ObjectMapper<Material>();
@@ -15,14 +14,6 @@ namespace SceneExport{
 			if (meshMaterials.TryGetValue(mesh, out result))
 				return result;
 			return null;
-		}
-
-		public int getObjectId(GameObject obj){
-			return objects.getId(obj, true);
-		}
-
-		public int findObjectId(GameObject obj){
-			return objects.getId(obj, false);
 		}
 
 		public int getTextureId(Texture tex){

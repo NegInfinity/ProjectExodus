@@ -9,28 +9,35 @@ namespace SceneExport{
 	public class JsonScene: IFastJsonValue{
 		public List<JsonGameObject> objects = new List<JsonGameObject>();
 		
-		public static JsonScene fromScene(Scene scene, ResourceMapper resMap){
+		public static JsonScene fromScene(Scene scene, ResourceMapper resMap, bool showGui){
 			var rootObjects = scene.GetRootGameObjects();
-			return fromObjects(rootObjects, resMap);
+			return fromObjects(rootObjects, resMap, showGui);
 		}
 		
-		public static JsonScene fromObject(GameObject arg, ResourceMapper resMap){
-			return fromObjects(new GameObject[]{arg}, resMap);
+		public static JsonScene fromObject(GameObject arg, ResourceMapper resMap, bool showGui){
+			return fromObjects(new GameObject[]{arg}, resMap, showGui);
 		}
 		
-		public static JsonScene fromObjects(GameObject[] args, ResourceMapper resMap){
+		public static JsonScene fromObjects(GameObject[] args, ResourceMapper resMap, bool showGui){
 			var result = new JsonScene();
 			
-			foreach(var cur in args){
-				if (!cur)
-					continue;
-				resMap.getObjectId(cur);
+			var objMap = new GameObjectMapper();
+			foreach(var curObj in args){
+				objMap.gatherObjectIds(curObj);
 			}
 			
-			for(int i = 0; i < resMap.objects.objectList.Count; i++){
-				/*TODO: This is very awkward, as constructor adds more data to the exporter
-				Should be split into two methods.*/
-				result.objects.Add(new JsonGameObject(resMap.objects.objectList[i], resMap));
+			for(int i = 0; i < objMap.objectList.Count; i++){
+				/*TODO: The constructor CAN add more data, but most of it would've been added prior to this point.
+				Contempalting whether to enforce it strictly or not.*/
+				if (showGui){
+					ExportUtility.showProgressBar("Collecting scene data", "Adding scene object {0}/{1}", i, objMap.objectList.Count);
+				}
+				
+				var newObj = new JsonGameObject(objMap.objectList[i], objMap, resMap);
+				result.objects.Add(newObj);
+			}
+			if (showGui){
+				ExportUtility.hideProgressBar();
 			}
 			
 			return result;
