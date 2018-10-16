@@ -61,6 +61,7 @@ namespace SceneExport{
 			return true;
 		}
 		
+		/*
 		IEnumerator saveResources(string baseFilename, AsyncExportTask exportTask){
 			exportTask.markRunning();
 			string targetDir, projectPath;
@@ -80,8 +81,10 @@ namespace SceneExport{
 				}
 			}
 		}
+		*/
 		
 		void saveResources(string baseFilename, bool showGui, Logger logger = null){
+			logger = Logger.getValid(logger);
 			string targetDir, projectPath;
 			if (!checkResourceFolder(baseFilename, out targetDir, out projectPath))
 				return;
@@ -92,9 +95,12 @@ namespace SceneExport{
 				baseFilename);
 			foreach(var curTex in resourceList.textures){
 				if (showGui){
-					ExportUtility.showProgressBar(title, 
-						string.Format("Saving texture {0}/{1}", texIndex, numTextures),
-						texIndex, numTextures);
+					if (ExportUtility.showCancellableProgressBar(title, 
+							string.Format("Saving texture {0}/{1}", texIndex, numTextures),
+							texIndex, numTextures)){
+						logger.logErrorFormat("Resource copying cancelled by the user.");
+						break;
+					}				
 				}
 				
 				TextureUtility.copyTexture(curTex, targetDir, projectPath, logger);
@@ -111,6 +117,7 @@ namespace SceneExport{
 			return writer.getString();
 		}
 			
+		/*
 		public IEnumerator saveToFile(string filename, bool saveResourceFiles, AsyncExportTask exportTask){
 			exportTask.startNew();
 			exportTask.setStatus("Saving project to file");
@@ -122,6 +129,7 @@ namespace SceneExport{
 			exportTask.finish();
 			exportTask.repaintWindow();
 		}
+		*/
 			
 		public void saveToFile(string filename, bool showGui, bool saveResourceFiles, Logger logger = null){
 			if (showGui){
