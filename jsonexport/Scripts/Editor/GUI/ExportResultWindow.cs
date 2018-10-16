@@ -76,7 +76,6 @@ namespace SceneExport{
 				(showErrors && (type_ == Logger.MessageType.Error));
 		}
 				
-		//Uh, should I maybe turn it into a ref type?
 		string makeDisplayString(Logger.Message msg){
 			if (msg.msgType == Logger.MessageType.Error)
 				return "<color=red>Error:</color> " + msg.message;

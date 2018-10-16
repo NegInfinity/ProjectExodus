@@ -16,27 +16,20 @@ namespace SceneExport{
 	
 [System.Serializable]
 public class ExporterWindow: EditorWindow{
-	//[MenuItem("Window/Project Exodus/Exporter Window")]
 	[SerializeField]bool disclaimerVisible = true;
 	[SerializeField]Vector2 windowScrollPos;
 	[SerializeField]Vector2 disclaimerScrollPos;
-	[SerializeField]Vector2 messagesScrollPos;
 	[SerializeField]string targetPath = "";
-	
-	[SerializeField]AsyncExportTask exportTask = new AsyncExportTask();
-	[SerializeField]EditorCoroutine exportCoroutine = null;
 	
 	void OnEnable(){
 		minSize = new Vector2(640.0f, 480.0f);
-		if (exportTask != null)
-			exportTask.exporterWindow = this;
 	}
 	
 	void OnDisable(){
 	}
 	
 	[SerializeField]ExportGuiStyles guiStyles = new ExportGuiStyles();
-	[SerializeField]ExportType exportType = ExportType.CurrentObject;
+	[SerializeField]ExportType exportType = ExportType.CurrentScene;
 
 	static string getDefaultJsonFileName(ExportType exportType){
 		switch(exportType){
@@ -73,44 +66,6 @@ public class ExporterWindow: EditorWindow{
 	[SerializeField] List<string> messages = new List<string>();
 	void logMsg(string message){
 		messages.Add(message);
-	}
-	
-	static readonly string warningEntryPrefix = "<color=yellow>Warning: </color>";
-	static readonly string errorEntryPrefix = "<color=red>Error: </color>";
-	static readonly string infoEntryPrefix = "<color=blue>Info: </color>";
-	//static readonly string logEntryPrefix = "<color=yellow>Log: </color>";
-	
-	void logMsgFormat(string message, params object[] args){
-		var s = string.Format(message, args);
-		messages.Add(s);
-	}
-	
-	void logInfo(string message){
-		messages.Add(infoEntryPrefix + message);
-	}
-	void logInfoFormat(string message, params object[] args){
-		var s = string.Format(infoEntryPrefix + message, args);
-		messages.Add(s);
-	}
-	
-	void logWarning(string message){
-		messages.Add(warningEntryPrefix + message);
-	}	
-	void logWarningFormat(string message, params object[] args){
-		var s = string.Format(warningEntryPrefix + message, args);
-		messages.Add(s);
-	}
-	
-	void logError(string message){
-		messages.Add(errorEntryPrefix + message);
-	}	
-	void logErrorFormat(string message, params object[] args){
-		var s = string.Format(errorEntryPrefix + message, args);
-		messages.Add(s);
-	}
-	
-	void clearMessages(){
-		messages.Clear();
 	}
 	
 	bool isValidExportState(){
@@ -151,7 +106,7 @@ public class ExporterWindow: EditorWindow{
 			);
 			
 		public static readonly GUIContent exportType =			
-			new GUIContent("Export Type", 
+			new GUIContent("1. Select Export Type", 
 @"Select export type here: 
 	* single object (currently selected object will be exported), 
 	* selected object (selected objects will be exported),
@@ -211,37 +166,21 @@ public class ExporterWindow: EditorWindow{
 		}
 	}
 	
-	void processMessageArea(){
-		if (messages.Count <= 0)
-			return;
-			
-		EditorGUILayout.LabelField("Messages:", EditorStyles.boldLabel);
-		messagesScrollPos = EditorGUILayout.BeginScrollView(messagesScrollPos);
-			
-		EditorGUILayout.BeginVertical(guiStyles.logPanel);
-		foreach(var cur in messages){
-			EditorGUILayout.SelectableLabel(cur, guiStyles.logLabel);
-		}
-		EditorGUILayout.EndVertical();
-		EditorGUILayout.EndScrollView();
-	}
-	
 	void processExportButtons(){
 		GUILayout.BeginHorizontal();
-		if (GUILayout.Button("Select Target Path")){
-			clearMessages();
-			var defaultName = getDefaultJsonFileName(exportType);//"name";
+		if (GUILayout.Button("2. Select Target Path")){
+			var defaultName = getDefaultJsonFileName(exportType);
 			var filePath = EditorUtility.SaveFilePanel("Export selected objects", "", defaultName, "json");
 			if (!string.IsNullOrEmpty(filePath)){
 				targetPath = filePath;
 				var pathInProject = Utility.isInProjectPath(filePath);
 				if (pathInProject)
-					logWarningFormat("File \'{0}\' is in project directory.\nTexture conversion willl not be performed", filePath);
+					Debug.LogWarningFormat("File \'{0}\' is in project directory.\nTexture conversion willl not be performed", filePath);
 			}
 		}
 
-		using(var tmp = ExportGuiUtility.scopedGuiEnabled(canExport() && !hasRunningTask())){
-			if (GUILayout.Button("Begin export")){
+		using(var tmp = ExportGuiUtility.scopedGuiEnabled(canExport())){
+			if (GUILayout.Button("3. Begin export")){
 				processExport();
 			}
 		}
@@ -249,52 +188,12 @@ public class ExporterWindow: EditorWindow{
 		GUILayout.EndHorizontal();
 	}
 	
-	void processExportProgress(){
-		if (!hasRunningTask())
-			return;
-		GUILayout.BeginHorizontal();
-		var rect = GUILayoutUtility.GetRect(new GUIContent(exportTask.currentStatus), guiStyles.richTextArea);
-		EditorGUI.ProgressBar(rect, exportTask.getFloatProgress(), exportTask.currentStatus);
-		GUILayout.EndHorizontal();
-	}
-	
-	void processCancelButton(){
-		if (!hasRunningTask())
-			return;
-		GUILayout.BeginHorizontal();
-		if (GUILayout.Button("Cancel")){
-			terminateBackgroundTasks();
-		}
-		GUILayout.EndHorizontal();
-	}
-	
 	void processCloseButton(){
-		if (hasRunningTask())
-			return;
 		GUILayout.BeginHorizontal();
 		if (GUILayout.Button("Close")){
 			Close();
 		}
 		GUILayout.EndHorizontal();
-	}
-	
-	void terminateBackgroundTasks(){
-		if (exportCoroutine != null){
-			exportCoroutine.terminate();
-			exportCoroutine = null;
-		}
-		if (exportTask != null){
-			exportTask.markRunning(false);
-			exportTask.markFinished();
-		}
-	}
-	
-	bool hasRunningTask(){
-		return (exportTask != null) && (exportTask.running) && !exportTask.finished;
-	}
-	
-	bool exportTaskFinished(){
-		return (exportTask != null) && (exportTask.finished);
 	}
 	
 	void OnGUI(){
@@ -311,14 +210,9 @@ public class ExporterWindow: EditorWindow{
 
 		processSelectionWarningControls();		
 		processTargetPathLabel();
-		processMessageArea();
 		
 		processExportButtons();
-		processExportProgress();
 		processCloseButton();	
-		processCancelButton();
-		
-		//processTestCoroutine();
 		
 		GUILayout.EndVertical();
 		EditorGUILayout.EndScrollView();
@@ -345,9 +239,10 @@ public class ExporterWindow: EditorWindow{
 		if (!checkTargetPath(targetPath))
 			return;
 				
+		var logger = new Logger();						
 		var proj = JsonProject.fromObject(obj, true);
-		exportCoroutine = EditorCoroutine.start(proj.saveToFile(targetPath, true, exportTask));
-		//proj.saveToFile(targetPath, true);
+		proj.saveToFile(targetPath, true, true, logger);
+		ExportResultWindow.openWindow(logger);
 	}
 	
 	void beginSelectedObjectsExport(){
@@ -358,9 +253,10 @@ public class ExporterWindow: EditorWindow{
 		if (!checkTargetPath(targetPath))
 			return;			
 				
+		var logger = new Logger();						
 		var proj = JsonProject.fromObjects(objects.ToArray(), true);
-		exportCoroutine = EditorCoroutine.start(proj.saveToFile(targetPath, true, exportTask));
-		//proj.saveToFile(targetPath, true);
+		proj.saveToFile(targetPath, true, true, logger);
+		ExportResultWindow.openWindow(logger);
 	}
 	
 	void beginCurrentSceneExport(){
@@ -372,9 +268,10 @@ public class ExporterWindow: EditorWindow{
 		if (!checkTargetPath(targetPath))
 			return;
 					
+		var logger = new Logger();						
 		var proj = JsonProject.fromScene(scene, true);
-		exportCoroutine = EditorCoroutine.start(proj.saveToFile(targetPath, true, exportTask));
-		//proj.saveToFile(targetPath, true);
+		proj.saveToFile(targetPath, true, true, logger);
+		ExportResultWindow.openWindow(logger);
 	}
 	
 	void beginFullProjectExport(){
@@ -382,7 +279,6 @@ public class ExporterWindow: EditorWindow{
 	}
 	
 	void processExport(){
-		terminateBackgroundTasks();
 		switch(exportType){
 			case(ExportType.CurrentObject):{
 				beginSingleObjectExport();
