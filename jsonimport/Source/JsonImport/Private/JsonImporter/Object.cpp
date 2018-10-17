@@ -4,6 +4,8 @@
 
 #include "Engine/PointLight.h"
 #include "Engine/SpotLight.h"
+#include "Engine/SphereReflectionCapture.h"
+#include "Engine/BoxReflectionCapture.h"
 #include "Engine/DirectionalLight.h"
 #include "Engine/Classes/Components/PointLightComponent.h"
 #include "Engine/Classes/Components/SpotLightComponent.h"
@@ -114,32 +116,11 @@ void JsonImporter::importObject(JsonObjPtr obj, int32 objId){
 		}
 	}
 
-	float lightRange = 0.0f;
-	float lightSpotAngle = 0.0f;
-	bool lightCastShadow = false;
-	FString lightType;
-	float lightShadowStrength = 0.0f;
-	float lightIntensity = 0.0f;
-	FLinearColor lightColor;
-	float lightBounceIntensity = 0.0f;
-	FString lightRenderMode;
-	FString lightShadows;
-
 	if (lightArray.Num() > 0){
 		auto lightVal= lightArray[0];
 		auto lightObj = lightVal->AsObject();
 		if (lightObj.IsValid()){
 			hasLight = true;
-			lightRange = getFloat(lightObj, "range");
-			lightSpotAngle = getFloat(lightObj, "spotAngle");
-			lightType = getString(lightObj, "type");
-			lightShadowStrength= getFloat(lightObj, "shadowStrength");
-			lightIntensity = getFloat(lightObj, "intensity");
-			lightBounceIntensity = getFloat(lightObj, "bounceIntensity");
-			lightColor = getColor(lightObj, "color");
-			lightRenderMode = getString(lightObj, "renderMode");
-			lightShadows = getString(lightObj, "shadows");
-			lightCastShadow = lightShadows != "Off";
 		}
 	}
 
@@ -153,6 +134,8 @@ void JsonImporter::importObject(JsonObjPtr obj, int32 objId){
 	FMatrix ueMatrix;
 	ueMatrix.SetAxes(&zAxis, &xAxis, &yAxis, &pos);
 
+	processReflectionProbes(name, objId, obj, ueMatrix, isStatic, parentActor, folderPath);
+
 	if (!hasLight && (meshId < 0))
 		return;
 	auto world = GEditor->GetEditorWorldContext().World();
@@ -161,173 +144,7 @@ void JsonImporter::importObject(JsonObjPtr obj, int32 objId){
 		return; 
 	}
 
-	const float ueAttenuationBoost = 2.0f;
-
-	if (hasLight){
-		UE_LOG(JsonLog, Log, TEXT("Creating light"));
-		FActorSpawnParameters spawnParams;
-		FTransform spotLightTransform;
-		FVector lightX, lightY, lightZ;
-		ueMatrix.GetScaledAxes(lightX, lightY, lightZ);
-		logValue("LightX (orig)", lightX);
-		logValue("LightY (orig)", lightY);
-		logValue("LightZ (orig)", lightZ);
-		FVector lightNewX = lightZ;
-		FVector lightNewY = lightY;
-		FVector lightNewZ = -lightX;
-		FMatrix lightMatrix = ueMatrix;
-		logValue("lightNewX", lightNewX);
-		logValue("lightNewY", lightNewY);
-		logValue("lightNewZ", lightNewZ);
-
-		logValue("lightMatrix", lightMatrix);
-		lightMatrix.SetAxes(&lightNewX, &lightNewY, &lightNewZ);
-		spotLightTransform.SetFromMatrix(lightMatrix);
-		logValue("Transform.Translation", spotLightTransform.GetTranslation());
-		logValue("Transform.Scale3D", spotLightTransform.GetScale3D());
-		logValue("Transform.Rotation", spotLightTransform.GetRotation());
-		logValue("Transform.XAxis", spotLightTransform.GetUnitAxis(EAxis::X));
-		logValue("Transform.YAxis", spotLightTransform.GetUnitAxis(EAxis::Y));
-		logValue("Transform.ZAxis", spotLightTransform.GetUnitAxis(EAxis::Z));
-
-		if (lightType == "Point"){
-			FTransform pointLightTransform;
-			pointLightTransform.SetFromMatrix(ueMatrix);
-			APointLight *actor = Cast<APointLight>(GEditor->AddActor(GCurrentLevelEditingViewportClient->GetWorld()->GetCurrentLevel(),
-				APointLight::StaticClass(), pointLightTransform));//spotLightTransform));
-			if (!actor){
-				UE_LOG(JsonLog, Warning, TEXT("Could not spawn point light"));
-			}
-			else{
-				actor->SetActorLabel(name, true);
-
-				auto moveResult = actor->SetActorTransform(pointLightTransform, false, nullptr, ETeleportType::ResetPhysics);
-				logValue("Actor move result: ", moveResult);
-
-				auto light = actor->PointLightComponent;
-				//light->SetIntensity(lightIntensity * 2500.0f);//100W lamp per 1 point of intensity
-
-				light->SetIntensity(lightIntensity);
-				light->bUseInverseSquaredFalloff = false;
-				//light->LightFalloffExponent = 2.0f;
-				light->SetLightFalloffExponent(2.0f);
-
-				light->SetLightColor(lightColor);
-				float attenRadius = lightRange*100.0f;//*ueAttenuationBoost;//those are fine
-				light->AttenuationRadius = attenRadius;
-				light->SetAttenuationRadius(attenRadius);
-				light->CastShadows = lightCastShadow;// != FString("None");
-				//light->SetVisibility(params.visible);
-				if (isStatic)
-					actor->SetMobility(EComponentMobility::Static);
-				actor->MarkComponentsRenderStateDirty();
-
-				//createdActors.Add(actor);
-				setParentAndFolder(actor, parentActor, folderPath);
-			}
-		}
-		else if (lightType == "Spot"){
-			ASpotLight *actor = Cast<ASpotLight>(GEditor->AddActor(GCurrentLevelEditingViewportClient->GetWorld()->GetCurrentLevel(),
-				ASpotLight::StaticClass(), spotLightTransform));
-			if (!actor){
-				UE_LOG(JsonLog, Warning, TEXT("Could not spawn spot light"));
-			}
-			else{
-				actor->SetActorLabel(name, true);
-
-				auto light = actor->SpotLightComponent;
-				//light->SetIntensity(lightIntensity * 2500.0f);//100W lamp per 1 point of intensity
-				light->SetIntensity(lightIntensity);
-				light->bUseInverseSquaredFalloff = false;
-				//light->LightFalloffExponent = 2.0f;
-				light->SetLightFalloffExponent(2.0f);
-
-
-				light->SetLightColor(lightColor);
-				float attenRadius = lightRange*100.0f;//*ueAttenuationBoost;
-				light->AttenuationRadius = attenRadius;
-				light->SetAttenuationRadius(attenRadius);
-				light->CastShadows = lightCastShadow;// != FString("None");
-				//light->InnerConeAngle = lightSpotAngle * 0.25f;
-				light->InnerConeAngle = 0.0f;
-				light->OuterConeAngle = lightSpotAngle * 0.5f;
-				//light->SetVisibility(params.visible);
-				if (isStatic)
-					actor->SetMobility(EComponentMobility::Static);
-				actor->MarkComponentsRenderStateDirty();
-
-				//createdActors.Add(actor);
-				setParentAndFolder(actor, parentActor, folderPath);
-			}
-		}
-		else if (lightType == "Directional"){
-		#if 0
-			FMatrix dirLightMatrix = ueMatrix;
-			/*
-			FVector lightNewX = lightZ;
-			FVector lightNewY = lightY;
-			FVector lightNewZ = -lightX;
-			*/
-			FVector dirLightZ = lightNewX; // lightZ
-			FVector dirLightX = -lightNewZ; // lightX
-			FVector dirLightY = lightNewY; // lightY
-			dirLightMatrix.SetAxes(&dirLightX, &dirLightY, &dirLightZ);
-		#endif
-
-			FTransform dirLightTransform;
-			dirLightTransform.SetFromMatrix(ueMatrix);//dirLightMatrix);
-
-			ADirectionalLight *dirLightActor = Cast<ADirectionalLight>(GEditor->AddActor(GCurrentLevelEditingViewportClient->GetWorld()->GetCurrentLevel(),
-				ADirectionalLight::StaticClass(), dirLightTransform));
-			//Well, here we go. For some reason data from lightTransform isn't being passed.
-			if (!dirLightActor){
-				UE_LOG(JsonLog, Warning, TEXT("Could not spawn directional light"));
-			}
-			else{
-				dirLightActor->SetActorLabel(name, true);
-
-				logValue("Dir light rotation (Euler): ", dirLightActor->GetActorRotation().Euler());
-				logValue("Dir light transform: ", dirLightActor->GetActorTransform().ToMatrixWithScale());
-				logValue("Dir light scale: ", dirLightActor->GetActorScale3D());
-				logValue("Dir light location: ", dirLightActor->GetActorLocation());
-				// ??? For some reason it ignores data passed through AddActor. 
-
-				auto moveResult = dirLightActor->SetActorTransform(dirLightTransform, false, nullptr, ETeleportType::ResetPhysics);
-				logValue("Actor move result: ", moveResult);
-
-				logValue("Dir light rotation (Euler): ", dirLightActor->GetActorRotation().Euler());
-				logValue("Dir light transform: ", dirLightActor->GetActorTransform().ToMatrixWithScale());
-				logValue("Dir light scale: ", dirLightActor->GetActorScale3D());
-				logValue("Dir light location: ", dirLightActor->GetActorLocation());
-
-				auto light = dirLightActor->GetLightComponent();
-				//light->SetIntensity(lightIntensity * 2500.0f);//100W lamp per 1 point of intensity
-				light->SetIntensity(lightIntensity);
-				//light->bUseInverseSquaredFalloff = false;
-				//light->LightFalloffExponent = 2.0f;
-				//light->SetLightFalloffExponent(2.0f);
-
-
-				light->SetLightColor(lightColor);
-				//float attenRadius = lightRange*100.0f;//*ueAttenuationBoost;
-				//light->AttenuationRadius = attenRadius;
-				//light->SetAttenuationRadius(attenRadius);
-				light->CastShadows = lightCastShadow;// != FString("None");
-				//light->InnerConeAngle = lightSpotAngle * 0.25f;
-
-				//light->InnerConeAngle = 0.0f;
-				//light->OuterConeAngle = lightSpotAngle * 0.5f;
-
-				//light->SetVisibility(params.visible);
-				if (isStatic)
-					dirLightActor->SetMobility(EComponentMobility::Static);
-				dirLightActor->MarkComponentsRenderStateDirty();
-
-				setParentAndFolder(dirLightActor, parentActor, folderPath);
-			}
-		}
-	}
-
+	processLight(name, obj, ueMatrix, isStatic, parentActor, folderPath);
 	if (meshId < 0)
 		return;
 
@@ -431,4 +248,278 @@ void JsonImporter::importObject(JsonObjPtr obj, int32 objId){
 	meshComp->bCastShadowAsTwoSided = twoSidedShadows;
 
 	worldMesh->MarkComponentsRenderStateDirty();
+}
+
+void JsonImporter::processReflectionProbes(const FString &objName, int32 objId, JsonObjPtr objData, const FMatrix &ueMatrix, bool isStatic, AActor *parentActor, const FString &folderPath){
+	auto reflectionProbeArray = objData->GetArrayField("reflectionProbes");
+
+	if (reflectionProbeArray.Num() <= 0)
+		return;
+
+	if (!isStatic){
+		UE_LOG(JsonLog, Warning, TEXT("Moveable reflection captures are not supported. Object %s(%d)"), *objName, objId);
+		//return;
+	}
+
+	for (int i = 0; i < reflectionProbeArray.Num(); i++){
+		auto probeVal = reflectionProbeArray[i];
+		auto probeObj = probeVal->AsObject();
+		if (!probeObj.IsValid())
+			continue;
+		auto backgroundColor = getColor(probeObj, "backgroundColor");//getLinearColor???
+		auto blendDistance = getFloat(probeObj, "blendDistance");
+		auto boxProjection = getBool(probeObj, "boxProjection");
+		auto center = getVector(probeObj, "center");
+		auto size = getVector(probeObj, "size");
+		auto clearType = getString(probeObj, "clearType");
+		auto cullingMask = getInt(probeObj, "cullingMask");
+		auto hdr = getBool(probeObj, "hdr");
+		auto intensity = getFloat(probeObj, "intensity");
+		auto nearClipPlane = getFloat(probeObj, "nearClipPlane");
+		auto farClipPlane = getFloat(probeObj, "farClipPlane");
+		auto resolution = getInt(probeObj, "resolution");
+		auto mode = getString(probeObj, "mode");
+		auto refreshMode = getString(probeObj, "refreshMode");
+
+		FMatrix captureMatrix = ueMatrix;
+
+		FVector ueCenter = unityToUe(center);
+		FVector xAxis, yAxis, zAxis;
+		captureMatrix.GetScaledAxes(xAxis, yAxis, zAxis);
+		auto origin = captureMatrix.GetOrigin();
+		origin += xAxis * ueCenter.X * 100.0f + yAxis * ueCenter.Y * 100.0f + zAxis * ueCenter.Z * 100.0f;
+		captureMatrix.SetOrigin(origin);
+
+		//bool realtime = mode == "Realtime";
+		bool baked = mode == "Baked";
+		if (!baked){
+			UE_LOG(JsonLog, Warning, TEXT("Realtime reflections are not support. object %s(%d)"), *objName, objId);
+		}
+
+		FTransform captureTransform;
+		captureTransform.SetFromMatrix(captureMatrix);
+		if (!boxProjection){
+			ASphereReflectionCapture *actor = Cast<ASphereReflectionCapture>(GEditor->AddActor(GCurrentLevelEditingViewportClient->GetWorld()->GetCurrentLevel(),
+				ASphereReflectionCapture::StaticClass(), captureTransform));//spotLightTransform));
+			if (!actor){
+				UE_LOG(JsonLog, Warning, TEXT("Could not spawn sphere capture"));
+			}
+			else{
+				actor->SetActorLabel(objName);
+				auto moveResult = actor->SetActorTransform(captureTransform, false, nullptr, ETeleportType::ResetPhysics);
+				logValue("Actor move result: ", moveResult);
+
+				auto captureComp = actor->GetCaptureComponent();
+				/*if (isStatic)
+					actor->SetMobility(EComponentMobility::Static);*/
+				actor->MarkComponentsRenderStateDirty();
+				setParentAndFolder(actor, parentActor, folderPath);
+			}
+		}
+		else{
+			ABoxReflectionCapture *actor = Cast<ABoxReflectionCapture>(GEditor->AddActor(GCurrentLevelEditingViewportClient->GetWorld()->GetCurrentLevel(),
+				ABoxReflectionCapture::StaticClass(), captureTransform));//spotLightTransform));
+			if (!actor){
+				UE_LOG(JsonLog, Warning, TEXT("Could not spawn box reflection capture"));
+			}
+			else{
+				actor->SetActorLabel(objName);
+				auto moveResult = actor->SetActorTransform(captureTransform, false, nullptr, ETeleportType::ResetPhysics);
+				logValue("Actor move result: ", moveResult);
+
+				auto captureComp = actor->GetCaptureComponent();
+				/*if (isStatic)
+					actor->SetMobility(EComponentMobility::Static);*/
+				actor->MarkComponentsRenderStateDirty();
+				setParentAndFolder(actor, parentActor, folderPath);
+			}
+		}
+	}
+}
+
+void JsonImporter::processLight(const FString &name, JsonObjPtr obj, const FMatrix &ueMatrix, bool isStatic, AActor *parentActor, const FString& folderPath){
+	auto lightArray = obj->GetArrayField("light");
+
+	float lightRange = 0.0f;
+	float lightSpotAngle = 0.0f;
+	bool lightCastShadow = false;
+	FString lightType;
+	float lightShadowStrength = 0.0f;
+	float lightIntensity = 0.0f;
+	FLinearColor lightColor;
+	float lightBounceIntensity = 0.0f;
+	FString lightRenderMode;
+	FString lightShadows;
+
+	bool hasLight = false;
+
+	if (lightArray.Num() > 0){
+		auto lightVal= lightArray[0];
+		auto lightObj = lightVal->AsObject();
+		if (lightObj.IsValid()){
+			hasLight = true;
+			lightRange = getFloat(lightObj, "range");
+			lightSpotAngle = getFloat(lightObj, "spotAngle");
+			lightType = getString(lightObj, "type");
+			lightShadowStrength= getFloat(lightObj, "shadowStrength");
+			lightIntensity = getFloat(lightObj, "intensity");
+			lightBounceIntensity = getFloat(lightObj, "bounceIntensity");
+			lightColor = getColor(lightObj, "color");
+			lightRenderMode = getString(lightObj, "renderMode");
+			lightShadows = getString(lightObj, "shadows");
+			lightCastShadow = lightShadows != "Off";
+		}
+	}
+
+	if (!hasLight)
+		return;
+
+	UE_LOG(JsonLog, Log, TEXT("Creating light"));
+	FActorSpawnParameters spawnParams;
+	FTransform spotLightTransform;
+	FVector lightX, lightY, lightZ;
+	ueMatrix.GetScaledAxes(lightX, lightY, lightZ);
+	logValue("LightX (orig)", lightX);
+	logValue("LightY (orig)", lightY);
+	logValue("LightZ (orig)", lightZ);
+	FVector lightNewX = lightZ;
+	FVector lightNewY = lightY;
+	FVector lightNewZ = -lightX;
+	FMatrix lightMatrix = ueMatrix;
+	logValue("lightNewX", lightNewX);
+	logValue("lightNewY", lightNewY);
+	logValue("lightNewZ", lightNewZ);
+
+	logValue("lightMatrix", lightMatrix);
+	lightMatrix.SetAxes(&lightNewX, &lightNewY, &lightNewZ);
+	spotLightTransform.SetFromMatrix(lightMatrix);
+	logValue("Transform.Translation", spotLightTransform.GetTranslation());
+	logValue("Transform.Scale3D", spotLightTransform.GetScale3D());
+	logValue("Transform.Rotation", spotLightTransform.GetRotation());
+	logValue("Transform.XAxis", spotLightTransform.GetUnitAxis(EAxis::X));
+	logValue("Transform.YAxis", spotLightTransform.GetUnitAxis(EAxis::Y));
+	logValue("Transform.ZAxis", spotLightTransform.GetUnitAxis(EAxis::Z));
+
+	if (lightType == "Point"){
+		FTransform pointLightTransform;
+		pointLightTransform.SetFromMatrix(ueMatrix);
+		APointLight *actor = Cast<APointLight>(GEditor->AddActor(GCurrentLevelEditingViewportClient->GetWorld()->GetCurrentLevel(),
+			APointLight::StaticClass(), pointLightTransform));//spotLightTransform));
+		if (!actor){
+			UE_LOG(JsonLog, Warning, TEXT("Could not spawn point light"));
+		}
+		else{
+			actor->SetActorLabel(name, true);
+
+			auto moveResult = actor->SetActorTransform(pointLightTransform, false, nullptr, ETeleportType::ResetPhysics);
+			logValue("Actor move result: ", moveResult);
+
+			auto light = actor->PointLightComponent;
+			//light->SetIntensity(lightIntensity * 2500.0f);//100W lamp per 1 point of intensity
+
+			light->SetIntensity(lightIntensity);
+			light->bUseInverseSquaredFalloff = false;
+			//light->LightFalloffExponent = 2.0f;
+			light->SetLightFalloffExponent(2.0f);
+
+			light->SetLightColor(lightColor);
+			float attenRadius = lightRange*100.0f;//*ueAttenuationBoost;//those are fine
+			light->AttenuationRadius = attenRadius;
+			light->SetAttenuationRadius(attenRadius);
+			light->CastShadows = lightCastShadow;// != FString("None");
+			//light->SetVisibility(params.visible);
+			if (isStatic)
+				actor->SetMobility(EComponentMobility::Static);
+			actor->MarkComponentsRenderStateDirty();
+
+			//createdActors.Add(actor);
+			setParentAndFolder(actor, parentActor, folderPath);
+		}
+	}
+	else if (lightType == "Spot"){
+		ASpotLight *actor = Cast<ASpotLight>(GEditor->AddActor(GCurrentLevelEditingViewportClient->GetWorld()->GetCurrentLevel(),
+			ASpotLight::StaticClass(), spotLightTransform));
+		if (!actor){
+			UE_LOG(JsonLog, Warning, TEXT("Could not spawn spot light"));
+		}
+		else{
+			actor->SetActorLabel(name, true);
+
+			auto light = actor->SpotLightComponent;
+			//light->SetIntensity(lightIntensity * 2500.0f);//100W lamp per 1 point of intensity
+			light->SetIntensity(lightIntensity);
+			light->bUseInverseSquaredFalloff = false;
+			//light->LightFalloffExponent = 2.0f;
+			light->SetLightFalloffExponent(2.0f);
+
+
+			light->SetLightColor(lightColor);
+			float attenRadius = lightRange*100.0f;//*ueAttenuationBoost;
+			light->AttenuationRadius = attenRadius;
+			light->SetAttenuationRadius(attenRadius);
+			light->CastShadows = lightCastShadow;// != FString("None");
+			//light->InnerConeAngle = lightSpotAngle * 0.25f;
+			light->InnerConeAngle = 0.0f;
+			light->OuterConeAngle = lightSpotAngle * 0.5f;
+			//light->SetVisibility(params.visible);
+			if (isStatic)
+				actor->SetMobility(EComponentMobility::Static);
+			actor->MarkComponentsRenderStateDirty();
+
+			//createdActors.Add(actor);
+			setParentAndFolder(actor, parentActor, folderPath);
+		}
+	}
+	else if (lightType == "Directional"){
+		FTransform dirLightTransform;
+		dirLightTransform.SetFromMatrix(ueMatrix);//dirLightMatrix);
+
+		ADirectionalLight *dirLightActor = Cast<ADirectionalLight>(GEditor->AddActor(GCurrentLevelEditingViewportClient->GetWorld()->GetCurrentLevel(),
+			ADirectionalLight::StaticClass(), dirLightTransform));
+		//Well, here we go. For some reason data from lightTransform isn't being passed.
+		if (!dirLightActor){
+			UE_LOG(JsonLog, Warning, TEXT("Could not spawn directional light"));
+		}
+		else{
+			dirLightActor->SetActorLabel(name, true);
+
+			logValue("Dir light rotation (Euler): ", dirLightActor->GetActorRotation().Euler());
+			logValue("Dir light transform: ", dirLightActor->GetActorTransform().ToMatrixWithScale());
+			logValue("Dir light scale: ", dirLightActor->GetActorScale3D());
+			logValue("Dir light location: ", dirLightActor->GetActorLocation());
+			// ??? For some reason it ignores data passed through AddActor. 
+
+			auto moveResult = dirLightActor->SetActorTransform(dirLightTransform, false, nullptr, ETeleportType::ResetPhysics);
+			logValue("Actor move result: ", moveResult);
+
+			logValue("Dir light rotation (Euler): ", dirLightActor->GetActorRotation().Euler());
+			logValue("Dir light transform: ", dirLightActor->GetActorTransform().ToMatrixWithScale());
+			logValue("Dir light scale: ", dirLightActor->GetActorScale3D());
+			logValue("Dir light location: ", dirLightActor->GetActorLocation());
+
+			auto light = dirLightActor->GetLightComponent();
+			//light->SetIntensity(lightIntensity * 2500.0f);//100W lamp per 1 point of intensity
+			light->SetIntensity(lightIntensity);
+			//light->bUseInverseSquaredFalloff = false;
+			//light->LightFalloffExponent = 2.0f;
+			//light->SetLightFalloffExponent(2.0f);
+
+			light->SetLightColor(lightColor);
+			//float attenRadius = lightRange*100.0f;//*ueAttenuationBoost;
+			//light->AttenuationRadius = attenRadius;
+			//light->SetAttenuationRadius(attenRadius);
+			light->CastShadows = lightCastShadow;// != FString("None");
+			//light->InnerConeAngle = lightSpotAngle * 0.25f;
+
+			//light->InnerConeAngle = 0.0f;
+			//light->OuterConeAngle = lightSpotAngle * 0.5f;
+
+			//light->SetVisibility(params.visible);
+			if (isStatic)
+				dirLightActor->SetMobility(EComponentMobility::Static);
+			dirLightActor->MarkComponentsRenderStateDirty();
+
+			setParentAndFolder(dirLightActor, parentActor, folderPath);
+		}
+	}
 }

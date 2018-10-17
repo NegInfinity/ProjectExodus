@@ -17,6 +17,8 @@ namespace SceneExport{
 		public float farClipPlane;
 		public float nearClipPlane;
 		public int resolution = 512;
+		public string mode = "baked";
+		public string refreshMode = "awake";
 		//public string timeSlicingMode;
 		
 		public void writeRawJsonValue(FastJsonWriter writer){
@@ -33,34 +35,27 @@ namespace SceneExport{
 			writer.writeKeyVal("nearClipPlane", nearClipPlane);
 			writer.writeKeyVal("farClipPlane", farClipPlane);
 			writer.writeKeyVal("resolution", resolution);
+			writer.writeKeyVal("mode", mode);
+			writer.writeKeyVal("refreshMode", refreshMode);
 			//writer.writeKeyVal("timeSlicingMode", timeSlicingMode);
 			writer.endObject();			
 		}
 		
-		/*
-		public static JsonReflectionProbe[] gatherReflectionProbes(GameObject gameObject){
-			if (!gameObject)
-				throw new System.ArgumentNullException("gameObject");
-				
-			var components = gameObject.GetComponents<ReflectionProbe>();
-			var jsonProbes = new List<JsonReflectionProbe>();
-			var probeIndex = 0;
-			foreach(var curProbe in components){
-				var curIndex = probeIndex;
-				probeIndex++;
-				if (!curProbe){
-					Debug.LogWarningFormat("Probe {0} is null on object {1}", curIndex, gameObject);
-					continue;
-				}
-				
-				var jsonProbe = new JsonReflectionProbe(curProbe);
-				jsonProbes.Add(jsonProbe);
-			}
-			
-			return jsonProbes.ToArray();
+		static string getModeString(UnityEngine.Rendering.ReflectionProbeMode mode){
+			if (mode == UnityEngine.Rendering.ReflectionProbeMode.Baked)
+				return "baked";
+			if (mode == UnityEngine.Rendering.ReflectionProbeMode.Realtime)
+				return "realtime";
+			return "custom";
 		}
-		*/
 		
+		static string getRefreshModeString(UnityEngine.Rendering.ReflectionProbeRefreshMode mode){
+			if (mode == UnityEngine.Rendering.ReflectionProbeRefreshMode.OnAwake)
+				return "awake";
+			if (mode == UnityEngine.Rendering.ReflectionProbeRefreshMode.EveryFrame)
+				return "frame";
+			return "scripting";
+		}
 		/*
 			Uh, do we even need temporary object with all those fields? 
 			Could just grab reflection probes themselves in this case...
@@ -71,14 +66,17 @@ namespace SceneExport{
 			boxProjection = obj.boxProjection;
 			center = obj.center;
 			size = obj.size;
-			clearType = (obj.clearFlags == UnityEngine.Rendering.ReflectionProbeClearFlags.Skybox) ? 
-				"skybox": "color";
+			/*clearType = (obj.clearFlags == UnityEngine.Rendering.ReflectionProbeClearFlags.Skybox) ? 
+				"skybox": "color";*/
+			clearType = obj.clearFlags.ToString();
 			cullingMask = obj.cullingMask;
 			hdr = obj.hdr;
 			intensity = obj.intensity;
 			nearClipPlane = obj.nearClipPlane;
 			farClipPlane = obj.farClipPlane;
 			resolution = obj.resolution;
+			mode = obj.mode.ToString();//getModeString(obj.mode);
+			refreshMode = obj.refreshMode.ToString();//getModeString(obj.mode);
 		}
 	}
 }

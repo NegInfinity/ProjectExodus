@@ -49,6 +49,12 @@ protected:
 		material->Expressions.Add(result);
 		return result;
 	}
+
+	void processReflectionProbes(const FString &objName, int32 objId, JsonObjPtr objData, const FMatrix &ueMatrix, bool isStatic, AActor *parentActor, const FString &folderPath);
+	void processLight(const FString &name, JsonObjPtr obj, const FMatrix &ueMatrix, bool isStatic, AActor *parentActor, const FString& folderPath);
+	void processPointLight();
+	void processSpotLight();
+	void processDirectionalLight();
 public:
 	UTexture* loadTexture(int32 id);
 	UMaterial* loadMaterial(int32 id);
