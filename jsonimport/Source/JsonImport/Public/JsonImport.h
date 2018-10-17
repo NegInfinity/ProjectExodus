@@ -3,11 +3,10 @@
 #pragma once
 
 #include "ModuleManager.h"
+#include "JsonTypes.h"
 
 class FToolBarBuilder;
 class FMenuBuilder;
-
-DECLARE_LOG_CATEGORY_EXTERN(JsonLog, Log, All);
 
 class FJsonImportModule : public IModuleInterface
 {

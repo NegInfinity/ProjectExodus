@@ -1,12 +1,7 @@
 #pragma once
 
-using FStringArray = TArray<FString>;
-using JsonObjPtr = TSharedPtr<FJsonObject>;
-using JsonValPtr = TSharedPtr<FJsonValue>;
-using JsonReaderRef = TSharedRef<TJsonReader<>>;
-using JsonObjPtrs = TArray<JsonObjPtr>;
-using JsonValPtrs = TArray<JsonValPtr>;
-using IdNameMap = TMap<int, FString>;
+#include "JsonTypes.h"
+#include "JsonObjects.h"
 
 class AActor;
 using IdActorMap = TMap<int, AActor*>;
@@ -50,79 +45,15 @@ protected:
 		return result;
 	}
 
-	void processReflectionProbes(const FString &objName, int32 objId, JsonObjPtr objData, const FMatrix &ueMatrix, bool isStatic, AActor *parentActor, const FString &folderPath);
-	void processLight(const FString &name, JsonObjPtr obj, const FMatrix &ueMatrix, bool isStatic, AActor *parentActor, const FString& folderPath);
-	void processPointLight();
-	void processSpotLight();
-	void processDirectionalLight();
+	void processReflectionProbes(UWorld *world, const JsonGameObject &gameObj, int32 objId, AActor *parentActor, const FString &folderPath);
+	void processLight(UWorld *world, const JsonGameObject &gameObj, const JsonLight &light, AActor *parentActor, const FString& folderPath);
+	void processLights(UWorld *world, const JsonGameObject &gameObj, AActor *parentActor, const FString& folderPath);
+	void processMesh(UWorld *world, const JsonGameObject &gameObj, int objId, AActor *parentActor, const FString& folderPath);
+
+	void importScene(JsonObjPtr sceneData, bool createWorld);
 public:
 	UTexture* loadTexture(int32 id);
 	UMaterial* loadMaterial(int32 id);
-
-	static void loadArray(JsonObjPtr data, const JsonValPtrs *&valPtrs, const FString &name, const FString &warnName);
-	static void loadArray(JsonObjPtr data, const JsonValPtrs *&valPtrs, const FString &name);
-	static void logValue(const FString &msg, const bool val);
-	static FVector unityToUe(const FVector& arg);
-	static void logValue(const FString &msg, const FVector2D &val);
-	static void logValue(const FString &msg, const FVector &val);
-	static void logValue(const FString &msg, const FQuat &val);
-	static void logValue(const FString &msg, const FMatrix &val);
-	static void logValue(const FString &msg, const int val);
-	static void logValue(const FString &msg, const float val);
-	static void logValue(const FString &msg, const FString &val);
-	static void logValue(const FString &msg, const FLinearColor &val);
-	static int32 getInt(JsonObjPtr data, const char* name);
-	static bool getBool(JsonObjPtr data, const char* name);
-	static float getFloat(JsonObjPtr data, const char* name);
-	static FString getString(JsonObjPtr data, const char* name);
-	static JsonObjPtr getObject(JsonObjPtr data, const char* name);
-
-	static TArray<float> toFloatArray(const JsonValPtrs &inData){
-		TArray<float> result;
-		for(auto cur: inData){
-			double val = 0.0;
-			if (cur.IsValid()){
-				cur->TryGetNumber(val);
-			}
-				//val = cur->AsNumber();
-			result.Add(val);
-		}
-		return result;
-	}
-	
-	static TArray<float> toFloatArray(const JsonValPtrs* inData){
-		TArray<float> result;
-		if (inData){
-			for(auto cur: *inData){
-				double val = 0.0;
-				if (cur.IsValid()){
-					cur->TryGetNumber(val);
-				}
-					//val = cur->AsNumber();
-				result.Add(val);
-			}
-		}
-		return result;
-	}
-	
-	static TArray<int32> toIntArray(const JsonValPtrs &inData){
-		TArray<int32> result;
-		for(auto cur: inData){
-			int32 val;
-			if (cur.IsValid()){
-				cur->TryGetNumber(val);
-			}
-			result.Add(val);
-		}
-		return result;
-	}
-	
-	static FLinearColor getLinearColor(JsonObjPtr data, const char* name, const FLinearColor &defaultVal = FLinearColor());
-	static FMatrix getMatrix(JsonObjPtr data, const char* name, const FMatrix &defaultVal = FMatrix::Identity);
-	static FVector2D getVector2(JsonObjPtr data, const char* name, const FVector2D &defaultVal = FVector2D());
-	static FVector getVector(JsonObjPtr data, const char* name, const FVector &defaultVal = FVector());
-	static FLinearColor getColor(JsonObjPtr data, const char* name, const FLinearColor &defaultVal = FLinearColor());
-	static FQuat getQuat(JsonObjPtr data, const char* name, const FQuat &defaultVal = FQuat());
 
 	void importScene(const FString& path);
 	void importProject(const FString& path);
@@ -131,7 +62,7 @@ public:
 	void loadTextures(const JsonValPtrs* textures);
 	void loadMaterials(const JsonValPtrs* materials);
 	void loadMeshes(const JsonValPtrs* meshes);
-	void loadObjects(const JsonValPtrs* objects);
+	void loadObjects(const JsonValPtrs* objects, UWorld *world);
 
 	void setupAssetPaths(const FString &jsonFilename);
 
@@ -140,7 +71,7 @@ public:
 	void importTexture(JsonObjPtr obj, const FString &rootPath);
 	void importMaterial(JsonObjPtr obj, int32 matId);
 	void importMesh(JsonObjPtr obj, int32 meshId);
-	void importObject(JsonObjPtr obj, int32 objId);
+	void importObject(JsonObjPtr obj, int32 objId, UWorld *world);
 
 	static int findMatchingLength(const FString& arg1, const FString& arg2);
 	FString findCommonPath(const JsonValPtrs* resources);
@@ -217,4 +148,3 @@ public:
 		return package;
 	}
 };
-

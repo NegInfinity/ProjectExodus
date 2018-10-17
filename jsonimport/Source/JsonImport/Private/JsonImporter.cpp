@@ -26,8 +26,11 @@
 #include "RawMesh.h"
 
 #include "DesktopPlatformModule.h"
+#include "JsonObjects.h"
 
 #define LOCTEXT_NAMESPACE "FJsonImportModule"
+
+using namespace JsonObjects;
 
 void JsonImporter::loadTextures(const JsonValPtrs* textures){
 	if (!textures)
@@ -81,7 +84,7 @@ void JsonImporter::loadMeshes(const JsonValPtrs* meshes){
 	}
 }
 
-void JsonImporter::loadObjects(const JsonValPtrs* objects){
+void JsonImporter::loadObjects(const JsonValPtrs* objects, UWorld *world){
 	if (!objects)
 		return;
 	FScopedSlowTask objProgress(objects->Num(), LOCTEXT("Importing objects", "Importing objects"));
@@ -94,7 +97,7 @@ void JsonImporter::loadObjects(const JsonValPtrs* objects){
 		objId++;
 		if (!obj.IsValid())
 			continue;
-		importObject(obj, objId);
+		importObject(obj, objId, world);
 		objProgress.EnterProgressFrame(1.0f);
 	}
 }
@@ -138,3 +141,4 @@ void JsonImporter::setupAssetPaths(const FString &jsonFilename){
 	assetRootPath = FPaths::GetPath(jsonFilename);
 	sourceBaseName = FPaths::GetBaseFilename(jsonFilename);
 }
+

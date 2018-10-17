@@ -41,11 +41,11 @@
 
 #include "DesktopPlatformModule.h"
 
+#include "JsonLog.h"
+
 #define LOCTEXT_NAMESPACE "FJsonImportModule"
 
 static const FName JsonImportTabName("JsonImport");
-
-DEFINE_LOG_CATEGORY(JsonLog);
 
 void FJsonImportModule::StartupModule(){
 	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module

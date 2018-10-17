@@ -10,6 +10,11 @@
 #include "Engine/Classes/Components/PointLightComponent.h"
 #include "Engine/Classes/Components/SpotLightComponent.h"
 #include "Engine/Classes/Components/DirectionalLightComponent.h"
+
+#include "Engine/Classes/Components/BoxReflectionCaptureComponent.h"
+#include "Engine/Classes/Components/ReflectionCaptureComponent.h"
+#include "Engine/Classes/Components/SphereReflectionCaptureComponent.h"
+
 #include "Engine/StaticMeshActor.h"
 #include "Engine/Classes/Components/StaticMeshComponent.h"
 #include "LevelEditorViewport.h"
@@ -27,6 +32,8 @@
 	
 #include "RawMesh.h"
 
+#include "JsonObjects.h"
+
 #include "DesktopPlatformModule.h"
 
 static void setParentAndFolder(AActor *actor, AActor *parentActor, const FString& folderPath){
@@ -41,125 +48,58 @@ static void setParentAndFolder(AActor *actor, AActor *parentActor, const FString
 	}
 }
 
-void JsonImporter::importObject(JsonObjPtr obj, int32 objId){
+void JsonImporter::importObject(JsonObjPtr obj, int32 objId, UWorld *world){
 	UE_LOG(JsonLog, Log, TEXT("Importing object %d"), objId);
 
-#define GETPARAM2(varName, paramName, op) auto varName = op(obj, #paramName); logValue(#paramName, varName);
-#define GETPARAM(name, op) auto name = op(obj, #name); logValue(#name, name);
-	GETPARAM(name, getString)
-	GETPARAM(id, getInt)
-	GETPARAM(instanceId, getInt)
-	GETPARAM(localPosition, getVector)
-	GETPARAM(localRotation, getQuat)
-	GETPARAM(localScale, getVector)
-	GETPARAM(worldMatrix, getMatrix)
-	GETPARAM(localMatrix, getMatrix)
-	GETPARAM2(parentId, parent, getInt)
-	GETPARAM2(meshId, mesh, getInt)
-
-	GETPARAM(isStatic, getBool)
-	GETPARAM(lightMapStatic, getBool)
-	GETPARAM(navigationStatic, getBool)
-	GETPARAM(occluderStatic, getBool)
-	GETPARAM(occludeeStatic, getBool)
-
-	GETPARAM(nameClash, getBool)
-	GETPARAM(uniqueName, getString)
-	//renderer
-	//light
-#undef GETPARAM
-#undef GETPARAM2
-	auto rendererArray = obj->GetArrayField("renderer");
-	auto lightArray = obj->GetArrayField("light");
+	auto jsonGameObj = JsonGameObject(obj);
 
 	FString folderPath;
 
-	if (nameClash && (uniqueName.Len() > 0)){
-		UE_LOG(JsonLog, Warning, TEXT("Name clash detected on object %d: %s. Renaming to %s"), 
-			id, *name, *uniqueName);		
-		name = uniqueName;
-	}
+	AActor *parentActor = objectActors.FindRef(jsonGameObj.parentId);
 
-	AActor *parentActor = objectActors.FindRef(parentId);
-
-	FString childFolderPath = name;
-	if (parentId >= 0){
-		const FString* found = objectFolderPaths.Find(parentId);
+	FString childFolderPath = jsonGameObj.ueName;
+	if (jsonGameObj.parentId >= 0){
+		const FString* found = objectFolderPaths.Find(jsonGameObj.parentId);
 		if (found){
 			folderPath = *found;
-			childFolderPath = folderPath + "/" + name;
+			childFolderPath = folderPath + "/" + jsonGameObj.ueName;
 		}
 		else{
 			UE_LOG(JsonLog, Warning, TEXT("Object parent not found, folder path may be invalid"));
 		}
 	}
-	UE_LOG(JsonLog, Log, TEXT("Folder path for object: %d: %s"), id, *folderPath);
-	objectFolderPaths.Add(id, childFolderPath);
 
-	bool hasRenderer = false, hasLight = false;
-	bool receiveShadows = true;
-	FString shadowCastingMode;
+	UE_LOG(JsonLog, Log, TEXT("Folder path for object: %d: %s"), jsonGameObj.id, *folderPath);
+	objectFolderPaths.Add(jsonGameObj.id, childFolderPath);
 
-	TArray<int32> materials;
-	//FVector4 lightmapScaleOffset
-	if (rendererArray.Num() > 0){
-		auto rendVal = rendererArray[0];
-		auto rendObj = rendVal->AsObject();
-		if (rendObj.IsValid()){
-			hasRenderer = true;
-			receiveShadows = getBool(rendObj, "receiveShadows");
-			shadowCastingMode = getString(rendObj, "shadowCastingMode");
-			const JsonValPtrs* matValues = 0;
-			loadArray(rendObj, matValues, "materials");
-			if (matValues)
-				materials = toIntArray(*matValues);
-		}
-	}
 
-	if (lightArray.Num() > 0){
-		auto lightVal= lightArray[0];
-		auto lightObj = lightVal->AsObject();
-		if (lightObj.IsValid()){
-			hasLight = true;
-		}
-	}
-
-	FVector xAxis, yAxis, zAxis;
-	worldMatrix.GetScaledAxes(xAxis, yAxis, zAxis);
-	FVector pos = worldMatrix.GetOrigin();
-	pos = unityToUe(pos)*100.0f;
-	xAxis = unityToUe(xAxis);
-	yAxis = unityToUe(yAxis);
-	zAxis = unityToUe(zAxis);
-	FMatrix ueMatrix;
-	ueMatrix.SetAxes(&zAxis, &xAxis, &yAxis, &pos);
-
-	processReflectionProbes(name, objId, obj, ueMatrix, isStatic, parentActor, folderPath);
-
-	if (!hasLight && (meshId < 0))
-		return;
-	auto world = GEditor->GetEditorWorldContext().World();
 	if (!world){
 		UE_LOG(JsonLog, Warning, TEXT("No world"));
 		return; 
 	}
 
-	processLight(name, obj, ueMatrix, isStatic, parentActor, folderPath);
-	if (meshId < 0)
+	if (jsonGameObj.hasProbes())
+		processReflectionProbes(world, jsonGameObj, objId, parentActor, folderPath);
+	
+	if (jsonGameObj.hasLights())
+		processLights(world, jsonGameObj, parentActor, folderPath);
+
+	if (jsonGameObj.hasMesh())
+		processMesh(world, jsonGameObj, objId, parentActor, folderPath);
+}
+
+void JsonImporter::processMesh(UWorld *world, const JsonGameObject &jsonGameObj, int objId, AActor *parentActor, const FString& folderPath){
+	if (!jsonGameObj.hasMesh())
 		return;
 
-	UE_LOG(JsonLog, Log, TEXT("Mesh found in object %d, name %s"), objId, *name);
+	UE_LOG(JsonLog, Log, TEXT("Mesh found in object %d, name %s"), objId, *jsonGameObj.ueName);
 	
-	//ueMatrix.SetScaledAxes(zAxis, xAxis, yAxis);
-	//ueMatrix.SetOrigin(pos);
-
-	//visible/static parameters
-	auto meshPath = meshIdMap[meshId];
+	auto meshPath = meshIdMap[jsonGameObj.meshId];
 	UE_LOG(JsonLog, Log, TEXT("Mesh path: %s"), *meshPath);
 
 	FActorSpawnParameters spawnParams;
 	FTransform transform;
-	transform.SetFromMatrix(ueMatrix);
+	transform.SetFromMatrix(jsonGameObj.ueWorldMatrix);
 
 	auto *meshObject = LoadObject<UStaticMesh>(0, *meshPath);
 	if (!meshObject){
@@ -173,7 +113,7 @@ void JsonImporter::importObject(JsonObjPtr obj, int32 objId){
 		return;
 	}
 
-	meshActor->SetActorLabel(name, true);
+	meshActor->SetActorLabel(jsonGameObj.ueName, true);
 
 	AStaticMeshActor *worldMesh = Cast<AStaticMeshActor>(meshActor);
 	//if params is static
@@ -184,9 +124,14 @@ void JsonImporter::importObject(JsonObjPtr obj, int32 objId){
 
 	auto meshComp = worldMesh->GetStaticMeshComponent();
 	meshComp->SetStaticMesh(meshObject);
-	//meshComp->StaticMesh = meshObject;
 
-	//materials
+	if (!jsonGameObj.hasRenderers()){
+		UE_LOG(JsonLog, Warning, TEXT("Renderer not found on %s(%d), cannot create mesh"), *jsonGameObj.ueName, jsonGameObj.id);
+		return;
+	}
+
+	const auto &renderer = jsonGameObj.renderers[0];
+	auto materials = jsonGameObj.getFirstMaterials();
 	if (materials.Num() > 0){
 		for(int i = 0; i < materials.Num(); i++){
 			auto matId = materials[i];
@@ -198,16 +143,16 @@ void JsonImporter::importObject(JsonObjPtr obj, int32 objId){
 	bool hasShadows = false;
 	bool twoSidedShadows = false;
 	bool hideInGame = false;
-	if (shadowCastingMode == FString("ShadowsOnly")){
+	if (renderer.shadowCastingMode == FString("ShadowsOnly")){
 		twoSidedShadows = false;
 		hasShadows = true;
 		hideInGame = true;
 	}
-	else if (shadowCastingMode == FString("On")){
+	else if (renderer.shadowCastingMode == FString("On")){
 		hasShadows = true;
 		twoSidedShadows = false;
 	}
-	else if (shadowCastingMode == FString("TwoSided")){
+	else if (renderer.shadowCastingMode == FString("TwoSided")){
 		hasShadows = true;
 		twoSidedShadows = true;
 	}
@@ -220,7 +165,7 @@ void JsonImporter::importObject(JsonObjPtr obj, int32 objId){
 
 	worldMesh->SetActorHiddenInGame(hideInGame);
 
-	if (isStatic)
+	if (jsonGameObj.isStatic)
 		meshComp->SetMobility(EComponentMobility::Static);
 
 	if (meshObject){
@@ -241,7 +186,7 @@ void JsonImporter::importObject(JsonObjPtr obj, int32 objId){
 		meshComp->LightmassSettings.bUseEmissiveForStaticLighting = emissiveMesh;
 	}
 
-	objectActors.Add(id, meshActor);
+	objectActors.Add(jsonGameObj.id, meshActor);
 	setParentAndFolder(meshActor, parentActor, folderPath);
 
 	meshComp->SetCastShadow(hasShadows);
@@ -250,66 +195,58 @@ void JsonImporter::importObject(JsonObjPtr obj, int32 objId){
 	worldMesh->MarkComponentsRenderStateDirty();
 }
 
-void JsonImporter::processReflectionProbes(const FString &objName, int32 objId, JsonObjPtr objData, const FMatrix &ueMatrix, bool isStatic, AActor *parentActor, const FString &folderPath){
-	auto reflectionProbeArray = objData->GetArrayField("reflectionProbes");
-
-	if (reflectionProbeArray.Num() <= 0)
+void JsonImporter::processReflectionProbes(UWorld *world, const JsonGameObject &gameObj, int32 objId, AActor *parentActor, const FString &folderPath){
+	if (!gameObj.hasProbes())
 		return;
 
-	if (!isStatic){
-		UE_LOG(JsonLog, Warning, TEXT("Moveable reflection captures are not supported. Object %s(%d)"), *objName, objId);
+	if (!gameObj.isStatic){
+		UE_LOG(JsonLog, Warning, TEXT("Moveable reflection captures are not supported. Object %s(%d)"), *gameObj.ueName, objId);
 		//return;
 	}
 
-	for (int i = 0; i < reflectionProbeArray.Num(); i++){
-		auto probeVal = reflectionProbeArray[i];
-		auto probeObj = probeVal->AsObject();
-		if (!probeObj.IsValid())
-			continue;
-		auto backgroundColor = getColor(probeObj, "backgroundColor");//getLinearColor???
-		auto blendDistance = getFloat(probeObj, "blendDistance");
-		auto boxProjection = getBool(probeObj, "boxProjection");
-		auto center = getVector(probeObj, "center");
-		auto size = getVector(probeObj, "size");
-		auto clearType = getString(probeObj, "clearType");
-		auto cullingMask = getInt(probeObj, "cullingMask");
-		auto hdr = getBool(probeObj, "hdr");
-		auto intensity = getFloat(probeObj, "intensity");
-		auto nearClipPlane = getFloat(probeObj, "nearClipPlane");
-		auto farClipPlane = getFloat(probeObj, "farClipPlane");
-		auto resolution = getInt(probeObj, "resolution");
-		auto mode = getString(probeObj, "mode");
-		auto refreshMode = getString(probeObj, "refreshMode");
+	for (int i = 0; i < gameObj.probes.Num(); i++){
+		const auto &probe = gameObj.probes[i];
 
-		FMatrix captureMatrix = ueMatrix;
+		FMatrix captureMatrix = gameObj.ueWorldMatrix;
 
-		FVector ueCenter = unityToUe(center);
+		FVector ueCenter = unityToUe(probe.center);
+		FVector ueSize = unityToUe(probe.size);
 		FVector xAxis, yAxis, zAxis;
 		captureMatrix.GetScaledAxes(xAxis, yAxis, zAxis);
 		auto origin = captureMatrix.GetOrigin();
 		origin += xAxis * ueCenter.X * 100.0f + yAxis * ueCenter.Y * 100.0f + zAxis * ueCenter.Z * 100.0f;
+		xAxis *= ueSize.X;
+		yAxis *= ueSize.Y;
+		zAxis *= ueSize.Z;
 		captureMatrix.SetOrigin(origin);
+		captureMatrix.SetAxes(&xAxis, &yAxis, &zAxis);
 
 		//bool realtime = mode == "Realtime";
-		bool baked = mode == "Baked";
+		bool baked = (probe.mode == "Baked");
 		if (!baked){
-			UE_LOG(JsonLog, Warning, TEXT("Realtime reflections are not support. object %s(%d)"), *objName, objId);
+			UE_LOG(JsonLog, Warning, TEXT("Realtime reflections are not supported. object %s(%d)"), *gameObj.ueName, objId);
 		}
 
 		FTransform captureTransform;
 		captureTransform.SetFromMatrix(captureMatrix);
-		if (!boxProjection){
-			ASphereReflectionCapture *actor = Cast<ASphereReflectionCapture>(GEditor->AddActor(GCurrentLevelEditingViewportClient->GetWorld()->GetCurrentLevel(),
+		UReflectionCaptureComponent *reflComponent = 0;
+		if (!probe.boxProjection){
+			ASphereReflectionCapture *actor = Cast<ASphereReflectionCapture>(
+				GEditor->AddActor(
+					world->GetCurrentLevel(),
+					//GCurrentLevelEditingViewportClient->GetWorld()->GetCurrentLevel(),
 				ASphereReflectionCapture::StaticClass(), captureTransform));//spotLightTransform));
 			if (!actor){
 				UE_LOG(JsonLog, Warning, TEXT("Could not spawn sphere capture"));
 			}
 			else{
-				actor->SetActorLabel(objName);
+				actor->SetActorLabel(gameObj.ueName);
 				auto moveResult = actor->SetActorTransform(captureTransform, false, nullptr, ETeleportType::ResetPhysics);
 				logValue("Actor move result: ", moveResult);
 
 				auto captureComp = actor->GetCaptureComponent();
+				reflComponent = captureComp;
+				//captureComp->Brightness = intensity;
 				/*if (isStatic)
 					actor->SetMobility(EComponentMobility::Static);*/
 				actor->MarkComponentsRenderStateDirty();
@@ -317,75 +254,60 @@ void JsonImporter::processReflectionProbes(const FString &objName, int32 objId, 
 			}
 		}
 		else{
-			ABoxReflectionCapture *actor = Cast<ABoxReflectionCapture>(GEditor->AddActor(GCurrentLevelEditingViewportClient->GetWorld()->GetCurrentLevel(),
+			ABoxReflectionCapture *actor = Cast<ABoxReflectionCapture>(
+					GEditor->AddActor(
+						world->GetCurrentLevel(),
+						//GCurrentLevelEditingViewportClient->GetWorld()->GetCurrentLevel(),
 				ABoxReflectionCapture::StaticClass(), captureTransform));//spotLightTransform));
 			if (!actor){
 				UE_LOG(JsonLog, Warning, TEXT("Could not spawn box reflection capture"));
 			}
 			else{
-				actor->SetActorLabel(objName);
+				actor->SetActorLabel(gameObj.ueName);
 				auto moveResult = actor->SetActorTransform(captureTransform, false, nullptr, ETeleportType::ResetPhysics);
 				logValue("Actor move result: ", moveResult);
 
 				auto captureComp = actor->GetCaptureComponent();
+				reflComponent = captureComp;
+				//captureComp->Brightness = intensity;
+
+				//TODO: Cubemaps
 				/*if (isStatic)
 					actor->SetMobility(EComponentMobility::Static);*/
 				actor->MarkComponentsRenderStateDirty();
 				setParentAndFolder(actor, parentActor, folderPath);
 			}
 		}
+		if (reflComponent){
+			reflComponent->Brightness = probe.intensity;
+			reflComponent->ReflectionSourceType = EReflectionSourceType::CapturedScene;
+			if (probe.mode == "Custom"){
+				reflComponent->ReflectionSourceType = EReflectionSourceType::SpecifiedCubemap;
+				UE_LOG(JsonLog, Warning, TEXT("Cubemaps are not yet fully supported: %s(%d)"), *gameObj.ueName, objId);
+			}
+			if (probe.mode == "Realtime"){
+				UE_LOG(JsonLog, Warning, TEXT("Realtime reflection probes are not support: %s(%d)"), *gameObj.ueName, objId);
+			}
+			//reflComp->
+		}
 	}
 }
 
-void JsonImporter::processLight(const FString &name, JsonObjPtr obj, const FMatrix &ueMatrix, bool isStatic, AActor *parentActor, const FString& folderPath){
-	auto lightArray = obj->GetArrayField("light");
-
-	float lightRange = 0.0f;
-	float lightSpotAngle = 0.0f;
-	bool lightCastShadow = false;
-	FString lightType;
-	float lightShadowStrength = 0.0f;
-	float lightIntensity = 0.0f;
-	FLinearColor lightColor;
-	float lightBounceIntensity = 0.0f;
-	FString lightRenderMode;
-	FString lightShadows;
-
-	bool hasLight = false;
-
-	if (lightArray.Num() > 0){
-		auto lightVal= lightArray[0];
-		auto lightObj = lightVal->AsObject();
-		if (lightObj.IsValid()){
-			hasLight = true;
-			lightRange = getFloat(lightObj, "range");
-			lightSpotAngle = getFloat(lightObj, "spotAngle");
-			lightType = getString(lightObj, "type");
-			lightShadowStrength= getFloat(lightObj, "shadowStrength");
-			lightIntensity = getFloat(lightObj, "intensity");
-			lightBounceIntensity = getFloat(lightObj, "bounceIntensity");
-			lightColor = getColor(lightObj, "color");
-			lightRenderMode = getString(lightObj, "renderMode");
-			lightShadows = getString(lightObj, "shadows");
-			lightCastShadow = lightShadows != "Off";
-		}
-	}
-
-	if (!hasLight)
-		return;
+void JsonImporter::processLight(UWorld *world, const JsonGameObject &gameObj, const JsonLight &jsonLight, AActor *parentActor, const FString& folderPath){
 
 	UE_LOG(JsonLog, Log, TEXT("Creating light"));
 	FActorSpawnParameters spawnParams;
 	FTransform spotLightTransform;
 	FVector lightX, lightY, lightZ;
-	ueMatrix.GetScaledAxes(lightX, lightY, lightZ);
+	gameObj.ueWorldMatrix.GetScaledAxes(lightX, lightY, lightZ);
+
 	logValue("LightX (orig)", lightX);
 	logValue("LightY (orig)", lightY);
 	logValue("LightZ (orig)", lightZ);
 	FVector lightNewX = lightZ;
 	FVector lightNewY = lightY;
 	FVector lightNewZ = -lightX;
-	FMatrix lightMatrix = ueMatrix;
+	FMatrix lightMatrix = gameObj.ueWorldMatrix;
 	logValue("lightNewX", lightNewX);
 	logValue("lightNewY", lightNewY);
 	logValue("lightNewZ", lightNewZ);
@@ -393,6 +315,7 @@ void JsonImporter::processLight(const FString &name, JsonObjPtr obj, const FMatr
 	logValue("lightMatrix", lightMatrix);
 	lightMatrix.SetAxes(&lightNewX, &lightNewY, &lightNewZ);
 	spotLightTransform.SetFromMatrix(lightMatrix);
+
 	logValue("Transform.Translation", spotLightTransform.GetTranslation());
 	logValue("Transform.Scale3D", spotLightTransform.GetScale3D());
 	logValue("Transform.Rotation", spotLightTransform.GetRotation());
@@ -400,16 +323,18 @@ void JsonImporter::processLight(const FString &name, JsonObjPtr obj, const FMatr
 	logValue("Transform.YAxis", spotLightTransform.GetUnitAxis(EAxis::Y));
 	logValue("Transform.ZAxis", spotLightTransform.GetUnitAxis(EAxis::Z));
 
-	if (lightType == "Point"){
+	if (jsonLight.lightType == "Point"){
 		FTransform pointLightTransform;
-		pointLightTransform.SetFromMatrix(ueMatrix);
-		APointLight *actor = Cast<APointLight>(GEditor->AddActor(GCurrentLevelEditingViewportClient->GetWorld()->GetCurrentLevel(),
+		pointLightTransform.SetFromMatrix(gameObj.ueWorldMatrix);
+		APointLight *actor = Cast<APointLight>(GEditor->AddActor(
+			world->GetCurrentLevel(),
+			//GCurrentLevelEditingViewportClient->GetWorld()->GetCurrentLevel(),
 			APointLight::StaticClass(), pointLightTransform));//spotLightTransform));
 		if (!actor){
 			UE_LOG(JsonLog, Warning, TEXT("Could not spawn point light"));
 		}
 		else{
-			actor->SetActorLabel(name, true);
+			actor->SetActorLabel(gameObj.ueName, true);
 
 			auto moveResult = actor->SetActorTransform(pointLightTransform, false, nullptr, ETeleportType::ResetPhysics);
 			logValue("Actor move result: ", moveResult);
@@ -417,18 +342,18 @@ void JsonImporter::processLight(const FString &name, JsonObjPtr obj, const FMatr
 			auto light = actor->PointLightComponent;
 			//light->SetIntensity(lightIntensity * 2500.0f);//100W lamp per 1 point of intensity
 
-			light->SetIntensity(lightIntensity);
+			light->SetIntensity(jsonLight.intensity);
 			light->bUseInverseSquaredFalloff = false;
 			//light->LightFalloffExponent = 2.0f;
 			light->SetLightFalloffExponent(2.0f);
 
-			light->SetLightColor(lightColor);
-			float attenRadius = lightRange*100.0f;//*ueAttenuationBoost;//those are fine
+			light->SetLightColor(jsonLight.color);
+			float attenRadius = jsonLight.range*100.0f;//*ueAttenuationBoost;//those are fine
 			light->AttenuationRadius = attenRadius;
 			light->SetAttenuationRadius(attenRadius);
-			light->CastShadows = lightCastShadow;// != FString("None");
+			light->CastShadows = jsonLight.castsShadows;//lightCastShadow;// != FString("None");
 			//light->SetVisibility(params.visible);
-			if (isStatic)
+			if (gameObj.isStatic)
 				actor->SetMobility(EComponentMobility::Static);
 			actor->MarkComponentsRenderStateDirty();
 
@@ -436,33 +361,35 @@ void JsonImporter::processLight(const FString &name, JsonObjPtr obj, const FMatr
 			setParentAndFolder(actor, parentActor, folderPath);
 		}
 	}
-	else if (lightType == "Spot"){
-		ASpotLight *actor = Cast<ASpotLight>(GEditor->AddActor(GCurrentLevelEditingViewportClient->GetWorld()->GetCurrentLevel(),
+	else if (jsonLight.lightType == "Spot"){
+		ASpotLight *actor = Cast<ASpotLight>(GEditor->AddActor(
+			world->GetCurrentLevel(),
+			//GCurrentLevelEditingViewportClient->GetWorld()->GetCurrentLevel(),
 			ASpotLight::StaticClass(), spotLightTransform));
 		if (!actor){
 			UE_LOG(JsonLog, Warning, TEXT("Could not spawn spot light"));
 		}
 		else{
-			actor->SetActorLabel(name, true);
+			actor->SetActorLabel(gameObj.ueName, true);
 
 			auto light = actor->SpotLightComponent;
 			//light->SetIntensity(lightIntensity * 2500.0f);//100W lamp per 1 point of intensity
-			light->SetIntensity(lightIntensity);
+			light->SetIntensity(jsonLight.intensity);
 			light->bUseInverseSquaredFalloff = false;
 			//light->LightFalloffExponent = 2.0f;
 			light->SetLightFalloffExponent(2.0f);
 
 
-			light->SetLightColor(lightColor);
-			float attenRadius = lightRange*100.0f;//*ueAttenuationBoost;
+			light->SetLightColor(jsonLight.color);
+			float attenRadius = jsonLight.range*100.0f;//*ueAttenuationBoost;
 			light->AttenuationRadius = attenRadius;
 			light->SetAttenuationRadius(attenRadius);
-			light->CastShadows = lightCastShadow;// != FString("None");
+			light->CastShadows = jsonLight.castsShadows;//lightCastShadow;// != FString("None");
 			//light->InnerConeAngle = lightSpotAngle * 0.25f;
 			light->InnerConeAngle = 0.0f;
-			light->OuterConeAngle = lightSpotAngle * 0.5f;
+			light->OuterConeAngle = jsonLight.spotAngle * 0.5f;
 			//light->SetVisibility(params.visible);
-			if (isStatic)
+			if (gameObj.isStatic)
 				actor->SetMobility(EComponentMobility::Static);
 			actor->MarkComponentsRenderStateDirty();
 
@@ -470,18 +397,20 @@ void JsonImporter::processLight(const FString &name, JsonObjPtr obj, const FMatr
 			setParentAndFolder(actor, parentActor, folderPath);
 		}
 	}
-	else if (lightType == "Directional"){
+	else if (jsonLight.lightType == "Directional"){
 		FTransform dirLightTransform;
-		dirLightTransform.SetFromMatrix(ueMatrix);//dirLightMatrix);
+		dirLightTransform.SetFromMatrix(gameObj.ueWorldMatrix);//dirLightMatrix);
 
-		ADirectionalLight *dirLightActor = Cast<ADirectionalLight>(GEditor->AddActor(GCurrentLevelEditingViewportClient->GetWorld()->GetCurrentLevel(),
+		ADirectionalLight *dirLightActor = Cast<ADirectionalLight>(GEditor->AddActor(
+			world->GetCurrentLevel(),
+			//GCurrentLevelEditingViewportClient->GetWorld()->GetCurrentLevel(),
 			ADirectionalLight::StaticClass(), dirLightTransform));
 		//Well, here we go. For some reason data from lightTransform isn't being passed.
 		if (!dirLightActor){
 			UE_LOG(JsonLog, Warning, TEXT("Could not spawn directional light"));
 		}
 		else{
-			dirLightActor->SetActorLabel(name, true);
+			dirLightActor->SetActorLabel(gameObj.ueName, true);
 
 			logValue("Dir light rotation (Euler): ", dirLightActor->GetActorRotation().Euler());
 			logValue("Dir light transform: ", dirLightActor->GetActorTransform().ToMatrixWithScale());
@@ -499,27 +428,37 @@ void JsonImporter::processLight(const FString &name, JsonObjPtr obj, const FMatr
 
 			auto light = dirLightActor->GetLightComponent();
 			//light->SetIntensity(lightIntensity * 2500.0f);//100W lamp per 1 point of intensity
-			light->SetIntensity(lightIntensity);
+			light->SetIntensity(jsonLight.intensity);
 			//light->bUseInverseSquaredFalloff = false;
 			//light->LightFalloffExponent = 2.0f;
 			//light->SetLightFalloffExponent(2.0f);
 
-			light->SetLightColor(lightColor);
+			light->SetLightColor(jsonLight.color);
 			//float attenRadius = lightRange*100.0f;//*ueAttenuationBoost;
 			//light->AttenuationRadius = attenRadius;
 			//light->SetAttenuationRadius(attenRadius);
-			light->CastShadows = lightCastShadow;// != FString("None");
+			light->CastShadows = jsonLight.castsShadows;// != FString("None");
 			//light->InnerConeAngle = lightSpotAngle * 0.25f;
 
 			//light->InnerConeAngle = 0.0f;
 			//light->OuterConeAngle = lightSpotAngle * 0.5f;
 
 			//light->SetVisibility(params.visible);
-			if (isStatic)
+			if (gameObj.isStatic)
 				dirLightActor->SetMobility(EComponentMobility::Static);
 			dirLightActor->MarkComponentsRenderStateDirty();
 
 			setParentAndFolder(dirLightActor, parentActor, folderPath);
 		}
+	}
+}
+
+void JsonImporter::processLights(UWorld *world, const JsonGameObject &gameObj, AActor *parentActor, const FString& folderPath){
+	if (!gameObj.hasLights())
+		return;
+
+	for(int i = 0; i < gameObj.lights.Num(); i++){
+		const auto &curLight = gameObj.lights[i];
+		processLight(world, gameObj, curLight, parentActor, folderPath);
 	}
 }
