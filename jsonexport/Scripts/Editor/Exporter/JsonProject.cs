@@ -194,7 +194,7 @@ namespace SceneExport{
 		
 		bool addTextureAsset(AssetInfo asset, bool showGui, Logger logger){
 			Logger.makeValid(ref logger);
-			var objects = AssetDatabase.LoadAllAssetsAtPath(asset.path);
+			AssetDatabase.LoadAllAssetsAtPath(asset.path);
 			var mainAsset = AssetDatabase.LoadMainAssetAtPath(asset.path);
 			var tex2d = mainAsset as Texture2D;
 			if (!mainAsset || !tex2d){
@@ -210,7 +210,7 @@ namespace SceneExport{
 		
 		bool addMaterialAsset(AssetInfo asset, bool showGui, Logger logger){
 			Logger.makeValid(ref logger);
-			var objects = AssetDatabase.LoadAllAssetsAtPath(asset.path);
+			AssetDatabase.LoadAllAssetsAtPath(asset.path);
 			var mainAsset = AssetDatabase.LoadMainAssetAtPath(asset.path);
 			var mat = mainAsset as Material;
 			if (!mainAsset || !mat){
@@ -225,6 +225,19 @@ namespace SceneExport{
 		}
 		
 		bool addSceneAsset(AssetInfo asset, bool showGui, Logger logger){
+			Logger.makeValid(ref logger);
+			//AssetDatabase.LoadAllAssetsAtPath(asset.path);
+			var mainAsset = AssetDatabase.LoadMainAssetAtPath(asset.path);
+			var sceneAsset = mainAsset as SceneAsset;
+			if (!mainAsset || !sceneAsset){
+				logger.logErrorFormat("Could not get scene at path {0}({1})", asset.path, asset.guid);
+				return true;
+			}
+			
+			var scene = UnityEditor.SceneManagement.EditorSceneManager.OpenScene(asset.path);
+			//EditorSceneManagement.
+			//var scene = sceneAsset as Scene;
+			logger.logFormat("Loading scene: \"{0}\"", sceneAsset.name);
 			return true;
 		}
 		
@@ -273,7 +286,11 @@ namespace SceneExport{
 				return false;
 			if (!processDataList(assetList.materials, showGui, "Registering materials for", "Processing material", addMaterialAsset, logger))
 				return false;
-			if (!processDataList(assetList.scenes, showGui, "Registering scenes for", "Processing scene", addSceneAsset, logger))
+				
+			var sceneSetup = UnityEditor.SceneManagement.EditorSceneManager.GetSceneManagerSetup();
+			var processResult = processDataList(assetList.scenes, showGui, "Registering scenes for", "Processing scene", addSceneAsset, logger);
+			UnityEditor.SceneManagement.EditorSceneManager.RestoreSceneManagerSetup(sceneSetup);
+			if (!processResult)
 				return false;
 			
 			if (showGui){
