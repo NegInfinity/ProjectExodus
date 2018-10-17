@@ -26,6 +26,26 @@ namespace SceneExport{
 				objMap.gatherObjectIds(curObj);
 			}
 			
+			//Prefabs:
+			/*
+			for(int i = 0; i < objMap.objectList.Count; i++){
+				var cur = objMap.objectList[i];
+				var prefabType = PrefabUtility.GetPrefabType(cur);
+				Debug.LogFormat("Cur obj: {0}({2}), prefabType: {1}", cur, prefabType, ExportUtility.getObjectPath(cur));
+				if ((prefabType == PrefabType.PrefabInstance) || (prefabType == PrefabType.ModelPrefabInstance)){
+					Debug.LogFormat("Object is a prefab instance (type: {0})", prefabType);
+					var source = PrefabUtility.GetCorrespondingObjectFromSource(cur);
+					var rootPrefab = PrefabUtility.FindPrefabRoot(source as GameObject);
+					var rootPath = AssetDatabase.GetAssetPath(rootPrefab);
+					Debug.LogFormat("Found prefab: {0}, prefab root: {1} ({2})", source, rootPrefab, rootPath);
+					var path = AssetDatabase.GetAssetPath(source);
+					Debug.LogFormat("Prefab path: {0}; objectPath: {1}", path, ExportUtility.getObjectPath(source as GameObject));
+				}
+				//var prefabObj = PrefabUtility.GetPrefabType(
+				//Debug.LogFormat("Obj
+			}
+			*/
+			
 			for(int i = 0; i < objMap.objectList.Count; i++){
 				/*TODO: The constructor CAN add more data, but most of it would've been added prior to this point.
 				Contempalting whether to enforce it strictly or not.*/

@@ -7,6 +7,16 @@ using UnityEditor.SceneManagement;
 
 namespace SceneExport{
 	public static class ExportUtility{
+		public static bool isValidId(int id){
+			return id >= 0;
+		}
+		public static string getObjectPath(GameObject obj){
+			if (!obj)
+				return "(null)";
+			if (!obj.transform.parent)
+				return obj.name;
+			return getObjectPath(obj.transform.parent.gameObject) + "/" + obj.name;
+		}
 		public static string formatString(string fmt, params object[] args){
 			return string.Format(fmt, args);
 		}

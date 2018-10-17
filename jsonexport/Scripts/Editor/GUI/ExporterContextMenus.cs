@@ -54,5 +54,20 @@ namespace SceneExport{
 			proj.saveToFile(path, true, true, logger);
 			ExportResultWindow.openWindow(logger);
 		}
+		
+		[MenuItem("GameObject/Migration to UE4/Export current project", false, 0)]
+		public static void  exportJsonProj(MenuCommand menuCommand){
+			var path = EditorUtility.SaveFilePanel("Save category config", "", Application.productName, "json");
+			if (path == string.Empty)
+				return;
+				
+			var logger = new Logger();						
+			var proj = JsonProject.fromCurrentProject(true, logger);
+			if (proj != null){
+				proj.saveToFile(path, true, true, logger);
+			}
+			ExportResultWindow.openWindow(logger);
+		}
+		
 	}
 }

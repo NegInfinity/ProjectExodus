@@ -275,7 +275,12 @@ public class ExporterWindow: EditorWindow{
 	}
 	
 	void beginFullProjectExport(){
-		Debug.LogErrorFormat("Full project export is not currently supported.");
+		var logger = new Logger();						
+		var proj = JsonProject.fromCurrentProject(true, logger);
+		if (proj != null){
+			proj.saveToFile(targetPath, true, true, logger);
+		}
+		ExportResultWindow.openWindow(logger);
 	}
 	
 	void processExport(){

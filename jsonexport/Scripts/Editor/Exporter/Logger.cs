@@ -6,6 +6,10 @@ using System.Linq;
 namespace SceneExport{
 	[System.Serializable]
 	public class Logger{
+		public static void makeValid(ref Logger logger){
+			if (logger == null)
+				logger = defaultLogger;
+		}
 		[System.Serializable]
 		public enum MessageType{
 			Log = 0,
