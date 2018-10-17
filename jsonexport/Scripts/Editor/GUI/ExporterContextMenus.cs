@@ -63,6 +63,7 @@ namespace SceneExport{
 				
 			var logger = new Logger();						
 			var proj = JsonProject.fromCurrentProject(true, logger);
+			Debug.LogFormat("Project: {0}", proj);
 			if (proj != null){
 				proj.saveToFile(path, true, true, logger);
 			}

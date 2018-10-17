@@ -15,6 +15,7 @@ namespace SceneExport{
 		public override void writeJsonObjectFields(FastJsonWriter writer){
 			writer.writeKeyVal("config", config);
 			writer.writeKeyVal("scenes", scenes);
+			//var resourceList = resourceMapper.makeResourceList();
 			writer.writeKeyVal("resources", resourceList);
 		}
 		
@@ -62,28 +63,6 @@ namespace SceneExport{
 			return true;
 		}
 		
-		/*
-		IEnumerator saveResources(string baseFilename, AsyncExportTask exportTask){
-			exportTask.markRunning();
-			string targetDir, projectPath;
-			if (!checkResourceFolder(baseFilename, out targetDir, out projectPath))
-				yield break;
-				
-			exportTask.beginProgress(resourceList.textures.Count);
-			int fileIndex = 0;
-			foreach(var curTex in resourceList.textures){
-				fileIndex++;
-				exportTask.setStatus(string.Format("Copying files {0}/{1}", fileIndex, resourceList.textures.Count));
-				TextureUtility.copyTexture(curTex, targetDir, projectPath);
-				exportTask.incProgress();
-				exportTask.checkRepaint();
-				if (exportTask.needsPause()){
-					yield return null;
-				}
-			}
-		}
-		*/
-		
 		void saveResources(string baseFilename, bool showGui, Logger logger = null){
 			Logger.makeValid(ref logger);
 			string targetDir, projectPath;
@@ -117,20 +96,6 @@ namespace SceneExport{
 			writeRawJsonValue(writer);
 			return writer.getString();
 		}
-			
-		/*
-		public IEnumerator saveToFile(string filename, bool saveResourceFiles, AsyncExportTask exportTask){
-			exportTask.startNew();
-			exportTask.setStatus("Saving project to file");
-			Utility.saveStringToFile(filename, toJsonString());
-			if (!saveResourceFiles)
-				yield break;
-				
-			yield return saveResources(filename, exportTask);
-			exportTask.finish();
-			exportTask.repaintWindow();
-		}
-		*/
 			
 		public void saveToFile(string filename, bool showGui, bool saveResourceFiles, Logger logger = null){
 			if (showGui){
@@ -228,10 +193,34 @@ namespace SceneExport{
 		public delegate bool DataProcessingDelegate<Data>(Data data, bool showGui, Logger logger);
 		
 		bool addTextureAsset(AssetInfo asset, bool showGui, Logger logger){
+			Logger.makeValid(ref logger);
+			var objects = AssetDatabase.LoadAllAssetsAtPath(asset.path);
+			var mainAsset = AssetDatabase.LoadMainAssetAtPath(asset.path);
+			var tex2d = mainAsset as Texture2D;
+			if (!mainAsset || !tex2d){
+				logger.logErrorFormat("Could not load texture at path {0}({1})", asset.path, asset.guid);
+				return true;
+			}
+			var id = resourceMapper.getTextureId(tex2d);
+			if (!ExportUtility.isValidId(id)){
+				logger.logWarningFormat("Could not create id for texture {0}({1})", asset.path, asset.guid);
+			}
 			return true;
 		}
 		
 		bool addMaterialAsset(AssetInfo asset, bool showGui, Logger logger){
+			Logger.makeValid(ref logger);
+			var objects = AssetDatabase.LoadAllAssetsAtPath(asset.path);
+			var mainAsset = AssetDatabase.LoadMainAssetAtPath(asset.path);
+			var mat = mainAsset as Material;
+			if (!mainAsset || !mat){
+				logger.logErrorFormat("Could not load material at path {0}({1})", asset.path, asset.guid);
+				return true;
+			}
+			var id = resourceMapper.getMaterialId(mat);
+			if (!ExportUtility.isValidId(id)){
+				logger.logWarningFormat("Could not create id for material {0}({1})", asset.path, asset.guid);
+			}
 			return true;
 		}
 		
@@ -284,20 +273,23 @@ namespace SceneExport{
 				return false;
 			if (!processDataList(assetList.materials, showGui, "Registering materials for", "Processing material", addMaterialAsset, logger))
 				return false;
-			if (!processDataList(assetList.textures, showGui, "Registering scenes for", "Processing scene", addSceneAsset, logger))
+			if (!processDataList(assetList.scenes, showGui, "Registering scenes for", "Processing scene", addSceneAsset, logger))
 				return false;
 			
 			if (showGui){
 				ExportUtility.hideProgressBar();
 			}
+			generateResourceList();
 			return true;
 		}
 		
 		public static JsonProject fromCurrentProject(bool showGui, Logger logger = null){
 			Logger.makeValid(ref logger);
 			var result = new JsonProject();
-			if (!result.loadCurrentProject(showGui, logger))
+			if (!result.loadCurrentProject(showGui, logger)){
+				//logger.logErrorFormat("Project export failed");
 				return null;
+			}
 			return result;
 		}
 		
