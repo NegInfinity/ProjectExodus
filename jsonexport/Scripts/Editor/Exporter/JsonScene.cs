@@ -7,11 +7,18 @@ using UnityEngine.SceneManagement;
 namespace SceneExport{
 	[System.Serializable]
 	public class JsonScene: IFastJsonValue{
+		public string name;
+		public string path;
+		public int buildIndex = -1;
 		public List<JsonGameObject> objects = new List<JsonGameObject>();
 		
 		public static JsonScene fromScene(Scene scene, ResourceMapper resMap, bool showGui){
 			var rootObjects = scene.GetRootGameObjects();
-			return fromObjects(rootObjects, resMap, showGui);
+			var result = fromObjects(rootObjects, resMap, showGui);
+			result.name = scene.name;
+			result.path = scene.path;
+			result.buildIndex = scene.buildIndex;
+			return result;
 		}
 		
 		public static JsonScene fromObject(GameObject arg, ResourceMapper resMap, bool showGui){
@@ -69,6 +76,9 @@ namespace SceneExport{
 			
 		public void writeRawJsonValue(FastJsonWriter writer){
 			writer.beginRawObject();
+			writer.writeKeyVal("name", name);
+			writer.writeKeyVal("path", path);
+			writer.writeKeyVal("buildIndex", buildIndex);
 			writeJsonObjectFields(writer);
 			writer.endObject();
 		}

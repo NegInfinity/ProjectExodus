@@ -234,7 +234,11 @@ namespace SceneExport{
 				return true;
 			}
 			
-			var scene = UnityEditor.SceneManagement.EditorSceneManager.OpenScene(asset.path);
+			var scene = UnityEditor.SceneManagement.EditorSceneManager.OpenScene(
+				asset.path, UnityEditor.SceneManagement.OpenSceneMode.Single);
+				
+			var jsonScene = JsonScene.fromScene(scene, resourceMapper, false);
+			scenes.Add(jsonScene);
 			//EditorSceneManagement.
 			//var scene = sceneAsset as Scene;
 			logger.logFormat("Loading scene: \"{0}\"", sceneAsset.name);
