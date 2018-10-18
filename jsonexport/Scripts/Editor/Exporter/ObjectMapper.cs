@@ -7,6 +7,16 @@ namespace SceneExport{
 		public int nextId = 0;
 		public Dictionary<Resource, int> objectMap = new Dictionary<Resource, int>();
 		public List<Resource> objectList = new List<Resource>();
+
+		public bool isValidObejctId(int id){
+			return (id > 0) && (id < objectList.Count);
+		}
+		
+		public Resource getObject(int id){
+			if (isValidObejctId(id))
+				throw new System.ArgumentException(string.Format("Invalid object id {0}", id));
+			return objectList[id];
+		}
 			
 		public int findId(Resource obj){
 			return getId(obj, false, null);

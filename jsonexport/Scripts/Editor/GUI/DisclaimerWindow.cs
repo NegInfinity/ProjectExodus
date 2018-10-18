@@ -8,10 +8,6 @@ namespace SceneExport{
 		public TextAsset disclaimerAsset;
 		[SerializeField] Vector2 scrollPos;
 		//[MenuItem("Window/Project Exodus/Disclaimer")]
-		[MenuItem("Window/Migrate to Unreal 4/Full Disclaimer")]
-		public static void showWindow(){
-			openDisclaimerWindow();
-		}
 		
 		public static void openDisclaimerWindow(bool utility = true, bool focus = true){
 			EditorWindow.GetWindow(typeof(DisclaimerWindow), utility, "Disclaimer", focus);
@@ -24,7 +20,7 @@ namespace SceneExport{
 		}
 		
 		void OnEnable(){
-			minSize = new Vector2(320.0f, 220.0f);
+			minSize = new Vector2(640.0f, 480.0f);
 		}
 		
 		GUIStyle panelStyle = null;

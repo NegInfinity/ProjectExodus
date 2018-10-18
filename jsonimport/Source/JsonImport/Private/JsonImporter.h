@@ -1,16 +1,7 @@
 #pragma once
 
-using FStringArray = TArray<FString>;
-using JsonObjPtr = TSharedPtr<FJsonObject>;
-using JsonValPtr = TSharedPtr<FJsonValue>;
-using JsonReaderRef = TSharedRef<TJsonReader<>>;
-using JsonObjPtrs = TArray<JsonObjPtr>;
-using JsonValPtrs = TArray<JsonValPtr>;
-using IdNameMap = TMap<int, FString>;
-
-class AActor;
-using IdActorMap = TMap<int, AActor*>;
-using IdSet = TSet<int>;
+#include "JsonTypes.h"
+#include "JsonObjects.h"
 
 class UMaterialExpression;
 class UMaterialExpressionParameter;
@@ -20,6 +11,7 @@ class UMaterialExpressionTextureSample;
 class UTexture;
 class UMaterial;
 
+
 class JsonImporter{
 protected:
 	FString assetRootPath;
@@ -28,8 +20,9 @@ protected:
 	IdNameMap meshIdMap;
 	IdNameMap texIdMap;
 	IdNameMap matIdMap;
-	IdNameMap objectFolderPaths;
-	IdActorMap objectActors;
+	//This data should be reset between scenes. Otherwise thingsb ecome bad.
+	//IdNameMap objectFolderPaths;
+	//IdActorMap objectActors;
 	IdSet emissiveMaterials;
 
 	UMaterialExpression* createMaterialInput(UMaterial *material, int32 matTextureId, 
@@ -49,74 +42,19 @@ protected:
 		material->Expressions.Add(result);
 		return result;
 	}
+
+	bool saveSceneObjectsAsWorld(const JsonValPtrs *sceneObjects, const FString &sceneName, const FString &scenePath);
+	void processReflectionProbes(ImportWorkData &workData, const JsonGameObject &gameObj, int32 objId, AActor *parentActor, const FString &folderPath);
+	void processLight(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonLight &light, AActor *parentActor, const FString& folderPath);
+	void processLights(ImportWorkData &workData, const JsonGameObject &gameObj, AActor *parentActor, const FString& folderPath);
+	void processMesh(ImportWorkData &workData, const JsonGameObject &gameObj, int objId, AActor *parentActor, const FString& folderPath);
+
+	UWorld *createWorldForScene(const FString &sceneName, const FString &scenePath);
+	bool saveLoadedWorld(UWorld *world, const FString &sceneName, const FString &sceneAssetPath);
+	void importScene(JsonObjPtr sceneData, bool createWorld);
 public:
 	UTexture* loadTexture(int32 id);
 	UMaterial* loadMaterial(int32 id);
-
-	static void loadArray(JsonObjPtr data, const JsonValPtrs *&valPtrs, const FString &name, const FString &warnName);
-	static void loadArray(JsonObjPtr data, const JsonValPtrs *&valPtrs, const FString &name);
-	static void logValue(const FString &msg, const bool val);
-	static FVector unityToUe(const FVector& arg);
-	static void logValue(const FString &msg, const FVector2D &val);
-	static void logValue(const FString &msg, const FVector &val);
-	static void logValue(const FString &msg, const FQuat &val);
-	static void logValue(const FString &msg, const FMatrix &val);
-	static void logValue(const FString &msg, const int val);
-	static void logValue(const FString &msg, const float val);
-	static void logValue(const FString &msg, const FString &val);
-	static void logValue(const FString &msg, const FLinearColor &val);
-	static int32 getInt(JsonObjPtr data, const char* name);
-	static bool getBool(JsonObjPtr data, const char* name);
-	static float getFloat(JsonObjPtr data, const char* name);
-	static FString getString(JsonObjPtr data, const char* name);
-	static JsonObjPtr getObject(JsonObjPtr data, const char* name);
-
-	static TArray<float> toFloatArray(const JsonValPtrs &inData){
-		TArray<float> result;
-		for(auto cur: inData){
-			double val = 0.0;
-			if (cur.IsValid()){
-				cur->TryGetNumber(val);
-			}
-				//val = cur->AsNumber();
-			result.Add(val);
-		}
-		return result;
-	}
-	
-	static TArray<float> toFloatArray(const JsonValPtrs* inData){
-		TArray<float> result;
-		if (inData){
-			for(auto cur: *inData){
-				double val = 0.0;
-				if (cur.IsValid()){
-					cur->TryGetNumber(val);
-				}
-					//val = cur->AsNumber();
-				result.Add(val);
-			}
-		}
-		return result;
-	}
-	
-	static TArray<int32> toIntArray(const JsonValPtrs &inData){
-		TArray<int32> result;
-		for(auto cur: inData){
-			int32 val;
-			if (cur.IsValid()){
-				cur->TryGetNumber(val);
-			}
-			result.Add(val);
-		}
-		return result;
-	}
-	
-	static FLinearColor getLinearColor(JsonObjPtr data, const char* name, const FLinearColor &defaultVal = FLinearColor());
-	static FMatrix getMatrix(JsonObjPtr data, const char* name, const FMatrix &defaultVal = FMatrix::Identity);
-	static FVector2D getVector2(JsonObjPtr data, const char* name, const FVector2D &defaultVal = FVector2D());
-	static FVector getVector(JsonObjPtr data, const char* name, const FVector &defaultVal = FVector());
-	static FLinearColor getColor(JsonObjPtr data, const char* name, const FLinearColor &defaultVal = FLinearColor());
-	static FQuat getQuat(JsonObjPtr data, const char* name, const FQuat &defaultVal = FQuat());
 
 	void importScene(const FString& path);
 	void importProject(const FString& path);
@@ -125,7 +63,7 @@ public:
 	void loadTextures(const JsonValPtrs* textures);
 	void loadMaterials(const JsonValPtrs* materials);
 	void loadMeshes(const JsonValPtrs* meshes);
-	void loadObjects(const JsonValPtrs* objects);
+	void loadObjects(const JsonValPtrs* objects, ImportWorkData &importData);
 
 	void setupAssetPaths(const FString &jsonFilename);
 
@@ -134,7 +72,7 @@ public:
 	void importTexture(JsonObjPtr obj, const FString &rootPath);
 	void importMaterial(JsonObjPtr obj, int32 matId);
 	void importMesh(JsonObjPtr obj, int32 meshId);
-	void importObject(JsonObjPtr obj, int32 objId);
+	void importObject(JsonObjPtr obj, int32 objId, ImportWorkData &importData);
 
 	static int findMatchingLength(const FString& arg1, const FString& arg2);
 	FString findCommonPath(const JsonValPtrs* resources);
@@ -150,7 +88,7 @@ public:
 		auto objSuffixName = ObjectTools::SanitizeObjectName(name + TEXT("_") + objNameSuffix);
 		auto objName = ObjectTools::SanitizeObjectName(name);
 		auto objInFileName = FPaths::Combine(*rootPath, *filePath);
-		UE_LOG(JsonLog, Log, TEXT("Object name: %s, filename: %s, extension: %s"), *objName, *objInFileName, *extension);
+		UE_LOG(JsonLog, Log, TEXT("Creating package. Object name: %s, filename: %s, extension: %s"), *objName, *objInFileName, *extension);
 
 		FString packageName;
 
@@ -211,4 +149,3 @@ public:
 		return package;
 	}
 };
-

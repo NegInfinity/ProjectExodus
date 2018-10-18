@@ -18,6 +18,7 @@ namespace SceneExport{
 		public int mesh = -1;
 		public JsonRendererData[] renderer = null;
 		public JsonLight[] light = null;
+		public JsonReflectionProbe[] reflectionProbes = null;
 		public bool isStatic = true;
 		public bool lightMapStatic = true;
 		public bool occluderStatic = true;
@@ -51,35 +52,17 @@ namespace SceneExport{
 			writer.writeKeyVal("nameClash", nameClash);
 			writer.writeKeyVal("uniqueName", uniqueName);
 				
-			/*
-			writer.beginKeyArray("renderer");
-			if (renderer != null){
-				foreach(var r in renderer){
-					writer.writeValue(r);
-					//r.writeRawJsonValue(writer);
-				}
-			}
-			writer.endArray();
-			*/
 			writer.writeKeyVal("renderer", renderer);
 			writer.writeKeyVal("light", light);
-			/*
-			writer.beginKeyArray("light");
-			if (light != null){
-				foreach(var l in light){
-					writer.writeValue(l);
-					//l.writeRawJsonValue(writer);
-				}
-			}
-			writer.endArray();
-			*/
+			writer.writeKeyVal("reflectionProbes", reflectionProbes);
+			
 			writer.endObject();
 		}
 			
-		public JsonGameObject(GameObject obj, ResourceMapper resMap){
+		public JsonGameObject(GameObject obj, GameObjectMapper objMap, ResourceMapper resMap){
 			name = obj.name;
 			instanceId = obj.GetInstanceID();
-			id = resMap.getObjectId(obj);
+			id = objMap.getId(obj);
 			localPosition = obj.transform.localPosition;
 			localRotation = obj.transform.localRotation;
 			localScale = obj.transform.localScale;
@@ -98,16 +81,23 @@ namespace SceneExport{
 				localMatrix = obj.transform.parent.worldToLocalMatrix * localMatrix;
 			}
 			renderer = JsonRendererData.makeRendererArray(obj.GetComponent<Renderer>(), resMap);
-			//light = exp.makeLight(obj.GetComponent<Light>());
 			light = JsonLight.makeLightArray(obj.GetComponent<Light>());
+			reflectionProbes = 
+				ExportUtility.convertComponents<ReflectionProbe, JsonReflectionProbe>(obj,
+					(c) => new JsonReflectionProbe(c));
 
 			mesh = resMap.getMeshId(obj);
 
 			foreach(Transform curChild in obj.transform){
-				children.Add(resMap.getObjectId(curChild.gameObject));
+				var childId = objMap.getId(curChild.gameObject); 
+				if (childId < 0){
+					//throw new System.ArgumentException("Could not find child id
+				}
+				//var childId = objMap.getId(curChild.gameObject); 
+				children.Add(childId);
 			}
 			if (obj.transform.parent)
-				parent = resMap.findObjectId(obj.transform.parent.gameObject);
+				parent = objMap.findId(obj.transform.parent.gameObject);
 		}
 	}
 }

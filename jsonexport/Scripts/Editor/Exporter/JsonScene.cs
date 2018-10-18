@@ -7,90 +7,82 @@ using UnityEngine.SceneManagement;
 namespace SceneExport{
 	[System.Serializable]
 	public class JsonScene: IFastJsonValue{
+		public string name;
+		public string path;
+		public int buildIndex = -1;
 		public List<JsonGameObject> objects = new List<JsonGameObject>();
-		public List<JsonMaterial> materials = new List<JsonMaterial>();
-		public List<JsonMesh> meshes = new List<JsonMesh>();
-		public List<JsonTexture> textures = new List<JsonTexture>();
-		public List<string> resources = new List<string>();
-			
-		public static JsonScene fromScene(Scene scene, ResourceMapper resMap){
+		
+		public static JsonScene fromScene(Scene scene, ResourceMapper resMap, bool showGui){
 			var rootObjects = scene.GetRootGameObjects();
-			return fromObjects(rootObjects, resMap);
+			var result = fromObjects(rootObjects, resMap, showGui);
+			result.name = scene.name;
+			result.path = scene.path;
+			result.buildIndex = scene.buildIndex;
+			return result;
 		}
 		
-		public static JsonScene fromObject(GameObject arg, ResourceMapper resMap){
-			return fromObjects(new GameObject[]{arg}, resMap);
+		public static JsonScene fromObject(GameObject arg, ResourceMapper resMap, bool showGui){
+			return fromObjects(new GameObject[]{arg}, resMap, showGui);
 		}
 		
-		public static JsonScene fromObjects(GameObject[] args, ResourceMapper resMap){
+		public static JsonScene fromObjects(GameObject[] args, ResourceMapper resMap, bool showGui){
 			var result = new JsonScene();
 			
-			foreach(var cur in args){
-				if (!cur)
-					continue;
-				resMap.getObjectId(cur);
+			var objMap = new GameObjectMapper();
+			foreach(var curObj in args){
+				objMap.gatherObjectIds(curObj);
 			}
 			
-			for(int i = 0; i < resMap.objects.objectList.Count; i++){
-				/*TODO: This is very awkward, as constructor adds more data to the exporter
-				Should be split into two methods.*/
-				result.objects.Add(new JsonGameObject(resMap.objects.objectList[i], resMap));
+			//Prefabs:
+			/*
+			for(int i = 0; i < objMap.objectList.Count; i++){
+				var cur = objMap.objectList[i];
+				var prefabType = PrefabUtility.GetPrefabType(cur);
+				Debug.LogFormat("Cur obj: {0}({2}), prefabType: {1}", cur, prefabType, ExportUtility.getObjectPath(cur));
+				if ((prefabType == PrefabType.PrefabInstance) || (prefabType == PrefabType.ModelPrefabInstance)){
+					Debug.LogFormat("Object is a prefab instance (type: {0})", prefabType);
+					var source = PrefabUtility.GetCorrespondingObjectFromSource(cur);
+					var rootPrefab = PrefabUtility.FindPrefabRoot(source as GameObject);
+					var rootPath = AssetDatabase.GetAssetPath(rootPrefab);
+					Debug.LogFormat("Found prefab: {0}, prefab root: {1} ({2})", source, rootPrefab, rootPath);
+					var path = AssetDatabase.GetAssetPath(source);
+					Debug.LogFormat("Prefab path: {0}; objectPath: {1}", path, ExportUtility.getObjectPath(source as GameObject));
+				}
+				//var prefabObj = PrefabUtility.GetPrefabType(
+				//Debug.LogFormat("Obj
+			}
+			*/
+			
+			for(int i = 0; i < objMap.objectList.Count; i++){
+				/*TODO: The constructor CAN add more data, but most of it would've been added prior to this point.
+				Contempalting whether to enforce it strictly or not.*/
+				if (showGui){
+					ExportUtility.showProgressBar("Collecting scene data", "Adding scene object {0}/{1}", i, objMap.objectList.Count);
+				}
+				
+				var newObj = new JsonGameObject(objMap.objectList[i], objMap, resMap);
+				result.objects.Add(newObj);
+			}
+			if (showGui){
+				ExportUtility.hideProgressBar();
 			}
 			
 			return result;
 		}
 			
-		void saveResources(string baseFilename){
-			var targetDir = System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(baseFilename));
-			if (!Application.isEditor){
-				throw new System.ArgumentException("The application is not running in editor mode");
-			}
-				
-			var dataPath = System.IO.Path.GetFullPath(Application.dataPath);
-			var projectPath = System.IO.Path.GetDirectoryName(dataPath);
-			Debug.LogFormat("data Path: {0}", dataPath);
-			Debug.LogFormat("projectPath: {0}", projectPath);
-			Debug.LogFormat("targetDir: {0}", targetDir);
-				
-			if (projectPath == targetDir){
-				Debug.LogWarningFormat("You're saving into project directory, files will not be copied");
-				return;
-			}
-				
-			foreach(var curTex in textures){
-				TextureUtility.copyTexture(curTex, targetDir, projectPath);
-			}
-		}
-			
-		public void saveToFile(string filename, bool saveResourceFiles = false){
-			Utility.saveStringToFile(filename, toJsonString());
-			if (!saveResourceFiles)
-				return;
-			saveResources(filename);
-		}
-			
 		public void writeJsonObjectFields(FastJsonWriter writer){
 			writer.writeKeyVal("objects", objects);
-			writer.writeKeyVal("materials", materials);
-			writer.writeKeyVal("meshes", meshes);
-			writer.writeKeyVal("textures", textures);
-			writer.writeKeyVal("resources", resources);
 		}
 			
 		public void writeRawJsonValue(FastJsonWriter writer){
 			writer.beginRawObject();
+			writer.writeKeyVal("name", name);
+			writer.writeKeyVal("path", path);
+			writer.writeKeyVal("buildIndex", buildIndex);
 			writeJsonObjectFields(writer);
 			writer.endObject();
 		}
 
-		public string toJsonString(){
-			FastJsonWriter writer = new FastJsonWriter();
-			writer.beginDocument();
-			writeJsonObjectFields(writer);
-			writer.endDocument();
-			return writer.getString();
-		}
-			
 		public void fixNameClashes(){
 			var nameClashes = new Dictionary<NameClashKey, List<int>>();
 			for(int i = 0; i < objects.Count; i++){

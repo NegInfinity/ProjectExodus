@@ -16,102 +16,20 @@ namespace SceneExport{
 	
 [System.Serializable]
 public class ExporterWindow: EditorWindow{
-	//[MenuItem("Window/Project Exodus/Exporter Window")]
-	[MenuItem("Window/Migrate to Unreal 4/Migrate")]
-	public static void showWindow(){
-		EditorWindow.GetWindow(typeof(ExporterWindow), true, "Project Exodus Exporter");
-	}
-	
-	[SerializeField]bool disclaimerVisible = false;
+	[SerializeField]bool disclaimerVisible = true;
 	[SerializeField]Vector2 windowScrollPos;
 	[SerializeField]Vector2 disclaimerScrollPos;
-	[SerializeField]Vector2 messagesScrollPos;
 	[SerializeField]string targetPath = "";
 	
-	[System.Serializable]
-	public class GuiStyles{
-		public GUIStyle normalLabel = null;
-		public GUIStyle errorLabel = null;
-		public GUIStyle warningLabel = null;
-		public GUIStyle disclaimerTextArea = null;
-		public GUIStyle richTextArea = null;
-		public GUIStyle logTextArea = null;
-		public GUIStyle logLabel = null;
-		public GUIStyle logPanel = null;
-		public GUIStyle progressBar = null;
-		public void init(){
-			if (normalLabel == null){
-				normalLabel = new GUIStyle(EditorStyles.label);
-				normalLabel.wordWrap = true;
-			}
-			
-			if (errorLabel == null){	
-				errorLabel = new GUIStyle(EditorStyles.label);
-				errorLabel.wordWrap = true;
-				errorLabel.normal.textColor = new Color(1.0f, 0.0f, 0.0f);
-				errorLabel.active.textColor = new Color(1.0f, 0.5f, 0.0f);
-				errorLabel.focused.textColor = new Color(1.0f, 0.25f, 0.0f);
-			}
-			
-			warningLabel = new GUIStyle(EditorStyles.label);
-			if (warningLabel == null){
-				warningLabel.normal.textColor = Color.yellow;
-				warningLabel.wordWrap = true;
-				warningLabel.normal.textColor = new Color(1.0f, 1.0f, 0.0f);
-				warningLabel.active.textColor = new Color(1.0f, 1.0f, 0.5f);
-				warningLabel.focused.textColor = new Color(1.0f, 1.0f, 0.25f);
-			}
-
-			if (disclaimerTextArea == null){
-				disclaimerTextArea = new GUIStyle(EditorStyles.textArea);
-				disclaimerTextArea.wordWrap = true;
-				disclaimerTextArea.normal.textColor = Color.black;
-				disclaimerTextArea.active.textColor = Color.black;
-				disclaimerTextArea.focused.textColor = Color.black;
-			}
-			
-			if (richTextArea == null){
-				richTextArea = new GUIStyle(EditorStyles.textArea);
-				richTextArea.richText = true;
-			}
-			
-			if (logTextArea == null){
-				logTextArea = new GUIStyle(EditorStyles.textArea);
-				logTextArea.wordWrap = true;
-				logTextArea.richText = true;
-			}
-			
-			if (logLabel == null){
-				logLabel = new GUIStyle(EditorStyles.label);
-				logLabel.wordWrap = true;
-				logLabel.richText = true;
-			}
-			
-			if (logPanel == null){
-				logPanel = new GUIStyle(EditorStyles.helpBox);
-			}
-			
-			if (progressBar == null){
-				progressBar = new GUIStyle(EditorStyles.label);
-				progressBar.richText = true;
-			}
-		}
-	}
-	
-	[SerializeField]AsyncExportTask exportTask = new AsyncExportTask();
-	[SerializeField]EditorCoroutine exportCoroutine = null;
-	
 	void OnEnable(){
-		minSize = new Vector2(320.0f, 240.0f);
-		if (exportTask != null)
-			exportTask.exporterWindow = this;
+		minSize = new Vector2(640.0f, 480.0f);
 	}
 	
 	void OnDisable(){
 	}
 	
-	/*[SerializeField]*/GuiStyles guiStyles = new GuiStyles();
-	[SerializeField]ExportType exportType = ExportType.CurrentObject;
+	[SerializeField]ExportGuiStyles guiStyles = new ExportGuiStyles();
+	[SerializeField]ExportType exportType = ExportType.CurrentScene;
 
 	static string getDefaultJsonFileName(ExportType exportType){
 		switch(exportType){
@@ -148,44 +66,6 @@ public class ExporterWindow: EditorWindow{
 	[SerializeField] List<string> messages = new List<string>();
 	void logMsg(string message){
 		messages.Add(message);
-	}
-	
-	static readonly string warningEntryPrefix = "<color=yellow>Warning: </color>";
-	static readonly string errorEntryPrefix = "<color=red>Error: </color>";
-	static readonly string infoEntryPrefix = "<color=blue>Info: </color>";
-	//static readonly string logEntryPrefix = "<color=yellow>Log: </color>";
-	
-	void logMsgFormat(string message, params object[] args){
-		var s = string.Format(message, args);
-		messages.Add(s);
-	}
-	
-	void logInfo(string message){
-		messages.Add(infoEntryPrefix + message);
-	}
-	void logInfoFormat(string message, params object[] args){
-		var s = string.Format(infoEntryPrefix + message, args);
-		messages.Add(s);
-	}
-	
-	void logWarning(string message){
-		messages.Add(warningEntryPrefix + message);
-	}	
-	void logWarningFormat(string message, params object[] args){
-		var s = string.Format(warningEntryPrefix + message, args);
-		messages.Add(s);
-	}
-	
-	void logError(string message){
-		messages.Add(errorEntryPrefix + message);
-	}	
-	void logErrorFormat(string message, params object[] args){
-		var s = string.Format(errorEntryPrefix + message, args);
-		messages.Add(s);
-	}
-	
-	void clearMessages(){
-		messages.Clear();
 	}
 	
 	bool isValidExportState(){
@@ -226,7 +106,7 @@ public class ExporterWindow: EditorWindow{
 			);
 			
 		public static readonly GUIContent exportType =			
-			new GUIContent("Export Type", 
+			new GUIContent("1. Select Export Type", 
 @"Select export type here: 
 	* single object (currently selected object will be exported), 
 	* selected object (selected objects will be exported),
@@ -244,26 +124,9 @@ public class ExporterWindow: EditorWindow{
 	void initGuiStyles(){
 		//minSize = new Vector2(320.0f, 240.0f);
 		if (guiStyles == null){
-			guiStyles = new GuiStyles();
+			guiStyles = new ExportGuiStyles();
 		}
 		guiStyles.init();
-	}
-	
-	[System.Serializable]
-	class GuiEnabledGuard: System.IDisposable{
-		[SerializeField]bool oldValue = false;
-		public void Dispose(){
-			GUI.enabled = oldValue;
-		}
-		
-		public GuiEnabledGuard(bool newVal){
-			oldValue = GUI.enabled;
-			GUI.enabled = newVal;
-		}
-	}
-	
-	GuiEnabledGuard scopedGuiEnabled(bool newVal){
-		return new GuiEnabledGuard(newVal);
 	}
 	
 	void processDisclaimerArea(){
@@ -271,7 +134,7 @@ public class ExporterWindow: EditorWindow{
 		EditorGUILayout.Foldout(disclaimerVisible, GuiContents.disclaimerSection);
 		if (!disclaimerVisible)
 			return;
-		using(var tmp = scopedGuiEnabled(false)){
+		using(var tmp = ExportGuiUtility.scopedGuiEnabled(false)){
 			EditorGUILayout.TextArea(getDisclaimerText(), guiStyles.disclaimerTextArea);
 		}
 		if (GUILayout.Button("View full Disclaimer")){
@@ -303,37 +166,21 @@ public class ExporterWindow: EditorWindow{
 		}
 	}
 	
-	void processMessageArea(){
-		if (messages.Count <= 0)
-			return;
-			
-		EditorGUILayout.LabelField("Messages:", EditorStyles.boldLabel);
-		messagesScrollPos = EditorGUILayout.BeginScrollView(messagesScrollPos);
-			
-		EditorGUILayout.BeginVertical(guiStyles.logPanel);
-		foreach(var cur in messages){
-			EditorGUILayout.SelectableLabel(cur, guiStyles.logLabel);
-		}
-		EditorGUILayout.EndVertical();
-		EditorGUILayout.EndScrollView();
-	}
-	
 	void processExportButtons(){
 		GUILayout.BeginHorizontal();
-		if (GUILayout.Button("Select Target Path")){
-			clearMessages();
-			var defaultName = getDefaultJsonFileName(exportType);//"name";
+		if (GUILayout.Button("2. Select Target Path")){
+			var defaultName = getDefaultJsonFileName(exportType);
 			var filePath = EditorUtility.SaveFilePanel("Export selected objects", "", defaultName, "json");
 			if (!string.IsNullOrEmpty(filePath)){
 				targetPath = filePath;
 				var pathInProject = Utility.isInProjectPath(filePath);
 				if (pathInProject)
-					logWarningFormat("File \'{0}\' is in project directory.\nTexture conversion willl not be performed", filePath);
+					Debug.LogWarningFormat("File \'{0}\' is in project directory.\nTexture conversion willl not be performed", filePath);
 			}
 		}
 
-		using(var tmp = scopedGuiEnabled(canExport() && !hasRunningTask())){
-			if (GUILayout.Button("Begin export")){
+		using(var tmp = ExportGuiUtility.scopedGuiEnabled(canExport())){
+			if (GUILayout.Button("3. Begin export")){
 				processExport();
 			}
 		}
@@ -341,52 +188,12 @@ public class ExporterWindow: EditorWindow{
 		GUILayout.EndHorizontal();
 	}
 	
-	void processExportProgress(){
-		if (!hasRunningTask())
-			return;
-		GUILayout.BeginHorizontal();
-		var rect = GUILayoutUtility.GetRect(new GUIContent(exportTask.currentStatus), guiStyles.richTextArea);
-		EditorGUI.ProgressBar(rect, exportTask.getFloatProgress(), exportTask.currentStatus);
-		GUILayout.EndHorizontal();
-	}
-	
-	void processCancelButton(){
-		if (!hasRunningTask())
-			return;
-		GUILayout.BeginHorizontal();
-		if (GUILayout.Button("Cancel")){
-			terminateBackgroundTasks();
-		}
-		GUILayout.EndHorizontal();
-	}
-	
 	void processCloseButton(){
-		if (hasRunningTask())
-			return;
 		GUILayout.BeginHorizontal();
 		if (GUILayout.Button("Close")){
 			Close();
 		}
 		GUILayout.EndHorizontal();
-	}
-	
-	void terminateBackgroundTasks(){
-		if (exportCoroutine != null){
-			exportCoroutine.terminate();
-			exportCoroutine = null;
-		}
-		if (exportTask != null){
-			exportTask.markRunning(false);
-			exportTask.markFinished();
-		}
-	}
-	
-	bool hasRunningTask(){
-		return (exportTask != null) && (exportTask.running) && !exportTask.finished;
-	}
-	
-	bool exportTaskFinished(){
-		return (exportTask != null) && (exportTask.finished);
 	}
 	
 	void OnGUI(){
@@ -403,14 +210,9 @@ public class ExporterWindow: EditorWindow{
 
 		processSelectionWarningControls();		
 		processTargetPathLabel();
-		processMessageArea();
 		
 		processExportButtons();
-		processExportProgress();
 		processCloseButton();	
-		processCancelButton();
-		
-		//processTestCoroutine();
 		
 		GUILayout.EndVertical();
 		EditorGUILayout.EndScrollView();
@@ -437,9 +239,10 @@ public class ExporterWindow: EditorWindow{
 		if (!checkTargetPath(targetPath))
 			return;
 				
-		var proj = JsonProject.fromObject(obj);
-		exportCoroutine = EditorCoroutine.start(proj.saveToFile(targetPath, true, exportTask));
-		//proj.saveToFile(targetPath, true);
+		var logger = new Logger();						
+		var proj = JsonProject.fromObject(obj, true);
+		proj.saveToFile(targetPath, true, true, logger);
+		ExportResultWindow.openWindow(logger);
 	}
 	
 	void beginSelectedObjectsExport(){
@@ -450,9 +253,10 @@ public class ExporterWindow: EditorWindow{
 		if (!checkTargetPath(targetPath))
 			return;			
 				
-		var proj = JsonProject.fromObjects(objects.ToArray());
-		exportCoroutine = EditorCoroutine.start(proj.saveToFile(targetPath, true, exportTask));
-		//proj.saveToFile(targetPath, true);
+		var logger = new Logger();						
+		var proj = JsonProject.fromObjects(objects.ToArray(), true);
+		proj.saveToFile(targetPath, true, true, logger);
+		ExportResultWindow.openWindow(logger);
 	}
 	
 	void beginCurrentSceneExport(){
@@ -464,17 +268,22 @@ public class ExporterWindow: EditorWindow{
 		if (!checkTargetPath(targetPath))
 			return;
 					
-		var proj = JsonProject.fromScene(scene);
-		exportCoroutine = EditorCoroutine.start(proj.saveToFile(targetPath, true, exportTask));
-		//proj.saveToFile(targetPath, true);
+		var logger = new Logger();						
+		var proj = JsonProject.fromScene(scene, true);
+		proj.saveToFile(targetPath, true, true, logger);
+		ExportResultWindow.openWindow(logger);
 	}
 	
 	void beginFullProjectExport(){
-		Debug.LogErrorFormat("Full project export is not currently supported.");
+		var logger = new Logger();						
+		var proj = JsonProject.fromCurrentProject(true, logger);
+		if (proj != null){
+			proj.saveToFile(targetPath, true, true, logger);
+		}
+		ExportResultWindow.openWindow(logger);
 	}
 	
 	void processExport(){
-		terminateBackgroundTasks();
 		switch(exportType){
 			case(ExportType.CurrentObject):{
 				beginSingleObjectExport();
