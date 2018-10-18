@@ -236,17 +236,6 @@ void JsonImporter::processReflectionProbes(ImportWorkData &workData, const JsonG
 			//auto actor = JsonObjects::createActor<ASphereReflectionCapture>(world, 
 			auto actor = createActor<ASphereReflectionCapture>(workData, captureTransform, TEXT("sphere capture"));
 			if (actor){
-			#if 0
-			ASphereReflectionCapture *actor = Cast<ASphereReflectionCapture>(
-				GEditor->AddActor(
-					workData.world->GetCurrentLevel(),
-					//GCurrentLevelEditingViewportClient->GetWorld()->GetCurrentLevel(),
-				ASphereReflectionCapture::StaticClass(), captureTransform));//spotLightTransform));
-			if (!actor){
-				UE_LOG(JsonLog, Warning, TEXT("Could not spawn sphere capture"));
-			}
-			else{
-			#endif			
 				actor->SetActorLabel(gameObj.ueName);
 				auto moveResult = actor->SetActorTransform(captureTransform, false, nullptr, ETeleportType::ResetPhysics);
 				logValue("Actor move result: ", moveResult);
@@ -263,17 +252,6 @@ void JsonImporter::processReflectionProbes(ImportWorkData &workData, const JsonG
 		else{
 			auto actor = createActor<ABoxReflectionCapture>(workData, captureTransform, TEXT("box reflection capture"));
 			if (actor){
-			#if 0
-			ABoxReflectionCapture *actor = Cast<ABoxReflectionCapture>(
-					GEditor->AddActor(
-						workData.world->GetCurrentLevel(),
-						//GCurrentLevelEditingViewportClient->GetWorld()->GetCurrentLevel(),
-				ABoxReflectionCapture::StaticClass(), captureTransform));//spotLightTransform));
-			if (!actor){
-				UE_LOG(JsonLog, Warning, TEXT("Could not spawn box reflection capture"));
-			}
-			else{
-			#endif
 				actor->SetActorLabel(gameObj.ueName);
 				auto moveResult = actor->SetActorTransform(captureTransform, false, nullptr, ETeleportType::ResetPhysics);
 				logValue("Actor move result: ", moveResult);

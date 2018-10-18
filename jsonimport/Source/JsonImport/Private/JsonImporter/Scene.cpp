@@ -56,16 +56,63 @@ void JsonImporter::importScene(JsonObjPtr sceneDataObj, bool createWorld){
 		return;
 	}
 
+	/*
 	auto newWorld = createWorldForScene(sceneName, scenePath);
 	if (!newWorld)
 		return;
 
 	ImportWorkData workData(newWorld, editorMode);
 	loadObjects(sceneObjects, workData);
+	*/
+	saveSceneObjectsAsWorld(sceneObjects, sceneName, scenePath);
 
+	/*
 	if (!saveLoadedWorld(newWorld, sceneName, scenePath)){
 		UE_LOG(JsonLog, Warning, TEXT("Failed to save scene %s (%s)"), *sceneName, *scenePath);
 	}
+	*/
+}
+
+bool JsonImporter::saveSceneObjectsAsWorld(const JsonValPtrs * sceneObjects, const FString &sceneName, const FString &scenePath){
+	UWorldFactory *factory = NewObject<UWorldFactory>();
+	factory->WorldType = EWorldType::Inactive;
+	factory->bInformEngineOfWorld = true;
+	factory->FeatureLevel = GEditor->DefaultWorldFeatureLevel;
+
+	UWorld *existingWorld = 0;
+	FString worldName = sceneName;
+	FString worldFileName = scenePath;
+	FString packageName;
+	FString outWorldName, outPackageName;
+	EObjectFlags flags = RF_Public | RF_Standalone;
+	UPackage *worldPackage = 0;
+
+	worldPackage = createPackage(worldName, worldFileName, assetRootPath, 
+		FString("Level"), &outPackageName, &outWorldName, &existingWorld);
+
+	if (existingWorld){
+		UE_LOG(JsonLog, Warning, TEXT("World already exists for %s(%s)"), *sceneName, *scenePath);
+		return false;
+	}
+
+	UWorld *newWorld = CastChecked<UWorld>(factory->FactoryCreateNew(
+		UWorld::StaticClass(), worldPackage, *outWorldName, flags, 0, GWarn));
+
+	if (newWorld){
+		ImportWorkData workData(newWorld, false);
+		loadObjects(sceneObjects, workData);
+		/*
+		auto actor = newWorld->SpawnActor<APointLight>();
+		auto label = FString("Test light actor for scene: ") + sceneName;
+		actor->SetActorLabel(*label); 
+		*/
+	}
+
+	if (worldPackage){
+		FAssetRegistryModule::AssetCreated(newWorld);
+		worldPackage->SetDirtyFlag(true);
+	}
+	return true;
 }
 
 UWorld* JsonImporter::createWorldForScene(const FString &sceneName, const FString &scenePath){
@@ -238,7 +285,7 @@ void JsonImporter::importProject(const FString& filename){
 			if (curSceneDataObj){
 				importScene(curSceneDataObj, true);
 				numScenes++;
-				break;
+				//break;
 			}
 			sceneProgress.EnterProgressFrame();
 		}
