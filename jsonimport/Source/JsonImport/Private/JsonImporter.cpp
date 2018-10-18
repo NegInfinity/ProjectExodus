@@ -84,7 +84,7 @@ void JsonImporter::loadMeshes(const JsonValPtrs* meshes){
 	}
 }
 
-void JsonImporter::loadObjects(const JsonValPtrs* objects, UWorld *world){
+void JsonImporter::loadObjects(const JsonValPtrs* objects, ImportWorkData &importData){
 	if (!objects)
 		return;
 	FScopedSlowTask objProgress(objects->Num(), LOCTEXT("Importing objects", "Importing objects"));
@@ -97,7 +97,7 @@ void JsonImporter::loadObjects(const JsonValPtrs* objects, UWorld *world){
 		objId++;
 		if (!obj.IsValid())
 			continue;
-		importObject(obj, objId, world);
+		importObject(obj, objId, importData);
 		objProgress.EnterProgressFrame(1.0f);
 	}
 }
@@ -141,4 +141,3 @@ void JsonImporter::setupAssetPaths(const FString &jsonFilename){
 	assetRootPath = FPaths::GetPath(jsonFilename);
 	sourceBaseName = FPaths::GetBaseFilename(jsonFilename);
 }
-

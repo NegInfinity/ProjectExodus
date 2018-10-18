@@ -3,10 +3,6 @@
 #include "JsonTypes.h"
 #include "JsonObjects.h"
 
-class AActor;
-using IdActorMap = TMap<int, AActor*>;
-using IdSet = TSet<int>;
-
 class UMaterialExpression;
 class UMaterialExpressionParameter;
 class UMaterialExpressionVectorParameter;
@@ -14,6 +10,7 @@ class UMaterialExpressionConstant;
 class UMaterialExpressionTextureSample;
 class UTexture;
 class UMaterial;
+
 
 class JsonImporter{
 protected:
@@ -23,8 +20,9 @@ protected:
 	IdNameMap meshIdMap;
 	IdNameMap texIdMap;
 	IdNameMap matIdMap;
-	IdNameMap objectFolderPaths;
-	IdActorMap objectActors;
+	//This data should be reset between scenes. Otherwise thingsb ecome bad.
+	//IdNameMap objectFolderPaths;
+	//IdActorMap objectActors;
 	IdSet emissiveMaterials;
 
 	UMaterialExpression* createMaterialInput(UMaterial *material, int32 matTextureId, 
@@ -45,11 +43,13 @@ protected:
 		return result;
 	}
 
-	void processReflectionProbes(UWorld *world, const JsonGameObject &gameObj, int32 objId, AActor *parentActor, const FString &folderPath);
-	void processLight(UWorld *world, const JsonGameObject &gameObj, const JsonLight &light, AActor *parentActor, const FString& folderPath);
-	void processLights(UWorld *world, const JsonGameObject &gameObj, AActor *parentActor, const FString& folderPath);
-	void processMesh(UWorld *world, const JsonGameObject &gameObj, int objId, AActor *parentActor, const FString& folderPath);
+	void processReflectionProbes(ImportWorkData &workData, const JsonGameObject &gameObj, int32 objId, AActor *parentActor, const FString &folderPath);
+	void processLight(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonLight &light, AActor *parentActor, const FString& folderPath);
+	void processLights(ImportWorkData &workData, const JsonGameObject &gameObj, AActor *parentActor, const FString& folderPath);
+	void processMesh(ImportWorkData &workData, const JsonGameObject &gameObj, int objId, AActor *parentActor, const FString& folderPath);
 
+	UWorld *createWorldForScene(const FString &sceneName, const FString &scenePath);
+	bool saveLoadedWorld(UWorld *world, const FString &sceneName, const FString &sceneAssetPath);
 	void importScene(JsonObjPtr sceneData, bool createWorld);
 public:
 	UTexture* loadTexture(int32 id);
@@ -62,7 +62,7 @@ public:
 	void loadTextures(const JsonValPtrs* textures);
 	void loadMaterials(const JsonValPtrs* materials);
 	void loadMeshes(const JsonValPtrs* meshes);
-	void loadObjects(const JsonValPtrs* objects, UWorld *world);
+	void loadObjects(const JsonValPtrs* objects, ImportWorkData &importData);
 
 	void setupAssetPaths(const FString &jsonFilename);
 
@@ -71,7 +71,7 @@ public:
 	void importTexture(JsonObjPtr obj, const FString &rootPath);
 	void importMaterial(JsonObjPtr obj, int32 matId);
 	void importMesh(JsonObjPtr obj, int32 meshId);
-	void importObject(JsonObjPtr obj, int32 objId, UWorld *world);
+	void importObject(JsonObjPtr obj, int32 objId, ImportWorkData &importData);
 
 	static int findMatchingLength(const FString& arg1, const FString& arg2);
 	FString findCommonPath(const JsonValPtrs* resources);

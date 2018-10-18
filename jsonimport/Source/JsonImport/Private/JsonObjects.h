@@ -8,6 +8,34 @@
 #define JSON_GET_PARAM2(obj, varName, paramName, op) varName = op(obj, #paramName); logValue(#paramName, varName);
 #define JSON_GET_PARAM(obj, name, op) name = op(obj, #name); logValue(#name, name);
 
+class AActor;
+using IdActorMap = TMap<int, AActor*>;
+using IdSet = TSet<int>;
+
+/*
+This one exists mostly to deal with the fact htat IDs are unique within SCENE, 
+and within each scene they start from zero.
+
+I kinda wonder if I should work towards ensureing ids being globally unique, but then again...
+not much point when I can just use scoped dictionaries.
+*/
+class ImportWorkData{
+public:
+	IdNameMap objectFolderPaths;
+	IdActorMap objectActors;
+	UWorld *world;
+	bool editorMode;
+
+	ImportWorkData(UWorld *world_, bool editorMode_)
+	:world(world_), editorMode(editorMode_){
+	}
+
+	void clear(){
+		objectFolderPaths.Empty();
+		objectActors.Empty();
+	}
+};
+
 class JsonReflectionProbe{
 public:
 	FLinearColor backgroundColor;
@@ -120,6 +148,33 @@ public:
 
 
 namespace JsonObjects{
+	template <typename T>T* createActor(UWorld *world, FTransform transform, bool editorMode, const TCHAR* logName = 0){
+		T* result = 0;
+		if (editorMode){
+			result = 	GEditor->AddActor(world->GetCurrentLevel(),
+				T::StaticClass(), captureTransform);
+		}
+		else{
+			result = world->SpawnActor();
+		}
+		if (!result){
+			if (logName){
+				UE_LOG(JsonImport, Warning, TEXT("Could not spawn actor %s"), logName);
+			}
+			else{
+				UE_LOG(JsonImport, Warning, TEXT("Could not spawn templated actor"));
+			}
+		}
+		else{
+			auto moveResult = result->SetActorTransform(transform, false, nullptr, ETeleportType::ResetPhysics);
+		}
+		return result;
+	}
+
+	template <typename T>T* createActor(ImportWorkData& workData, FTransform transform, const TCHAR* logName = 0){
+		return createActor<T>(workData.world, transform, workData.editorMode, logName);
+	}
+
 	template<typename T> TArray<T> getJsonObjArray(JsonObjPtr jsonData, const char* name){
 		TArray<T> result;
 		getJsonObjArray<T>(jsonData, result, name);

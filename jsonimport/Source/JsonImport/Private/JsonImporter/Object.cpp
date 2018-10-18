@@ -43,23 +43,24 @@ static void setParentAndFolder(AActor *actor, AActor *parentActor, const FString
 		actor->AttachToActor(parentActor, FAttachmentTransformRules::KeepWorldTransform);
 	}
 	else{
+		//actor->AddToRoot();
 		if (folderPath.Len())
 			actor->SetFolderPath(*folderPath);
 	}
 }
 
-void JsonImporter::importObject(JsonObjPtr obj, int32 objId, UWorld *world){
+void JsonImporter::importObject(JsonObjPtr obj, int32 objId, ImportWorkData &workData){
 	UE_LOG(JsonLog, Log, TEXT("Importing object %d"), objId);
 
 	auto jsonGameObj = JsonGameObject(obj);
 
 	FString folderPath;
 
-	AActor *parentActor = objectActors.FindRef(jsonGameObj.parentId);
+	AActor *parentActor = workData.objectActors.FindRef(jsonGameObj.parentId);
 
 	FString childFolderPath = jsonGameObj.ueName;
 	if (jsonGameObj.parentId >= 0){
-		const FString* found = objectFolderPaths.Find(jsonGameObj.parentId);
+		const FString* found = workData.objectFolderPaths.Find(jsonGameObj.parentId);
 		if (found){
 			folderPath = *found;
 			childFolderPath = folderPath + "/" + jsonGameObj.ueName;
@@ -70,25 +71,25 @@ void JsonImporter::importObject(JsonObjPtr obj, int32 objId, UWorld *world){
 	}
 
 	UE_LOG(JsonLog, Log, TEXT("Folder path for object: %d: %s"), jsonGameObj.id, *folderPath);
-	objectFolderPaths.Add(jsonGameObj.id, childFolderPath);
+	workData.objectFolderPaths.Add(jsonGameObj.id, childFolderPath);
 
 
-	if (!world){
+	if (!workData.world){
 		UE_LOG(JsonLog, Warning, TEXT("No world"));
 		return; 
 	}
 
 	if (jsonGameObj.hasProbes())
-		processReflectionProbes(world, jsonGameObj, objId, parentActor, folderPath);
+		processReflectionProbes(workData, jsonGameObj, objId, parentActor, folderPath);
 	
 	if (jsonGameObj.hasLights())
-		processLights(world, jsonGameObj, parentActor, folderPath);
+		processLights(workData, jsonGameObj, parentActor, folderPath);
 
 	if (jsonGameObj.hasMesh())
-		processMesh(world, jsonGameObj, objId, parentActor, folderPath);
+		processMesh(workData, jsonGameObj, objId, parentActor, folderPath);
 }
 
-void JsonImporter::processMesh(UWorld *world, const JsonGameObject &jsonGameObj, int objId, AActor *parentActor, const FString& folderPath){
+void JsonImporter::processMesh(ImportWorkData &workData, const JsonGameObject &jsonGameObj, int objId, AActor *parentActor, const FString& folderPath){
 	if (!jsonGameObj.hasMesh())
 		return;
 
@@ -107,7 +108,7 @@ void JsonImporter::processMesh(UWorld *world, const JsonGameObject &jsonGameObj,
 		return;
 	}
 
-	AActor *meshActor = world->SpawnActor<AActor>(AStaticMeshActor::StaticClass(), transform, spawnParams);
+	AActor *meshActor = workData.world->SpawnActor<AActor>(AStaticMeshActor::StaticClass(), transform, spawnParams);
 	if (!meshActor){
 		UE_LOG(JsonLog, Warning, TEXT("Couldn't spawn actor"));
 		return;
@@ -186,7 +187,7 @@ void JsonImporter::processMesh(UWorld *world, const JsonGameObject &jsonGameObj,
 		meshComp->LightmassSettings.bUseEmissiveForStaticLighting = emissiveMesh;
 	}
 
-	objectActors.Add(jsonGameObj.id, meshActor);
+	workData.objectActors.Add(jsonGameObj.id, meshActor);
 	setParentAndFolder(meshActor, parentActor, folderPath);
 
 	meshComp->SetCastShadow(hasShadows);
@@ -195,7 +196,7 @@ void JsonImporter::processMesh(UWorld *world, const JsonGameObject &jsonGameObj,
 	worldMesh->MarkComponentsRenderStateDirty();
 }
 
-void JsonImporter::processReflectionProbes(UWorld *world, const JsonGameObject &gameObj, int32 objId, AActor *parentActor, const FString &folderPath){
+void JsonImporter::processReflectionProbes(ImportWorkData &workData, const JsonGameObject &gameObj, int32 objId, AActor *parentActor, const FString &folderPath){
 	if (!gameObj.hasProbes())
 		return;
 
@@ -231,9 +232,10 @@ void JsonImporter::processReflectionProbes(UWorld *world, const JsonGameObject &
 		captureTransform.SetFromMatrix(captureMatrix);
 		UReflectionCaptureComponent *reflComponent = 0;
 		if (!probe.boxProjection){
+			//auto actor = JsonObjects::createActor<ASphereReflectionCapture>(world, 
 			ASphereReflectionCapture *actor = Cast<ASphereReflectionCapture>(
 				GEditor->AddActor(
-					world->GetCurrentLevel(),
+					workData.world->GetCurrentLevel(),
 					//GCurrentLevelEditingViewportClient->GetWorld()->GetCurrentLevel(),
 				ASphereReflectionCapture::StaticClass(), captureTransform));//spotLightTransform));
 			if (!actor){
@@ -256,7 +258,7 @@ void JsonImporter::processReflectionProbes(UWorld *world, const JsonGameObject &
 		else{
 			ABoxReflectionCapture *actor = Cast<ABoxReflectionCapture>(
 					GEditor->AddActor(
-						world->GetCurrentLevel(),
+						workData.world->GetCurrentLevel(),
 						//GCurrentLevelEditingViewportClient->GetWorld()->GetCurrentLevel(),
 				ABoxReflectionCapture::StaticClass(), captureTransform));//spotLightTransform));
 			if (!actor){
@@ -293,8 +295,7 @@ void JsonImporter::processReflectionProbes(UWorld *world, const JsonGameObject &
 	}
 }
 
-void JsonImporter::processLight(UWorld *world, const JsonGameObject &gameObj, const JsonLight &jsonLight, AActor *parentActor, const FString& folderPath){
-
+void JsonImporter::processLight(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonLight &jsonLight, AActor *parentActor, const FString& folderPath){
 	UE_LOG(JsonLog, Log, TEXT("Creating light"));
 	FActorSpawnParameters spawnParams;
 	FTransform spotLightTransform;
@@ -327,7 +328,7 @@ void JsonImporter::processLight(UWorld *world, const JsonGameObject &gameObj, co
 		FTransform pointLightTransform;
 		pointLightTransform.SetFromMatrix(gameObj.ueWorldMatrix);
 		APointLight *actor = Cast<APointLight>(GEditor->AddActor(
-			world->GetCurrentLevel(),
+			workData.world->GetCurrentLevel(),
 			//GCurrentLevelEditingViewportClient->GetWorld()->GetCurrentLevel(),
 			APointLight::StaticClass(), pointLightTransform));//spotLightTransform));
 		if (!actor){
@@ -363,7 +364,7 @@ void JsonImporter::processLight(UWorld *world, const JsonGameObject &gameObj, co
 	}
 	else if (jsonLight.lightType == "Spot"){
 		ASpotLight *actor = Cast<ASpotLight>(GEditor->AddActor(
-			world->GetCurrentLevel(),
+			workData.world->GetCurrentLevel(),
 			//GCurrentLevelEditingViewportClient->GetWorld()->GetCurrentLevel(),
 			ASpotLight::StaticClass(), spotLightTransform));
 		if (!actor){
@@ -402,7 +403,7 @@ void JsonImporter::processLight(UWorld *world, const JsonGameObject &gameObj, co
 		dirLightTransform.SetFromMatrix(gameObj.ueWorldMatrix);//dirLightMatrix);
 
 		ADirectionalLight *dirLightActor = Cast<ADirectionalLight>(GEditor->AddActor(
-			world->GetCurrentLevel(),
+			workData.world->GetCurrentLevel(),
 			//GCurrentLevelEditingViewportClient->GetWorld()->GetCurrentLevel(),
 			ADirectionalLight::StaticClass(), dirLightTransform));
 		//Well, here we go. For some reason data from lightTransform isn't being passed.
@@ -453,12 +454,12 @@ void JsonImporter::processLight(UWorld *world, const JsonGameObject &gameObj, co
 	}
 }
 
-void JsonImporter::processLights(UWorld *world, const JsonGameObject &gameObj, AActor *parentActor, const FString& folderPath){
+void JsonImporter::processLights(ImportWorkData &workData, const JsonGameObject &gameObj, AActor *parentActor, const FString& folderPath){
 	if (!gameObj.hasLights())
 		return;
 
 	for(int i = 0; i < gameObj.lights.Num(); i++){
 		const auto &curLight = gameObj.lights[i];
-		processLight(world, gameObj, curLight, parentActor, folderPath);
+		processLight(workData, gameObj, curLight, parentActor, folderPath);
 	}
 }
