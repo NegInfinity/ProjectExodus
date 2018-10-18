@@ -87,7 +87,7 @@ public:
 		auto objSuffixName = ObjectTools::SanitizeObjectName(name + TEXT("_") + objNameSuffix);
 		auto objName = ObjectTools::SanitizeObjectName(name);
 		auto objInFileName = FPaths::Combine(*rootPath, *filePath);
-		UE_LOG(JsonLog, Log, TEXT("Object name: %s, filename: %s, extension: %s"), *objName, *objInFileName, *extension);
+		UE_LOG(JsonLog, Log, TEXT("Creating package. Object name: %s, filename: %s, extension: %s"), *objName, *objInFileName, *extension);
 
 		FString packageName;
 

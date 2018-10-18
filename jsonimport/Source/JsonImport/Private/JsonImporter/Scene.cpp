@@ -22,7 +22,9 @@
 #include "Materials/MaterialExpressionTextureCoordinate.h"
 #include "Materials/MaterialExpressionVectorParameter.h"
 #include "Materials/MaterialExpressionConstant.h"
-	
+
+#include "Factories/WorldFactory.h"
+
 #include "RawMesh.h"
 
 #include "DesktopPlatformModule.h"
@@ -44,32 +46,39 @@ void JsonImporter::importScene(JsonObjPtr sceneDataObj, bool createWorld){
 	if (!createWorld){
 		auto world = GEditor->GetEditorWorldContext().World();
 		loadObjects(sceneObjects, world);
+		return;
 	}
-	else{
-		UWorld *existingWorld = 0;
-		FString worldName = sceneName;
-		FString worldFileName = scenePath;
-		FString packageName;
-		FString outWorldName, outPackageName;
-		UPackage *worldPackage = createPackage(worldName, worldFileName, assetRootPath, 
-			FString("Level"), &outPackageName, &outWorldName, &existingWorld);
 
-		UE_LOG(JsonLog, Log, TEXT("Creating world package. Name %s, package %s"), *outWorldName, *outPackageName);
+	UWorldFactory *factory = NewObject<UWorldFactory>();
+	factory->WorldType = EWorldType::Editor;
+	factory->bInformEngineOfWorld = true;
+	factory->FeatureLevel = GEditor->DefaultWorldFeatureLevel;
 
-		auto world = UWorld::CreateWorld(EWorldType::None, true, FName(*outWorldName), worldPackage);
-		//loadObjects(sceneObjects, world);
+	UWorld *existingWorld = 0;
+	FString worldName = sceneName;
+	FString worldFileName = scenePath;
+	FString packageName;
+	FString outWorldName, outPackageName;
+	UPackage *worldPackage = createPackage(worldName, worldFileName, assetRootPath, 
+		FString("Level"), &outPackageName, &outWorldName, &existingWorld);
 
-		//GEditor->
+	UE_LOG(JsonLog, Log, TEXT("Creating world package. Name %s, package %s"), *outWorldName, *outPackageName);
+	EObjectFlags flags = RF_Public | RF_Standalone;
+	UWorld *newWorld = CastChecked<UWorld>(
+		factory->FactoryCreateNew(UWorld::StaticClass(), worldPackage, *worldName, flags, 0, GWarn)
+	);
 
-		UE_LOG(JsonLog, Log, TEXT("World created: %x"), world);
-		UE_LOG(JsonLog, Log, TEXT("World current level: %x"), world->GetCurrentLevel());
-		UE_LOG(JsonLog, Log, TEXT("World persistent level: %x"), world->PersistentLevel);
+	UE_LOG(JsonLog, Log, TEXT("World created: %x"), newWorld);
+	UE_LOG(JsonLog, Log, TEXT("World current level: %x"), newWorld->GetCurrentLevel());
+	UE_LOG(JsonLog, Log, TEXT("World persistent level: %x"), newWorld->PersistentLevel);
+	if (!newWorld)
+		return;
 
-		if (world){
-			FAssetRegistryModule::AssetCreated(world);
-			worldPackage->SetDirtyFlag(true);
-		}
-	}
+	newWorld->AddToRoot();
+	loadObjects(sceneObjects, newWorld);
+
+	FAssetRegistryModule::AssetCreated(newWorld);
+	worldPackage->SetDirtyFlag(true);
 }
 
 void JsonImporter::importProject(const FString& filename){
@@ -109,12 +118,8 @@ void JsonImporter::importProject(const FString& filename){
 			JsonValPtr curSceneData = (*scenes)[i];
 			auto curSceneDataObj = curSceneData->AsObject();
 			if (curSceneDataObj){
-				//auto world = GEditor->GetEditorWorldContext().World();
 				importScene(curSceneDataObj, true);
-				//UE_LOG(JsonLog, Warning, TEXT("Only one scene is currently supported"));
 				numScenes++;
-				/*if (numScenes > 2)
-					break;*/
 			}
 			sceneProgress.EnterProgressFrame();
 		}
