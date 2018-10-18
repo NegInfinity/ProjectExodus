@@ -1,6 +1,7 @@
 #pragma once
 
 #include "JsonTypes.h"
+#include "JsonLog.h"
 
 #define JSON_GET_AUTO_PARAM2(obj, varName, paramName, op) auto varName = op(obj, #paramName); logValue(#paramName, varName);
 #define JSON_GET_AUTO_PARAM(obj, name, op) auto name = op(obj, #name); logValue(#name, name);
@@ -148,25 +149,38 @@ public:
 
 
 namespace JsonObjects{
+	void logValue(const FString &msg, const IntArray &arr);
+	void logValue(const FString &msg, const FloatArray &arr);
+	void logValue(const FString &msg, const bool val);
+	void logValue(const FString &msg, const FVector2D &val);
+	void logValue(const FString &msg, const FVector &val);
+	void logValue(const FString &msg, const FQuat &val);
+	void logValue(const FString &msg, const FMatrix &val);
+	void logValue(const FString &msg, const int val);
+	void logValue(const FString &msg, const float val);
+	void logValue(const FString &msg, const FString &val);
+	void logValue(const FString &msg, const FLinearColor &val);
+
 	template <typename T>T* createActor(UWorld *world, FTransform transform, bool editorMode, const TCHAR* logName = 0){
 		T* result = 0;
 		if (editorMode){
-			result = 	GEditor->AddActor(world->GetCurrentLevel(),
-				T::StaticClass(), captureTransform);
+			result = 	Cast<T>(GEditor->AddActor(world->GetCurrentLevel(),
+				T::StaticClass(), transform));
 		}
 		else{
-			result = world->SpawnActor();
+			result = world->SpawnActor<T>();
 		}
 		if (!result){
 			if (logName){
-				UE_LOG(JsonImport, Warning, TEXT("Could not spawn actor %s"), logName);
+				UE_LOG(JsonLog, Warning, TEXT("Could not spawn actor %s"), logName);
 			}
 			else{
-				UE_LOG(JsonImport, Warning, TEXT("Could not spawn templated actor"));
+				UE_LOG(JsonLog, Warning, TEXT("Could not spawn templated actor"));
 			}
 		}
 		else{
 			auto moveResult = result->SetActorTransform(transform, false, nullptr, ETeleportType::ResetPhysics);
+			logValue("Actor move result: ", moveResult);
 		}
 		return result;
 	}
@@ -201,19 +215,8 @@ namespace JsonObjects{
 	void loadArray(JsonObjPtr data, const JsonValPtrs *&valPtrs, const FString &name, const FString &warnName);
 	void loadArray(JsonObjPtr data, const JsonValPtrs *&valPtrs, const FString &name);
 
-	void logValue(const FString &msg, const IntArray &arr);
-	void logValue(const FString &msg, const FloatArray &arr);
-	void logValue(const FString &msg, const bool val);
 	FVector unityToUe(const FVector& arg);
 	FMatrix unityWorldToUe(const FMatrix &unityMatrix);
-	void logValue(const FString &msg, const FVector2D &val);
-	void logValue(const FString &msg, const FVector &val);
-	void logValue(const FString &msg, const FQuat &val);
-	void logValue(const FString &msg, const FMatrix &val);
-	void logValue(const FString &msg, const int val);
-	void logValue(const FString &msg, const float val);
-	void logValue(const FString &msg, const FString &val);
-	void logValue(const FString &msg, const FLinearColor &val);
 	int32 getInt(JsonObjPtr data, const char* name);
 	bool getBool(JsonObjPtr data, const char* name);
 	float getFloat(JsonObjPtr data, const char* name);

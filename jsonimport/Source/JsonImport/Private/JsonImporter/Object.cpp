@@ -108,6 +108,7 @@ void JsonImporter::processMesh(ImportWorkData &workData, const JsonGameObject &j
 		return;
 	}
 
+	//I wonder why it is "spawn" here and Add everywhere else. But whatever.
 	AActor *meshActor = workData.world->SpawnActor<AActor>(AStaticMeshActor::StaticClass(), transform, spawnParams);
 	if (!meshActor){
 		UE_LOG(JsonLog, Warning, TEXT("Couldn't spawn actor"));
@@ -233,6 +234,9 @@ void JsonImporter::processReflectionProbes(ImportWorkData &workData, const JsonG
 		UReflectionCaptureComponent *reflComponent = 0;
 		if (!probe.boxProjection){
 			//auto actor = JsonObjects::createActor<ASphereReflectionCapture>(world, 
+			auto actor = createActor<ASphereReflectionCapture>(workData, captureTransform, TEXT("sphere capture"));
+			if (actor){
+			#if 0
 			ASphereReflectionCapture *actor = Cast<ASphereReflectionCapture>(
 				GEditor->AddActor(
 					workData.world->GetCurrentLevel(),
@@ -242,6 +246,7 @@ void JsonImporter::processReflectionProbes(ImportWorkData &workData, const JsonG
 				UE_LOG(JsonLog, Warning, TEXT("Could not spawn sphere capture"));
 			}
 			else{
+			#endif			
 				actor->SetActorLabel(gameObj.ueName);
 				auto moveResult = actor->SetActorTransform(captureTransform, false, nullptr, ETeleportType::ResetPhysics);
 				logValue("Actor move result: ", moveResult);
@@ -256,6 +261,9 @@ void JsonImporter::processReflectionProbes(ImportWorkData &workData, const JsonG
 			}
 		}
 		else{
+			auto actor = createActor<ABoxReflectionCapture>(workData, captureTransform, TEXT("box reflection capture"));
+			if (actor){
+			#if 0
 			ABoxReflectionCapture *actor = Cast<ABoxReflectionCapture>(
 					GEditor->AddActor(
 						workData.world->GetCurrentLevel(),
@@ -265,6 +273,7 @@ void JsonImporter::processReflectionProbes(ImportWorkData &workData, const JsonG
 				UE_LOG(JsonLog, Warning, TEXT("Could not spawn box reflection capture"));
 			}
 			else{
+			#endif
 				actor->SetActorLabel(gameObj.ueName);
 				auto moveResult = actor->SetActorTransform(captureTransform, false, nullptr, ETeleportType::ResetPhysics);
 				logValue("Actor move result: ", moveResult);
@@ -297,48 +306,14 @@ void JsonImporter::processReflectionProbes(ImportWorkData &workData, const JsonG
 
 void JsonImporter::processLight(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonLight &jsonLight, AActor *parentActor, const FString& folderPath){
 	UE_LOG(JsonLog, Log, TEXT("Creating light"));
-	FActorSpawnParameters spawnParams;
-	FTransform spotLightTransform;
-	FVector lightX, lightY, lightZ;
-	gameObj.ueWorldMatrix.GetScaledAxes(lightX, lightY, lightZ);
 
-	logValue("LightX (orig)", lightX);
-	logValue("LightY (orig)", lightY);
-	logValue("LightZ (orig)", lightZ);
-	FVector lightNewX = lightZ;
-	FVector lightNewY = lightY;
-	FVector lightNewZ = -lightX;
-	FMatrix lightMatrix = gameObj.ueWorldMatrix;
-	logValue("lightNewX", lightNewX);
-	logValue("lightNewY", lightNewY);
-	logValue("lightNewZ", lightNewZ);
-
-	logValue("lightMatrix", lightMatrix);
-	lightMatrix.SetAxes(&lightNewX, &lightNewY, &lightNewZ);
-	spotLightTransform.SetFromMatrix(lightMatrix);
-
-	logValue("Transform.Translation", spotLightTransform.GetTranslation());
-	logValue("Transform.Scale3D", spotLightTransform.GetScale3D());
-	logValue("Transform.Rotation", spotLightTransform.GetRotation());
-	logValue("Transform.XAxis", spotLightTransform.GetUnitAxis(EAxis::X));
-	logValue("Transform.YAxis", spotLightTransform.GetUnitAxis(EAxis::Y));
-	logValue("Transform.ZAxis", spotLightTransform.GetUnitAxis(EAxis::Z));
+	FTransform lightTransform;
+	lightTransform.SetFromMatrix(gameObj.ueWorldMatrix);
 
 	if (jsonLight.lightType == "Point"){
-		FTransform pointLightTransform;
-		pointLightTransform.SetFromMatrix(gameObj.ueWorldMatrix);
-		APointLight *actor = Cast<APointLight>(GEditor->AddActor(
-			workData.world->GetCurrentLevel(),
-			//GCurrentLevelEditingViewportClient->GetWorld()->GetCurrentLevel(),
-			APointLight::StaticClass(), pointLightTransform));//spotLightTransform));
-		if (!actor){
-			UE_LOG(JsonLog, Warning, TEXT("Could not spawn point light"));
-		}
-		else{
+		auto actor = createActor<APointLight>(workData, lightTransform, TEXT("point light"));
+		if (actor){
 			actor->SetActorLabel(gameObj.ueName, true);
-
-			auto moveResult = actor->SetActorTransform(pointLightTransform, false, nullptr, ETeleportType::ResetPhysics);
-			logValue("Actor move result: ", moveResult);
 
 			auto light = actor->PointLightComponent;
 			//light->SetIntensity(lightIntensity * 2500.0f);//100W lamp per 1 point of intensity
@@ -363,14 +338,8 @@ void JsonImporter::processLight(ImportWorkData &workData, const JsonGameObject &
 		}
 	}
 	else if (jsonLight.lightType == "Spot"){
-		ASpotLight *actor = Cast<ASpotLight>(GEditor->AddActor(
-			workData.world->GetCurrentLevel(),
-			//GCurrentLevelEditingViewportClient->GetWorld()->GetCurrentLevel(),
-			ASpotLight::StaticClass(), spotLightTransform));
-		if (!actor){
-			UE_LOG(JsonLog, Warning, TEXT("Could not spawn spot light"));
-		}
-		else{
+		auto actor = createActor<ASpotLight>(workData, lightTransform, TEXT("spot light"));
+		if (actor){
 			actor->SetActorLabel(gameObj.ueName, true);
 
 			auto light = actor->SpotLightComponent;
@@ -399,28 +368,9 @@ void JsonImporter::processLight(ImportWorkData &workData, const JsonGameObject &
 		}
 	}
 	else if (jsonLight.lightType == "Directional"){
-		FTransform dirLightTransform;
-		dirLightTransform.SetFromMatrix(gameObj.ueWorldMatrix);//dirLightMatrix);
-
-		ADirectionalLight *dirLightActor = Cast<ADirectionalLight>(GEditor->AddActor(
-			workData.world->GetCurrentLevel(),
-			//GCurrentLevelEditingViewportClient->GetWorld()->GetCurrentLevel(),
-			ADirectionalLight::StaticClass(), dirLightTransform));
-		//Well, here we go. For some reason data from lightTransform isn't being passed.
-		if (!dirLightActor){
-			UE_LOG(JsonLog, Warning, TEXT("Could not spawn directional light"));
-		}
-		else{
+		auto dirLightActor = createActor<ADirectionalLight>(workData, lightTransform, TEXT("directional light"));
+		if (dirLightActor){
 			dirLightActor->SetActorLabel(gameObj.ueName, true);
-
-			logValue("Dir light rotation (Euler): ", dirLightActor->GetActorRotation().Euler());
-			logValue("Dir light transform: ", dirLightActor->GetActorTransform().ToMatrixWithScale());
-			logValue("Dir light scale: ", dirLightActor->GetActorScale3D());
-			logValue("Dir light location: ", dirLightActor->GetActorLocation());
-			// ??? For some reason it ignores data passed through AddActor. 
-
-			auto moveResult = dirLightActor->SetActorTransform(dirLightTransform, false, nullptr, ETeleportType::ResetPhysics);
-			logValue("Actor move result: ", moveResult);
 
 			logValue("Dir light rotation (Euler): ", dirLightActor->GetActorRotation().Euler());
 			logValue("Dir light transform: ", dirLightActor->GetActorTransform().ToMatrixWithScale());
