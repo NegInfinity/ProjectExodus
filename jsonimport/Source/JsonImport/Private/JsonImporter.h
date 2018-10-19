@@ -52,6 +52,9 @@ protected:
 	UWorld *createWorldForScene(const FString &sceneName, const FString &scenePath);
 	bool saveLoadedWorld(UWorld *world, const FString &sceneName, const FString &sceneAssetPath);
 	void importScene(JsonObjPtr sceneData, bool createWorld);
+
+	void importPrefabs(const JsonValPtrs *prefabs);
+	void importPrefab(const JsonPrefabData& prefab);
 public:
 	UTexture* loadTexture(int32 id);
 	UMaterial* loadMaterial(int32 id);
@@ -73,6 +76,9 @@ public:
 	void importMaterial(JsonObjPtr obj, int32 matId);
 	void importMesh(JsonObjPtr obj, int32 meshId);
 	void importObject(JsonObjPtr obj, int32 objId, ImportWorkData &importData);
+	void importObject(const JsonGameObject &jsonGameObj , int32 objId, ImportWorkData &importData);
+
+
 
 	static int findMatchingLength(const FString& arg1, const FString& arg2);
 	FString findCommonPath(const JsonValPtrs* resources);

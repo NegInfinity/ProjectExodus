@@ -266,6 +266,12 @@ void JsonGameObject::load(JsonObjPtr jsonData){
 	JSON_GET_PARAM(jsonData, nameClash, getBool);
 	JSON_GET_PARAM(jsonData, uniqueName, getString);
 
+	JSON_GET_PARAM(jsonData, prefabRootId, getInt);
+	JSON_GET_PARAM(jsonData, prefabObjectId, getInt);
+	JSON_GET_PARAM(jsonData, prefabInstance, getBool);
+	JSON_GET_PARAM(jsonData, prefabModelInstance, getBool);
+	JSON_GET_PARAM(jsonData, prefabType, getString);
+
 	renderers.Empty();
 	lights.Empty();
 	probes.Empty();
@@ -306,4 +312,25 @@ IntArray JsonGameObject::getFirstMaterials() const{
 	}
 	UE_LOG(JsonLog, Warning, TEXT("Materials not found on renderer, returning blank array"));
 	return IntArray();
+}
+
+void JsonPrefabData::load(JsonObjPtr jsonData){
+	JSON_GET_PARAM(jsonData, name, getString);
+	JSON_GET_PARAM(jsonData, path, getString);
+	JSON_GET_PARAM(jsonData, guid, getString);
+	JSON_GET_PARAM(jsonData, prefabType, getString);
+
+	objects.Empty();
+	getJsonObjArray(jsonData, objects, "objects");
+	//objects
+}
+
+JsonPrefabData::JsonPrefabData(JsonObjPtr jsonData){
+	load(jsonData);
+}
+
+void ImportWorkData::addRootActor(AActor* actor){
+	if (!storeActors)
+		return;
+	rootActors.Add(actor);
 }

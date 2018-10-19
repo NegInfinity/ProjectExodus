@@ -56,21 +56,7 @@ void JsonImporter::importScene(JsonObjPtr sceneDataObj, bool createWorld){
 		return;
 	}
 
-	/*
-	auto newWorld = createWorldForScene(sceneName, scenePath);
-	if (!newWorld)
-		return;
-
-	ImportWorkData workData(newWorld, editorMode);
-	loadObjects(sceneObjects, workData);
-	*/
 	saveSceneObjectsAsWorld(sceneObjects, sceneName, scenePath);
-
-	/*
-	if (!saveLoadedWorld(newWorld, sceneName, scenePath)){
-		UE_LOG(JsonLog, Warning, TEXT("Failed to save scene %s (%s)"), *sceneName, *scenePath);
-	}
-	*/
 }
 
 bool JsonImporter::saveSceneObjectsAsWorld(const JsonValPtrs * sceneObjects, const FString &sceneName, const FString &scenePath){
@@ -101,11 +87,6 @@ bool JsonImporter::saveSceneObjectsAsWorld(const JsonValPtrs * sceneObjects, con
 	if (newWorld){
 		ImportWorkData workData(newWorld, false);
 		loadObjects(sceneObjects, workData);
-		/*
-		auto actor = newWorld->SpawnActor<APointLight>();
-		auto label = FString("Test light actor for scene: ") + sceneName;
-		actor->SetActorLabel(*label); 
-		*/
 	}
 
 	if (worldPackage){
@@ -159,91 +140,7 @@ bool JsonImporter::saveLoadedWorld(UWorld *world, const FString &sceneName, cons
 	}
 	return true;
 }
-#if 0
-bool JsonImporter::saveLoadedWorld(UWorld *world, const FString &sceneName, const FString &scenePath){
-#ifdef JSONIMP_USE_WORLD_FACTORY
-	UWorldFactory *factory = NewObject<UWorldFactory>();
-	factory->WorldType = EWorldType::Editor;
-	factory->bInformEngineOfWorld = true;
-	factory->FeatureLevel = GEditor->DefaultWorldFeatureLevel;
-#endif
 
-	/*
-	Hmm. The editor crashes very quickly when I create scenes using a factory. 
-
-	I think the objects are nuked by the garbage collector.
-
-	---
-	No, that's not Root. It looks I'm not supposed to work on the scenes offscreen? Or something like that.
-	Sigh.
-	*/
-	
-#ifdef JSONIMP_USE_WORLD_FACTORY
-	UWorld *existingWorld = 0;
-	FString worldName = sceneName;
-	FString worldFileName = scenePath;
-	FString packageName;
-	FString outWorldName, outPackageName;
-	UPackage *worldPackage = 0;
-
-	worldPackage = createPackage(worldName, worldFileName, assetRootPath, 
-		FString("Level"), &outPackageName, &outWorldName, &existingWorld);
-
-	UE_LOG(JsonLog, Log, TEXT("Creating world package. Name %s, package %s"), *outWorldName, *outPackageName);
-
-	EObjectFlags flags = RF_Public | RF_Standalone;
-	UWorld *newWorld = CastChecked<UWorld>(
-		factory->FactoryCreateNew(UWorld::StaticClass(), worldPackage, *worldName, flags, 0, GWarn)
-	);
-	newWorld->AddToRoot();
-	worldPackage = createPackage(worldName, worldFileName, assetRootPath, 
-		FString("Level"), &outPackageName, &outWorldName, &existingWorld);
-	UE_LOG(JsonLog, Log, TEXT("Creating world package. Name %s, package %s"), *outWorldName, *outPackageName);
-	UE_LOG(JsonLog, Warning, TEXT("Exisitng package %x"), existingWorld);
-
-#else
-	UWorld *newWorld = GEditor->NewMap();
-#endif
-	FString cleanSceneName = ObjectTools::SanitizeObjectName(sceneName);
-
-	UE_LOG(JsonLog, Log, TEXT("Changing scene name. New name %s"), *cleanSceneName);
-	newWorld->Rename(*cleanSceneName, 0, 0);
-	//UE_LOG(JsonLog, Log, TEXT("Changing scene package. New package %x"), worldPackage);
-	//newWorld->Rename(0, worldPackage, 0);
-
-	FString targetPath = FPaths::GetPath(scenePath);
-	FString targetName = ObjectTools::SanitizeObjectName(cleanSceneName + FString("_Level"));
-	//FString sceneFileName = FPaths::Combine(*assetRootPath, TEXT("/Game/Import/"), *targetPath, *targetName);
-	FString sceneFileName = FPaths::Combine(TEXT("/Game/Import/"), *targetPath, *targetName);
-	sceneFileName = PackageTools::SanitizePackageName(sceneFileName);
-
-	UE_LOG(JsonLog, Warning, TEXT("saving dry run: assetRootPath: %s, targetPath: %s, targetName: %s, sceneFileName: %s"), 
-		*assetRootPath, *targetPath, *targetName, *sceneFileName);
-
-	bool savedLevel = FEditorFileUtils::SaveLevel(newWorld->PersistentLevel, sceneFileName);
-	if (!savedLevel){
-		UE_LOG(JsonLog, Warning, TEXT("Could not save scene \"%s\" to \"%s\""), *sceneName, *sceneFileName);
-	}
-	else{
-		UE_LOG(JsonLog, Warning, TEXT("Scene \"%s\" saved to \"%s\""), *sceneName, *sceneFileName);
-	}
-
-#ifdef JSONIMP_USE_WORLD_FACTORY
-	if (worldPackage){
-		FAssetRegistryModule::AssetCreated(newWorld);
-		worldPackage->SetDirtyFlag(true);
-	}
-#else
-	/*
-	if (worldPackage){
-		FAssetRegistryModule::AssetCreated(newWorld);
-		worldPackage->SetDirtyFlag(true);
-	}
-	*/
-#endif
-	return true;
-}
-#endif
 
 
 void JsonImporter::importProject(const FString& filename){

@@ -36,13 +36,14 @@
 
 #include "DesktopPlatformModule.h"
 
-static void setParentAndFolder(AActor *actor, AActor *parentActor, const FString& folderPath){
+static void setParentAndFolder(AActor *actor, AActor *parentActor, const FString& folderPath, ImportWorkData &workData){
 	if (!actor)
 		return;
 	if (parentActor){
 		actor->AttachToActor(parentActor, FAttachmentTransformRules::KeepWorldTransform);
 	}
 	else{
+		workData.addRootActor(actor);
 		//actor->AddToRoot();
 		if (folderPath.Len())
 			actor->SetFolderPath(*folderPath);
@@ -50,9 +51,12 @@ static void setParentAndFolder(AActor *actor, AActor *parentActor, const FString
 }
 
 void JsonImporter::importObject(JsonObjPtr obj, int32 objId, ImportWorkData &workData){
-	UE_LOG(JsonLog, Log, TEXT("Importing object %d"), objId);
-
 	auto jsonGameObj = JsonGameObject(obj);
+	importObject(jsonGameObj, objId, workData);
+}
+
+void JsonImporter::importObject(const JsonGameObject &jsonGameObj , int32 objId, ImportWorkData &workData){
+	UE_LOG(JsonLog, Log, TEXT("Importing object %d"), objId);
 
 	FString folderPath;
 
@@ -189,7 +193,7 @@ void JsonImporter::processMesh(ImportWorkData &workData, const JsonGameObject &j
 	}
 
 	workData.objectActors.Add(jsonGameObj.id, meshActor);
-	setParentAndFolder(meshActor, parentActor, folderPath);
+	setParentAndFolder(meshActor, parentActor, folderPath, workData);
 
 	meshComp->SetCastShadow(hasShadows);
 	meshComp->bCastShadowAsTwoSided = twoSidedShadows;
@@ -233,7 +237,6 @@ void JsonImporter::processReflectionProbes(ImportWorkData &workData, const JsonG
 		captureTransform.SetFromMatrix(captureMatrix);
 		UReflectionCaptureComponent *reflComponent = 0;
 		if (!probe.boxProjection){
-			//auto actor = JsonObjects::createActor<ASphereReflectionCapture>(world, 
 			auto actor = createActor<ASphereReflectionCapture>(workData, captureTransform, TEXT("sphere capture"));
 			if (actor){
 				actor->SetActorLabel(gameObj.ueName);
@@ -242,11 +245,8 @@ void JsonImporter::processReflectionProbes(ImportWorkData &workData, const JsonG
 
 				auto captureComp = actor->GetCaptureComponent();
 				reflComponent = captureComp;
-				//captureComp->Brightness = intensity;
-				/*if (isStatic)
-					actor->SetMobility(EComponentMobility::Static);*/
 				actor->MarkComponentsRenderStateDirty();
-				setParentAndFolder(actor, parentActor, folderPath);
+				setParentAndFolder(actor, parentActor, folderPath, workData);
 			}
 		}
 		else{
@@ -264,7 +264,7 @@ void JsonImporter::processReflectionProbes(ImportWorkData &workData, const JsonG
 				/*if (isStatic)
 					actor->SetMobility(EComponentMobility::Static);*/
 				actor->MarkComponentsRenderStateDirty();
-				setParentAndFolder(actor, parentActor, folderPath);
+				setParentAndFolder(actor, parentActor, folderPath, workData);
 			}
 		}
 		if (reflComponent){
@@ -312,7 +312,7 @@ void JsonImporter::processLight(ImportWorkData &workData, const JsonGameObject &
 			actor->MarkComponentsRenderStateDirty();
 
 			//createdActors.Add(actor);
-			setParentAndFolder(actor, parentActor, folderPath);
+			setParentAndFolder(actor, parentActor, folderPath, workData);
 		}
 	}
 	else if (jsonLight.lightType == "Spot"){
@@ -342,7 +342,7 @@ void JsonImporter::processLight(ImportWorkData &workData, const JsonGameObject &
 			actor->MarkComponentsRenderStateDirty();
 
 			//createdActors.Add(actor);
-			setParentAndFolder(actor, parentActor, folderPath);
+			setParentAndFolder(actor, parentActor, folderPath, workData);
 		}
 	}
 	else if (jsonLight.lightType == "Directional"){
@@ -377,7 +377,7 @@ void JsonImporter::processLight(ImportWorkData &workData, const JsonGameObject &
 				dirLightActor->SetMobility(EComponentMobility::Static);
 			dirLightActor->MarkComponentsRenderStateDirty();
 
-			setParentAndFolder(dirLightActor, parentActor, folderPath);
+			setParentAndFolder(dirLightActor, parentActor, folderPath, workData);
 		}
 	}
 }

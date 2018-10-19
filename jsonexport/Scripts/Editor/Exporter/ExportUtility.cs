@@ -7,9 +7,75 @@ using UnityEditor.SceneManagement;
 
 namespace SceneExport{
 	public static class ExportUtility{
+		public static readonly int invalidId = -1;
+		
+		public delegate bool HierarchyWalker(GameObject curObj);
+		
+		public static GameObject getLinkedRootPrefab(GameObject obj){
+			var prefab = getLinkedPrefab(obj);
+			if (!prefab)
+				return null;
+			var root = PrefabUtility.FindPrefabRoot(prefab);
+			return root;
+		}
+		
+		public static GameObject getLinkedPrefab(GameObject obj){
+			var prefType = PrefabUtility.GetPrefabType(obj);
+			if ((prefType == PrefabType.ModelPrefab) || (prefType == PrefabType.Prefab)){
+				return obj;
+			}
+			if ((prefType != PrefabType.ModelPrefabInstance) && (prefType != PrefabType.PrefabInstance))
+				return null;
+			var source = PrefabUtility.GetCorrespondingObjectFromSource(obj);
+			if (!source)
+				return null;
+			var sourceObj = source as GameObject;
+			return sourceObj;
+		}
+		
+		public static void walkHierarchy(Queue<GameObject> objects, HierarchyWalker callback){
+			if (objects == null)
+				throw new System.ArgumentNullException("objects");
+				
+			if (callback == null)
+				throw new System.ArgumentNullException("callback");
+				
+			while(objects.Count > 0){
+				var curObject = objects.Dequeue();
+				if (!curObject)
+					continue;
+					
+				if (!callback(curObject))
+					continue;
+					
+				foreach(Transform curChild in curObject.transform){
+					if (!curChild)
+						continue;
+					if (!curChild.gameObject)
+						continue;
+					objects.Enqueue(curChild.gameObject);
+				}
+			}
+		}
+		
+		public static void walkHierarchy(GameObject obj, HierarchyWalker callback){
+			var q = new Queue<GameObject>();
+			walkHierarchy(q, callback);
+		}
+		
+		public static void walkHierarchy(GameObject[] objs, HierarchyWalker callback){
+			var q = new Queue<GameObject>();
+			if (objs != null){
+				foreach(var cur in objs)
+					q.Enqueue(cur);
+			}
+			walkHierarchy(q, callback);
+		}
+		
 		public static bool isValidId(int id){
 			return id >= 0;
 		}
+		
 		public static string getObjectPath(GameObject obj){
 			if (!obj)
 				return "(null)";
@@ -17,6 +83,7 @@ namespace SceneExport{
 				return obj.name;
 			return getObjectPath(obj.transform.parent.gameObject) + "/" + obj.name;
 		}
+		
 		public static string formatString(string fmt, params object[] args){
 			return string.Format(fmt, args);
 		}

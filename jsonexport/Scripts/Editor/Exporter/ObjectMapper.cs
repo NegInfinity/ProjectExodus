@@ -8,14 +8,24 @@ namespace SceneExport{
 		public Dictionary<Resource, int> objectMap = new Dictionary<Resource, int>();
 		public List<Resource> objectList = new List<Resource>();
 
-		public bool isValidObejctId(int id){
-			return (id > 0) && (id < objectList.Count);
+		public bool isValidObjectId(int id){
+			return (id >= 0) && (id < objectList.Count);
+		}
+		
+		public int numObjects{
+			get{
+				return objectList.Count;
+			}
 		}
 		
 		public Resource getObject(int id){
-			if (isValidObejctId(id))
+			if (!isValidObjectId(id))
 				throw new System.ArgumentException(string.Format("Invalid object id {0}", id));
 			return objectList[id];
+		}
+		
+		public bool hasObject(Resource obj){
+			return ExportUtility.isValidId(getId(obj, false));
 		}
 			
 		public int findId(Resource obj){
@@ -25,7 +35,9 @@ namespace SceneExport{
 		public int getId(Resource obj){
 			return getId(obj, true, null);
 		}
-
+		
+		//public void registerObj(Resource obj
+		
 		public int getId(Resource obj, bool createMissing, OnNewObjectAdded onAddCallback = null){
 			int result = -1;
 			if (Object.Equals(obj, null))

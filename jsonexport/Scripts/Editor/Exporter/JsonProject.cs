@@ -113,79 +113,6 @@ namespace SceneExport{
 			saveResources(filename, showGui, logger);
 		}
 		
-		[System.Serializable]
-		public class AssetInfo{
-			public string guid;
-			public string path;
-			public AssetInfo(string guid_, string path_){
-				guid = guid_;
-				path = path_;
-			}
-		}
-		
-		[System.Serializable]
-		public class ProjectAssetList{
-			public List<AssetInfo> textures = new List<AssetInfo>();
-			public List<AssetInfo> materials = new List<AssetInfo>();
-			public List<AssetInfo> gameObjects = new List<AssetInfo>();
-			public List<AssetInfo> scenes = new List<AssetInfo>();
-			public List<AssetInfo> defaultAssets = new List<AssetInfo>();
-			public List<AssetInfo> unsupportedAssets = new List<AssetInfo>();
-			
-			public void addAssetFromGuid(string guid, Logger logger = null){
-				Logger.makeValid(ref logger);
-				var assetPath = AssetDatabase.GUIDToAssetPath(guid);
-				if (string.IsNullOrEmpty(assetPath)){
-					logger.logErrorFormat("Could not get path of asset \"{0}\'", guid);
-					return;
-				}
-				
-				var assetInfo = new AssetInfo(guid, assetPath);
-				
-				var assetType = AssetDatabase.GetMainAssetTypeAtPath(assetPath);
-				//logger.logFormat("Main asset type is \"{0}\" at path \"{1}\" (guid {2}) ", assetType.Name, assetPath, guid);
-			
-				if (assetType == typeof(Texture2D)){
-					textures.Add(assetInfo);
-				}
-				else if (assetType == typeof(Material)){
-					materials.Add(assetInfo);
-				}
-				else if (assetType == typeof(SceneAsset)){
-					scenes.Add(assetInfo);
-				}
-				else if (assetType == typeof(GameObject)){
-					gameObjects.Add(assetInfo);
-				}
-				else if (assetType == typeof(DefaultAsset)){
-					defaultAssets.Add(assetInfo);//folders
-				}
-				else if (assetType == typeof(Cubemap)){
-					logger.logWarningFormat("Cubemaps are not currently supported: {0} ({1})", assetPath, guid);
-					unsupportedAssets.Add(assetInfo);
-				}
-				else if (
-						(assetType == typeof(Shader))||
-						(assetType == typeof(ComputeShader))||
-						(assetType == typeof(AnimationClip))||
-						(assetType == typeof(TextAsset))||
-						(assetType == typeof(AudioClip)) ||
-						(assetType == typeof(MonoScript)) ||
-						(assetType == typeof(LightmapParameters)) ||
-						(assetType == typeof(PhysicMaterial)) ||
-						(assetType == typeof(UnityEditor.Animations.AnimatorController)) ||
-						(assetType == typeof(UnityEditor.LightingDataAsset)) ||
-						false
-				){
-					unsupportedAssets.Add(assetInfo);					
-				}
-				else{
-					logger.logWarningFormat("Unhandled asset type: {0}. path: {1}, guid: {2} ({3})", 
-						assetType.Name, assetPath, guid, assetType);
-				}
-			}
-		}
-		
 		string getProjectName(){
 			return Application.productName;
 		}
@@ -220,6 +147,24 @@ namespace SceneExport{
 			var id = resourceMapper.getMaterialId(mat);
 			if (!ExportUtility.isValidId(id)){
 				logger.logWarningFormat("Could not create id for material {0}({1})", asset.path, asset.guid);
+			}
+			return true;
+		}
+		
+		bool addGameObjectAsset(AssetInfo asset, bool showGui, Logger logger){
+			Logger.makeValid(ref logger);
+			AssetDatabase.LoadAllAssetsAtPath(asset.path);
+			var mainAsset = AssetDatabase.LoadMainAssetAtPath(asset.path);
+			var obj = mainAsset as GameObject;
+			if (!mainAsset || !obj){
+				logger.logErrorFormat("Could not load GameObject at path {0}({1})", asset.path, asset.guid);
+				return true;
+			}
+			
+			var id = resourceMapper.gatherPrefabData(obj);
+			
+			if (!ExportUtility.isValidId(id)){
+				logger.logWarningFormat("Could not create id for GameObject {0}({1})", asset.path, asset.guid);
 			}
 			return true;
 		}
@@ -289,6 +234,8 @@ namespace SceneExport{
 			if (!processDataList(assetList.textures, showGui, "Registering textures for", "Processing texture", addTextureAsset, logger))
 				return false;
 			if (!processDataList(assetList.materials, showGui, "Registering materials for", "Processing material", addMaterialAsset, logger))
+				return false;
+			if (!processDataList(assetList.gameObjects, showGui, "Registering prefabs for", "Processing prefab", addGameObjectAsset, logger))
 				return false;
 				
 			var sceneSetup = UnityEditor.SceneManagement.EditorSceneManager.GetSceneManagerSetup();

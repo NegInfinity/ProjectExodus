@@ -24,11 +24,15 @@ class ImportWorkData{
 public:
 	IdNameMap objectFolderPaths;
 	IdActorMap objectActors;
+	TArray<AActor*> rootActors;
 	UWorld *world;
 	bool editorMode;
+	bool storeActors;
 
-	ImportWorkData(UWorld *world_, bool editorMode_)
-	:world(world_), editorMode(editorMode_){
+	void addRootActor(AActor* actor);
+
+	ImportWorkData(UWorld *world_, bool editorMode_, bool storeActors_ = false)
+	:world(world_), editorMode(editorMode_), storeActors(storeActors_){
 	}
 
 	void clear(){
@@ -117,6 +121,12 @@ public:
 	bool nameClash;
 	FString uniqueName;
 
+	int32 prefabRootId;
+	int32 prefabObjectId;
+	bool prefabInstance;
+	bool prefabModelInstance;
+	FString prefabType;
+
 	TArray<JsonLight> lights;
 	TArray<JsonReflectionProbe> probes;
 	TArray<JsonRenderer> renderers;
@@ -147,6 +157,19 @@ public:
 	JsonGameObject(JsonObjPtr jsonData);
 };
 
+class JsonPrefabData{
+public:
+	FString name;
+	FString path;
+	FString guid;
+	FString prefabType;
+
+	TArray<JsonGameObject> objects;
+
+	void load(JsonObjPtr jsonData);
+	JsonPrefabData() = default;
+	JsonPrefabData(JsonObjPtr jsonData);
+};
 
 namespace JsonObjects{
 	void logValue(const FString &msg, const IntArray &arr);

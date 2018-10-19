@@ -13,6 +13,7 @@
 #include "LevelEditorViewport.h"
 #include "Factories/TextureFactory.h"
 #include "Factories/MaterialFactoryNew.h"
+#include "Factories/WorldFactory.h"
 
 #include "Materials/Material.h"
 #include "Materials/MaterialExpressionTextureSample.h"
@@ -27,6 +28,8 @@
 
 #include "DesktopPlatformModule.h"
 #include "JsonObjects.h"
+
+#include "Kismet2/KismetEditorUtilities.h"
 
 #define LOCTEXT_NAMESPACE "FJsonImportModule"
 
@@ -102,21 +105,118 @@ void JsonImporter::loadObjects(const JsonValPtrs* objects, ImportWorkData &impor
 	}
 }
 
+void JsonImporter::importPrefab(const JsonPrefabData& prefab){
+	UE_LOG(JsonLog, Warning, TEXT("Prefab import is currently disabled"));
+	return;
+
+	if (prefab.objects.Num() <= 0){
+		UE_LOG(JsonLog, Warning, TEXT("No objects in prefab %s(%s)"), *prefab.name, *prefab.path);
+		return;
+	}
+
+	UWorldFactory *factory = NewObject<UWorldFactory>();
+	factory->WorldType = EWorldType::Inactive;
+	factory->bInformEngineOfWorld = true;
+	factory->FeatureLevel = GEditor->DefaultWorldFeatureLevel;
+	EObjectFlags flags = RF_Public | RF_Standalone;
+	//EObjectFlags flags = RF_Public | RF_Transient;
+
+	UPackage *worldPkg = CreatePackage(0, 0);
+
+	UWorld *tmpWorld = CastChecked<UWorld>(
+		factory->FactoryCreateNew(UWorld::StaticClass(), worldPkg, TEXT("Temporary"), flags, 0, GWarn)
+	);
+
+	const FString &rootPath = assetRootPath;
+	FString blueprintName;
+	FString packageName;
+	UPackage *existingPackage = 0;
+	UPackage *blueprintPackage = createPackage(prefab.name, prefab.path, rootPath, 
+		FString("Bluerint"), &packageName, &blueprintName, &existingPackage);
+
+	if (existingPackage){
+		UE_LOG(JsonLog, Warning, TEXT("Package already eixsts for %s (%s), cannot continue"), *prefab.name, *prefab.path);
+		return;
+	}
+
+	int objId = 0;
+	ImportWorkData workData(tmpWorld, false, true);
+	for(const auto& cur: prefab.objects){
+		importObject(cur, objId, workData);
+		objId++;
+	}
+
+	const auto &firstObject = prefab.objects[0];
+	AActor *rootActor = 0;
+	if (workData.objectActors.Contains(0)){
+		rootActor = workData.objectActors[0];
+	}
+	else{
+		FTransform firstObjectTransform;
+		firstObjectTransform.SetFromMatrix(firstObject.ueWorldMatrix);
+		rootActor = createActor<AActor>(workData, firstObjectTransform, TEXT("AActor"));
+	}
+
+	UE_LOG(JsonLog, Log, TEXT("Attaching actors. %d actors present"), workData.rootActors.Num());
+	for(auto cur: workData.rootActors){
+		if (cur == rootActor)
+			continue;
+		cur->AttachToActor(rootActor, FAttachmentTransformRules::KeepWorldTransform);
+	}
+
+	auto *createdBlueprint = FKismetEditorUtilities::CreateBlueprintFromActor(FName(*blueprintName), blueprintPackage, rootActor, true, true);
+	UE_LOG(JsonLog, Warning, TEXT("Created blueprint: %x"), createdBlueprint);
+	if (createdBlueprint){
+		FAssetRegistryModule::AssetCreated(createdBlueprint);
+		blueprintPackage->SetDirtyFlag(true);
+	}
+}
+
+void JsonImporter::importPrefabs(const JsonValPtrs *prefabs){
+	UE_LOG(JsonLog, Warning, TEXT("Prefab import is currently disabled"));
+	return;
+
+	if (!prefabs)
+		return;
+	FScopedSlowTask progress(prefabs->Num(), LOCTEXT("Importing prefabs", "Importing prefabs"));
+	progress.MakeDialog();
+	UE_LOG(JsonLog, Log, TEXT("Import prefabs"));
+	int32 objId = 0;
+	for(auto cur: *prefabs){
+		auto obj = cur->AsObject();
+		auto curId = objId;
+		objId++;
+		if (!obj.IsValid())
+			continue;
+
+		auto prefab = JsonPrefabData(obj);
+
+		importPrefab(prefab);
+
+		//importObject(obj, objId, importData);
+		progress.EnterProgressFrame(1.0f);
+
+		//break
+	}
+}
+
+
 void JsonImporter::importResources(JsonObjPtr jsonData){
-	const JsonValPtrs *resources = 0, *textures = 0, *materials = 0, *meshes = 0;
+	const JsonValPtrs *resources = 0, *textures = 0, *materials = 0, *meshes = 0, *prefabs = 0;
 
 	loadArray(jsonData, resources, TEXT("resources"), TEXT("Resources"));
-	//loadArray(jsonData, objects, TEXT("objects"), TEXT("Objects"));
 	loadArray(jsonData, textures, TEXT("textures"), TEXT("Textures"));
 	loadArray(jsonData, materials, TEXT("materials"), TEXT("Materials"));
 	loadArray(jsonData, meshes, TEXT("meshes"), TEXT("Meshes"));
+	loadArray(jsonData, prefabs, TEXT("prefabs"), TEXT("Prefabs"));
 
 	assetCommonPath = findCommonPath(resources);
 
 	loadTextures(textures);
 	loadMaterials(materials);
 	loadMeshes(meshes);
-	//loadObjects(objects);
+
+	importPrefabs(prefabs);
 }
 
 JsonObjPtr JsonImporter::loadJsonFromFile(const FString &filename){

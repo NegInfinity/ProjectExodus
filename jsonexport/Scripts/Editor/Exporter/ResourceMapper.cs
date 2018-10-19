@@ -19,6 +19,13 @@ namespace SceneExport{
 				return result;
 			return null;
 		}
+		
+		public GameObjectMapper getPrefabObjectMapper(GameObject rootPrefab){
+			GameObjectMapper result = null;
+			if (prefabObjects.TryGetValue(rootPrefab, out result))
+				return result;
+			return null;
+		}
 
 		public int getTextureId(Texture tex){
 			return textures.getId(tex, true);
@@ -66,93 +73,55 @@ namespace SceneExport{
 			return result;
 		}
 		
-		void registerNewPrefab(GameObject prefabRoot){
-			if (!prefabRoot)
-				throw new System.ArgumentNullException("prefabRoot");
+		public int getPrefabObjectId(GameObject obj, bool createMissing){
+			var linkedPrefab = ExportUtility.getLinkedPrefab(obj);
+			if (!linkedPrefab)
+				return ExportUtility.invalidId;
+			
+			var rootPrefabId = getRootPrefabId(obj, createMissing);
+			if (!ExportUtility.isValidId(rootPrefabId))
+				return ExportUtility.invalidId;
 				
-			var prefType = PrefabUtility.GetPrefabType(prefabRoot);
-			if ((prefType != PrefabType.ModelPrefab) && (prefType != PrefabType.ModelPrefab)){
-				throw new System.ArgumentException(
-					string.Format("Invalid prefab type {0} for obj {1} ({2}, {3})",
-						prefType, prefabRoot, ExportUtility.getObjectPath(prefabRoot), 
-						AssetDatabase.GetAssetPath(prefabRoot)
-					)
-				);
-			}
+			var rootPrefab = prefabs.getObject(rootPrefabId);
 			
-			var mapper = new GameObjectMapper();
-			mapper.gatherObjectIds(prefabRoot);
-			prefabObjects.Add(prefabRoot, mapper);
+			var prefabMapper = prefabObjects[rootPrefab];
+			return prefabMapper.getId(linkedPrefab);
 		}
 		
-		[System.Serializable]
-		public struct PrefabObjectId{
-			public int prefabId;
-			public int prefabObjectId;
-			public static readonly PrefabObjectId invalid = new PrefabObjectId(-1, -1);
-			public bool isValid(){
-				return ExportUtility.isValidId(prefabId) && ExportUtility.isValidId(prefabObjectId);
-			}
-			public PrefabObjectId(int prefabId_, int prefabObjectId_){
-				prefabId = prefabId_;
-				prefabObjectId = prefabObjectId_;
-			}
+		void onNewRootPrefab(GameObject rootPrefab){
+			var newMapper = new GameObjectMapper();
+			newMapper.gatherObjectIds(rootPrefab);
+			prefabObjects.Add(rootPrefab, newMapper);
 		}
 		
-		public PrefabObjectId getPrefabObjectId(GameObject obj, bool createIfMissing){
-			Object prefab = null;
-			var prefType = PrefabUtility.GetPrefabType(obj);
-			
-			if ((prefType == PrefabType.ModelPrefabInstance) || (prefType == PrefabType.PrefabInstance)){
-				prefab = PrefabUtility.GetCorrespondingObjectFromSource(obj);
-			}
-			else if ((prefType == PrefabType.ModelPrefab) || (prefType == PrefabType.Prefab)){
-				prefab = obj;
-			}
-			else{
-				return PrefabObjectId.invalid;
-			}
-			var prefObj = prefab as GameObject;
-			var prefRoot = PrefabUtility.FindPrefabRoot(prefObj);
-			
-			if (!prefObj || !prefRoot)
-				return PrefabObjectId.invalid;
-				
-			var prefabRootId = prefabs.findId(prefRoot);
-			if (!ExportUtility.isValidId(prefabRootId)){
-				if (createIfMissing)
-					registerNewPrefab(prefRoot);
-				else
-					return PrefabObjectId.invalid;
-			}
-			
-			prefabRootId = prefabs.findId(prefRoot);
-			if (!ExportUtility.isValidId(prefabRootId)){
-				throw new System.ArgumentException(
-					string.Format("Prefab failed to register for {0} ({1})", 
-						prefRoot, AssetDatabase.GetAssetPath(prefRoot)
-					)
-				);
-			}
-			
-			GameObjectMapper mapper = null;
-			if (!prefabObjects.TryGetValue(prefRoot, out mapper)){
-				throw new System.ArgumentException(
-					string.Format("Failed to find mapper for {0} ({1})", 
-						prefRoot, AssetDatabase.GetAssetPath(prefRoot)
-					)
-				);
-			}
-			
-			var objectId = mapper.findId(obj);
-			return new PrefabObjectId(prefabRootId, objectId);
-		}
-		
-		public void gatherPrefabData(GameObject obj){
+		public int getRootPrefabId(GameObject obj, bool createMissing){
 			if (!obj)
-				return;
-				
-			getPrefabObjectId(obj, true);				
+				return ExportUtility.invalidId;
+			var rootPrefab = ExportUtility.getLinkedRootPrefab(obj);
+			if (!rootPrefab)
+				return ExportUtility.invalidId;
+			
+			var result = prefabs.getId(rootPrefab, createMissing, onNewRootPrefab);
+			
+			return result;
+		}
+		
+		public int gatherPrefabData(GameObject obj){
+			if (!obj)
+				return ExportUtility.invalidId;
+			return getRootPrefabId(obj, true);
+		}
+		
+		List<JsonPrefabData> makePrefabList(){
+			var result = new List<JsonPrefabData>();
+
+			for(int i = 0; i < prefabs.objectList.Count; i++){
+				var src = prefabs.getObject(i);
+				var dst = new JsonPrefabData(src, this);
+				result.Add(dst);
+			}
+			
+			return result;
 		}
 		
 		public JsonResourceList makeResourceList(){
@@ -169,7 +138,9 @@ namespace SceneExport{
 			foreach(var cur in textures.objectList){
 				result.textures.Add(new JsonTexture(cur, this));
 			}
-
+			
+			result.prefabs = makePrefabList();
+			
 			result.resources = new List<string>(resources);
 			result.resources.Sort();
 			

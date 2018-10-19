@@ -28,6 +28,12 @@ namespace SceneExport{
 			
 		public bool nameClash = false;
 		public string uniqueName = "";
+		
+		public int prefabRootId = -1;
+		public int prefabObjectId = -1;
+		public bool prefabInstance = false;
+		public bool prefabModelInstance = false;
+		public string prefabType = "";
 			
 		public void writeRawJsonValue(FastJsonWriter writer){
 			writer.beginRawObject();
@@ -51,6 +57,12 @@ namespace SceneExport{
 					
 			writer.writeKeyVal("nameClash", nameClash);
 			writer.writeKeyVal("uniqueName", uniqueName);
+				
+			writer.writeKeyVal("prefabRootId", prefabRootId);
+			writer.writeKeyVal("prefabObjectId", prefabObjectId);
+			writer.writeKeyVal("prefabInstance", prefabInstance);
+			writer.writeKeyVal("prefabModelInstance", prefabModelInstance);
+			writer.writeKeyVal("prefabType", prefabType);
 				
 			writer.writeKeyVal("renderer", renderer);
 			writer.writeKeyVal("light", light);
@@ -76,6 +88,12 @@ namespace SceneExport{
 			occludeeStatic = (flags & StaticEditorFlags.OccludeeStatic) != 0;
 			navigationStatic = (flags & StaticEditorFlags.NavigationStatic) != 0;
 			reflectionProbeStatic = (flags & StaticEditorFlags.ReflectionProbeStatic) != 0;
+			
+			var prefType = PrefabUtility.GetPrefabType(obj);
+			prefabType = prefType.ToString();
+			prefabRootId = resMap.getRootPrefabId(obj, true);
+			prefabObjectId = resMap.getPrefabObjectId(obj, true);
+			prefabInstance = (prefType == PrefabType.PrefabInstance) || (prefType == PrefabType.ModelPrefabInstance);
 
 			if (obj.transform.parent){
 				localMatrix = obj.transform.parent.worldToLocalMatrix * localMatrix;
