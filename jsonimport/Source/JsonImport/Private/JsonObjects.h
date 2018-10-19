@@ -24,12 +24,16 @@ class ImportWorkData{
 public:
 	IdNameMap objectFolderPaths;
 	IdActorMap objectActors;
-	TArray<AActor*> rootActors;
 	UWorld *world;
 	bool editorMode;
 	bool storeActors;
 
-	void addRootActor(AActor* actor);
+	TArray<AActor*> rootActors;
+	TArray<AActor*> childActors;
+	TArray<AActor*> allActors;
+
+	void registerActor(AActor* actor, AActor *parent);
+	//void addRootActor(AActor* actor);
 
 	ImportWorkData(UWorld *world_, bool editorMode_, bool storeActors_ = false)
 	:world(world_), editorMode(editorMode_), storeActors(storeActors_){

@@ -10,6 +10,7 @@
 #include "Engine/Classes/Components/DirectionalLightComponent.h"
 #include "Engine/StaticMeshActor.h"
 #include "Engine/Classes/Components/StaticMeshComponent.h"
+#include "Engine/Classes/Components/ChildActorComponent.h"
 #include "LevelEditorViewport.h"
 #include "Factories/TextureFactory.h"
 #include "Factories/MaterialFactoryNew.h"
@@ -32,6 +33,8 @@
 #include "Kismet2/KismetEditorUtilities.h"
 
 #define LOCTEXT_NAMESPACE "FJsonImportModule"
+
+#define JSON_DISABLE_PREFAB_IMPORT
 
 using namespace JsonObjects;
 
@@ -105,12 +108,78 @@ void JsonImporter::loadObjects(const JsonValPtrs* objects, ImportWorkData &impor
 	}
 }
 
+/*
+Copied and modified from Kismet
+*/
+UBlueprint* createBlueprintFromActor(const FName blueprintName, UObject* outer, AActor* actor, 
+		const bool bReplaceActor, bool bKeepMobility, bool openEditor){
+	UBlueprint* result = nullptr;
+	if (!outer)
+		return nullptr;
+	if (!actor)
+		return nullptr;
+
+	result = FKismetEditorUtilities::CreateBlueprint(actor->GetClass(), 
+		outer, blueprintName, EBlueprintType::BPTYPE_Normal, 
+		UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass(), 
+		FName("CreateFromActor")
+	);
+
+	if (!result)
+		return nullptr;
+
+	FAssetRegistryModule::AssetCreated(result);
+
+	outer->MarkPackageDirty();
+
+	// If the source Actor has Instance Components we need to translate these in to SCS Nodes
+	if (actor->GetInstanceComponents().Num() > 0){
+		FKismetEditorUtilities::AddComponentsToBlueprint(result, actor->GetInstanceComponents(), false,  (USCS_Node*)nullptr, bKeepMobility);
+	}
+
+	if (result->GeneratedClass != nullptr){
+		AActor* CDO = CastChecked<AActor>(result->GeneratedClass->GetDefaultObject());
+		const auto CopyOptions = (EditorUtilities::ECopyOptions::Type)
+			(EditorUtilities::ECopyOptions::OnlyCopyEditOrInterpProperties | EditorUtilities::ECopyOptions::PropagateChangesToArchetypeInstances);
+		EditorUtilities::CopyActorProperties(actor, CDO, CopyOptions);
+
+		if (USceneComponent* dstSceneRoot = CDO->GetRootComponent()){
+			auto component = dstSceneRoot;
+			component->RelativeLocation = FVector::ZeroVector;
+			component->RelativeRotation = FRotator::ZeroRotator;
+			component->SetupAttachment(nullptr);
+
+			//FDirectAttachChildrenAccessor::Get(Component).Empty();
+			//component->AttachChildren.Empty();
+
+			component->InvalidateLightingCache();
+
+			//FResetSceneComponentAfterCopy::Reset(DstSceneRoot);
+
+			// Copy relative scale from source to target.
+			if (USceneComponent* srcSceneRoot = actor->GetRootComponent()){
+				dstSceneRoot->RelativeScale3D = srcSceneRoot->RelativeScale3D;
+			}
+		}
+	}
+
+	FKismetEditorUtilities::CompileBlueprint(result);
+
+	if (result && openEditor){
+		// Open the editor for the new blueprint
+		FAssetEditorManager::Get().OpenEditorForAsset(result);
+	}
+	return result;
+}
+
 void JsonImporter::importPrefab(const JsonPrefabData& prefab){
-	UE_LOG(JsonLog, Warning, TEXT("Prefab import is currently disabled"));
+#ifdef JSON_DISABLE_PREFAB_IMPORT
+	UE_LOG(JsonLogPrefab, Warning, TEXT("Prefab import is currently disabled"));
 	return;
+#endif
 
 	if (prefab.objects.Num() <= 0){
-		UE_LOG(JsonLog, Warning, TEXT("No objects in prefab %s(%s)"), *prefab.name, *prefab.path);
+		UE_LOG(JsonLogPrefab, Warning, TEXT("No objects in prefab %s(%s)"), *prefab.name, *prefab.path);
 		return;
 	}
 
@@ -135,7 +204,7 @@ void JsonImporter::importPrefab(const JsonPrefabData& prefab){
 		FString("Bluerint"), &packageName, &blueprintName, &existingPackage);
 
 	if (existingPackage){
-		UE_LOG(JsonLog, Warning, TEXT("Package already eixsts for %s (%s), cannot continue"), *prefab.name, *prefab.path);
+		UE_LOG(JsonLogPrefab, Warning, TEXT("Package already eixsts for %s (%s), cannot continue"), *prefab.name, *prefab.path);
 		return;
 	}
 
@@ -157,15 +226,63 @@ void JsonImporter::importPrefab(const JsonPrefabData& prefab){
 		rootActor = createActor<AActor>(workData, firstObjectTransform, TEXT("AActor"));
 	}
 
-	UE_LOG(JsonLog, Log, TEXT("Attaching actors. %d actors present"), workData.rootActors.Num());
-	for(auto cur: workData.rootActors){
-		if (cur == rootActor)
+	UE_LOG(JsonLogPrefab, Log, TEXT("Attaching actors. %d actors present"), workData.rootActors.Num());
+
+	TArray<AActor*> prefabActors = workData.rootActors;
+	TMap<AActor*, USceneComponent*> childToParent;
+	for(int actorIndex = 0; actorIndex < prefabActors.Num(); actorIndex++){
+		UE_LOG(JsonLogPrefab, Log, TEXT("Procesrsing actor %d out of %d"), actorIndex, prefabActors.Num());
+		auto curActor = prefabActors[actorIndex];
+		if (!curActor)
 			continue;
-		cur->AttachToActor(rootActor, FAttachmentTransformRules::KeepWorldTransform);
+
+		UE_LOG(JsonLogPrefab, Log, TEXT("Actor name: %s"), *curActor->GetActorLabel());
+
+		/*
+		TArray<UChildActorComponent*> childActorComponents;
+		curActor->GetComponents<UChildActorComponent>(childActorComponents, false);
+		UE_LOG(JsonLogPrefab, Log, TEXT("Found %d child actor components"), childActorComponents.Num())
+		*/
+		TArray<AActor*> childActors;
+		curActor->GetAttachedActors(childActors);
+		UE_LOG(JsonLogPrefab, Log, TEXT("Found %d child child actors"), childActors.Num())
+
+		auto rootComp = rootActor->GetRootComponent();
+		for(auto childActor: childActors){
+			if (!childActor)
+				continue;
+			UE_LOG(JsonLogPrefab, Log, TEXT("Adding child actor: %s"), *childActor->GetActorLabel())
+			prefabActors.Push(childActor);
+		}
+
+		if (curActor == rootActor){
+			UE_LOG(JsonLogPrefab, Log, TEXT("Root actor/component detected. Child actors skipped"))
+			continue;
+		}
+
+		TArray<USceneComponent*> components;
+		curActor->GetComponents<USceneComponent>(components, false);
+		UE_LOG(JsonLogPrefab, Log, TEXT("Processing actor components for actor %s. %d components found"), *curActor->GetActorLabel(), prefabActors.Num())
+
+		for(int compIndex = 0; compIndex < components.Num(); compIndex++){
+			UE_LOG(JsonLogPrefab, Log, TEXT("Processing component %d out of %d"), compIndex, components.Num());
+			auto curComp = components[compIndex];
+			if (!curComp){
+				continue;
+			}
+			UE_LOG(JsonLogPrefab, Log, TEXT("Component name: %s"), *curComp->GetName());
+
+			bool result = curComp->AttachToComponent(rootComp, FAttachmentTransformRules::KeepWorldTransform);
+			UE_LOG(JsonLogPrefab, Log, TEXT("Attach component result: %d"), (int)result);
+			UE_LOG(JsonLogPrefab, Log, TEXT("Root %x (%s), component: %x (%s)"), 
+				rootComp, rootComp ? *rootComp->GetName(): TEXT("Null"), curComp, curComp? *curComp->GetName(): TEXT("Null"));
+			if (!result)
+				UE_LOG(JsonLogPrefab, Warning, TEXT("Attach failed"));
+		}
 	}
 
 	auto *createdBlueprint = FKismetEditorUtilities::CreateBlueprintFromActor(FName(*blueprintName), blueprintPackage, rootActor, true, true);
-	UE_LOG(JsonLog, Warning, TEXT("Created blueprint: %x"), createdBlueprint);
+	UE_LOG(JsonLogPrefab, Warning, TEXT("Created blueprint: %x"), createdBlueprint);
 	if (createdBlueprint){
 		FAssetRegistryModule::AssetCreated(createdBlueprint);
 		blueprintPackage->SetDirtyFlag(true);
@@ -173,8 +290,10 @@ void JsonImporter::importPrefab(const JsonPrefabData& prefab){
 }
 
 void JsonImporter::importPrefabs(const JsonValPtrs *prefabs){
+#ifdef JSON_DISABLE_PREFAB_IMPORT
 	UE_LOG(JsonLog, Warning, TEXT("Prefab import is currently disabled"));
 	return;
+#endif
 
 	if (!prefabs)
 		return;

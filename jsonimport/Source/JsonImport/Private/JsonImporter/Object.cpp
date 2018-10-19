@@ -43,11 +43,12 @@ static void setParentAndFolder(AActor *actor, AActor *parentActor, const FString
 		actor->AttachToActor(parentActor, FAttachmentTransformRules::KeepWorldTransform);
 	}
 	else{
-		workData.addRootActor(actor);
+		//workData.addRootActor(actor);
 		//actor->AddToRoot();
 		if (folderPath.Len())
 			actor->SetFolderPath(*folderPath);
 	}
+	workData.registerActor(actor, parentActor);
 }
 
 void JsonImporter::importObject(JsonObjPtr obj, int32 objId, ImportWorkData &workData){
