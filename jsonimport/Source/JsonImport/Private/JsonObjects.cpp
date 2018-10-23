@@ -134,6 +134,20 @@ FMatrix JsonObjects::getMatrix(JsonObjPtr data, const char* name, const FMatrix 
 	return result;
 }
 
+FVector4 JsonObjects::getVector4(JsonObjPtr data, const char* name, const FVector4 &defaultVal){
+	FVector4 result = defaultVal;
+
+	auto vecObj = getObject(data, name);
+	if (!vecObj.IsValid())
+			return result;
+	result.X = getFloat(vecObj, "X");
+	result.Y = getFloat(vecObj, "Y");
+	result.Z = getFloat(vecObj, "Z");
+	result.W = getFloat(vecObj, "W");
+
+	return result;
+}
+
 FVector2D JsonObjects::getVector2(JsonObjPtr data, const char* name, const FVector2D &defaultVal){
 	FVector2D result = defaultVal;
 
@@ -345,4 +359,102 @@ void ImportWorkData::registerActor(AActor* actor, AActor *parent){
 	else
 		childActors.Add(actor);
 	allActors.Add(actor);
+}
+
+void JsonBounds::load(JsonObjPtr jsonData){
+	JSON_GET_PARAM(jsonData, center, getVector);
+	JSON_GET_PARAM(jsonData, size, getVector);
+}
+
+JsonBounds::JsonBounds(JsonObjPtr jsonData){
+	load(jsonData);
+}
+
+JsonTerrain::JsonTerrain(JsonObjPtr data){
+	load(data);
+}
+
+void JsonTerrain::load(JsonObjPtr data){
+	JSON_GET_PARAM(data, castShadows, getBool);
+	JSON_GET_PARAM(data, detailObjectDensity, getFloat);
+	JSON_GET_PARAM(data, detailObjectDistance, getFloat);
+	JSON_GET_PARAM(data, drawHeightmap, getBool);
+	JSON_GET_PARAM(data, drawTreesAndFoliage, getBool);
+		
+	JSON_GET_PARAM(data, renderHeightmap, getBool);
+	JSON_GET_PARAM(data, renderTrees, getBool);
+	JSON_GET_PARAM(data, renderDetails, getBool);
+		
+	JSON_GET_PARAM(data, heightmapPixelError, getFloat);
+		
+	JSON_GET_PARAM(data, legacyShininess, getFloat);
+	//Color legacySpecular;
+	JSON_GET_PARAM(data, legacySpecular, getColor);
+	JSON_GET_PARAM(data, lightmapIndex, getInt);
+	JSON_GET_PARAM(data, lightmapScaleOffet, getVector4);
+
+	JSON_GET_PARAM(data, materialTemplateIndex, getInt);
+	JSON_GET_PARAM(data, materialType, getString);
+		
+	JSON_GET_PARAM(data, patchBoundsMultiplier, getVector);
+	JSON_GET_PARAM(data, preserveTreePrototypeLayers,  getBool);
+	JSON_GET_PARAM(data, realtimeLightmapIndex, getInt);
+	JSON_GET_PARAM(data, realtimeLightmapScaleOffset, getVector4);
+		
+	JSON_GET_PARAM(data, terrainDataId, getInt);
+		
+	JSON_GET_PARAM(data, treeBillboardDistance, getFloat);
+	JSON_GET_PARAM(data, treeCrossFadeLength, getFloat);
+		
+	JSON_GET_PARAM(data, treeDistance, getFloat);
+	JSON_GET_PARAM(data, treeLodBiasMultiplier, getFloat);
+		
+	JSON_GET_PARAM(data, treeMaximumFullLODCount, getInt);
+}
+
+JsonTerrainDetailPrototype::JsonTerrainDetailPrototype(JsonObjPtr data){
+	load(data);
+}
+
+void JsonTerrainDetailPrototype::load(JsonObjPtr data){
+}
+
+void JsonObjects::getJsonValue(FLinearColor& outValue, JsonObjPtr data, const char*name){
+	outValue = getLinearColor(data, name);
+}
+
+void JsonObjects::getJsonValue(FMatrix& outValue, JsonObjPtr data, const char *name){
+	outValue = getMatrix(data, name);
+}
+
+void JsonObjects::getJsonValue(FVector2D& outValue, JsonObjPtr data, const char *name){
+	outValue = getVector2(data, name);
+}
+
+void JsonObjects::getJsonValue(FVector& outValue, JsonObjPtr data, const char *name){
+	outValue = getVector(data, name);
+}
+
+void JsonObjects::getJsonValue(FVector4& outValue, JsonObjPtr data, const char *name){
+	outValue = getVector4(data, name);
+}
+
+void JsonObjects::getJsonValue(FQuat& outValue, JsonObjPtr data, const char *name){
+	outValue = getQuat(data, name);
+}
+
+void JsonObjects::getJsonValue(int& outValue, JsonObjPtr data, const char* name){
+	outValue = getInt(data, name);
+}
+
+void JsonObjects::getJsonValue(bool& outValue, JsonObjPtr data, const char* name){
+	outValue = getBool(data, name);
+}
+
+void JsonObjects::getJsonValue(float &outValue, JsonObjPtr data, const char* name){
+	outValue = getFloat(data, name);
+}
+
+void JsonObjects::getJsonValue(FString &outValue, JsonObjPtr data, const char* name){
+	outValue = getString(data, name);
 }

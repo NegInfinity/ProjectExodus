@@ -175,6 +175,82 @@ public:
 	JsonPrefabData(JsonObjPtr jsonData);
 };
 
+class JsonBounds{
+public:
+	FVector center;
+	FVector size;
+	void load(JsonObjPtr jsonData);
+	JsonBounds() = default;
+	JsonBounds(JsonObjPtr jsonData);
+};
+
+class JsonTerrain{
+public:
+	bool castShadows;
+	float detailObjectDensity;
+	float detailObjectDistance;
+	bool drawHeightmap;
+	bool drawTreesAndFoliage;
+		
+	bool renderHeightmap;
+	bool renderTrees;
+	bool renderDetails;
+		
+	float heightmapPixelError;
+		
+	float legacyShininess;
+	//Color legacySpecular;
+	FLinearColor legacySpecular;
+	int lightmapIndex;
+	FVector4 lightmapScaleOffet;
+
+	int materialTemplateIndex = -1;
+	FString materialType;		
+		
+	FVector patchBoundsMultiplier;
+	bool preserveTreePrototypeLayers;
+	int realtimeLightmapIndex;
+	FVector4 realtimeLightmapScaleOffset;
+		
+	int terrainDataId = -1;
+		
+	float treeBillboardDistance;
+	float treeCrossFadeLength;
+		
+	float treeDistance;
+	float treeLodBiasMultiplier;
+		
+	int treeMaximumFullLODCount;
+
+	JsonTerrain() = default;
+	JsonTerrain(JsonObjPtr data);
+	void load(JsonObjPtr data);
+};
+
+class JsonTerrainDetailPrototype{
+public:
+	int textureId;
+	int detailPrefabId;
+	int detailPrefabObjectId;
+
+	float bendFactor;
+	FLinearColor dryColor;
+	FLinearColor healthyColor;
+	float minWidth;
+	float minHeight;
+	float maxWidth;
+	float maxHeight;
+	float noiseSpread;
+	FString renderMode;
+	bool usePrototypeMesh;
+
+	JsonTerrainDetailPrototype() = default;
+	JsonTerrainDetailPrototype(JsonObjPtr data);
+	void load(JsonObjPtr data);
+};
+
+
+
 namespace JsonObjects{
 	void logValue(const FString &msg, const IntArray &arr);
 	void logValue(const FString &msg, const FloatArray &arr);
@@ -292,10 +368,24 @@ namespace JsonObjects{
 		return result;
 	}
 	
+	void getJsonValue(FLinearColor& outValue, JsonObjPtr data, const char*name);
+	void getJsonValue(FMatrix& outValue, JsonObjPtr data, const char *name);
+	void getJsonValue(FVector2D& outValue, JsonObjPtr data, const char *name);
+	void getJsonValue(FVector& outValue, JsonObjPtr data, const char *name);
+	void getJsonValue(FVector4& outValue, JsonObjPtr data, const char *name);
+	void getJsonValue(FQuat& outValue, JsonObjPtr data, const char *name);
+
+	void getJsonValue(int& outValue, JsonObjPtr data, const char* name);
+	void getJsonValue(bool& outValue, JsonObjPtr data, const char* name);
+	void getJsonValue(float &outValue, JsonObjPtr data, const char* name);
+	void getJsonValue(FString &outValue, JsonObjPtr data, const char* name);
+	//JsonObjPtr getObject(JsonObjPtr data, const char* name);
+
 	FLinearColor getLinearColor(JsonObjPtr data, const char* name, const FLinearColor &defaultVal = FLinearColor());
 	FMatrix getMatrix(JsonObjPtr data, const char* name, const FMatrix &defaultVal = FMatrix::Identity);
 	FVector2D getVector2(JsonObjPtr data, const char* name, const FVector2D &defaultVal = FVector2D());
 	FVector getVector(JsonObjPtr data, const char* name, const FVector &defaultVal = FVector());
+	FVector4 getVector4(JsonObjPtr data, const char* name, const FVector4 &defaultVal = FVector4());
 	FLinearColor getColor(JsonObjPtr data, const char* name, const FLinearColor &defaultVal = FLinearColor());
 	FQuat getQuat(JsonObjPtr data, const char* name, const FQuat &defaultVal = FQuat());
 }

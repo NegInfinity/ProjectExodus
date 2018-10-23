@@ -45,6 +45,9 @@ UMaterial* JsonImporter::loadMaterial(int32 id){
 	return mat;
 }
 
+static FLinearColor applyGamma(const FLinearColor &arg){
+	return FLinearColor(powf(arg.R, 2.2f), powf(arg.G, 2.2f), pow(arg.B, 2.2f), arg.A);
+}
 
 void JsonImporter::importMaterial(JsonObjPtr obj, int32 matId){
 	UE_LOG(JsonLog, Log, TEXT("Importing material %d"), matId);
@@ -97,6 +100,10 @@ void JsonImporter::importMaterial(JsonObjPtr obj, int32 matId){
 	FString sanitizedMatName;
 	FString sanitizedPackageName;
 
+	//Gamma correction.
+	specularColor = applyGamma(specularColor);
+	color = applyGamma(color);
+
 	UMaterial *existingMaterial = nullptr;
 	UPackage *matPackage = createPackage(
 		name, path, assetRootPath, FString("Material"), 
@@ -144,7 +151,8 @@ void JsonImporter::importMaterial(JsonObjPtr obj, int32 matId){
 	}
 	else{
 		// ?? Not sure if this is correct
-		material->Specular.Expression = albedoSource;
+		//material->Specular.Expression = albedoSource;
+		//Nope, this is not correct. 
 	}
 
 	createMaterialInput(material, occlusionTex, nullptr, material->AmbientOcclusion, false, TEXT("Ambient Occlusion"));
