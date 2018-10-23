@@ -63,7 +63,7 @@ namespace SceneExport{
 			return true;
 		}
 		
-		void saveTextures(string baseFilename, string targetDir, string projectPath, bool showGui, Logger logger = null){
+		bool saveTextures(string baseFilename, string targetDir, string projectPath, bool showGui, Logger logger = null){
 			Logger.makeValid(ref logger);
 			
 			var texIndex = 0;
@@ -76,44 +76,60 @@ namespace SceneExport{
 							string.Format("Saving texture {0}/{1}", texIndex, numTextures),
 							texIndex, numTextures)){
 						logger.logErrorFormat("Resource copying cancelled by the user.");
-						break;
+						return false;
+						//break;
 					}				
 				}
 				
 				TextureUtility.copyTexture(curTex, targetDir, projectPath, logger);
 				texIndex++;
 			}
+			return true;
 		}
 		
-		void saveTerrains(string baseFilename, string targetDir, string projectPath, bool showGui, Logger logger = null){
+		bool saveTerrains(string baseFilename, string targetDir, string projectPath, bool showGui, Logger logger = null){
 			Logger.makeValid(ref logger);
+			logger.logFormat("Saving terrains to {0}, {1}", targetDir, projectPath);
 			
-			var texIndex = 0;
+			var terrainIndex = 0;
 			var numTerrains = resourceList.textures.Count;
-			var title = string.Format("Saving textures for {0}",
+			var title = string.Format("Saving terrains for {0}",
 				baseFilename);
-			foreach(var curTex in resourceList.textures){
+			foreach(var curTerrain in resourceList.terrains){
 				if (showGui){
 					if (ExportUtility.showCancellableProgressBar(title, 
-							string.Format("Saving texture {0}/{1}", texIndex, numTerrains),
-							texIndex, numTerrains)){
+							string.Format("Saving terrain {0}/{1}", terrainIndex, numTerrains),
+							terrainIndex, numTerrains)){
 						logger.logErrorFormat("Resource copying cancelled by the user.");
-						break;
+						return false;
+						//break;
 					}				
 				}
 				
-				TextureUtility.copyTexture(curTex, targetDir, projectPath, logger);
-				texIndex++;
+				TerrainUtility.saveTerrain(curTerrain, targetDir, projectPath, true, logger);
+				//TextureUtility.copyTexture(curTex, targetDir, projectPath, logger);
+				terrainIndex++;
 			}
+			return true;
 		}
 		
 		void saveResources(string baseFilename, bool showGui, Logger logger = null){
 			Logger.makeValid(ref logger);
+			logger.logFormat("Save resources entered");
 			string targetDir, projectPath;
 			if (!checkResourceFolder(baseFilename, out targetDir, out projectPath))
 				return;
 			
-			saveTextures(baseFilename, targetDir, projectPath, showGui, logger);	
+			bool cancelled = false;
+			if (!cancelled){
+				if (!saveTerrains(baseFilename, targetDir, projectPath, showGui, logger))
+					cancelled = true;
+			}
+			if (!cancelled){
+				if (!saveTextures(baseFilename, targetDir, projectPath, showGui, logger))
+					cancelled = true;
+			}
+
 			if (showGui){
 				ExportUtility.hideProgressBar();
 			}

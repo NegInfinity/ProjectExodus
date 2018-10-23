@@ -115,13 +115,14 @@ namespace SceneExport{
 			treeLodBiasMultiplier = srcObj.treeLODBiasMultiplier;
 		
 			treeMaximumFullLODCount = srcObj.treeMaximumFullLODCount;
-		
-			//And once again I doubt whehter the approahc of making a temporary object is justified.
-			materialTemplateIndex = resMap.getMaterialId(srcObj.materialTemplate);//-1;
-			terrainDataId = -1;
-			//public int terrainDataId = -1;
-		
 			
+			//And once again I doubt whehter the approahc of making a temporary object is justified.
+			materialTemplateIndex = -1;
+			if (srcObj.materialType == Terrain.MaterialType.Custom)
+				materialTemplateIndex = resMap.getMaterialId(srcObj.materialTemplate);//-1;
+				//material keeps picking up splat texutre :-\
+			terrainDataId = resMap.getTerrainId(srcObj.terrainData);
+			//public int terrainDataId = -1;
 		}
 	};
 }

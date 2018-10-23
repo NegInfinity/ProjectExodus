@@ -19,6 +19,9 @@ namespace SceneExport{
 		public JsonRendererData[] renderer = null;
 		public JsonLight[] light = null;
 		public JsonReflectionProbe[] reflectionProbes = null;
+		
+		public JsonTerrain[] terrains = null;
+		
 		public bool isStatic = true;
 		public bool lightMapStatic = true;
 		public bool occluderStatic = true;
@@ -63,10 +66,12 @@ namespace SceneExport{
 			writer.writeKeyVal("prefabInstance", prefabInstance);
 			writer.writeKeyVal("prefabModelInstance", prefabModelInstance);
 			writer.writeKeyVal("prefabType", prefabType);
-				
+
+			//TODO remove empty arrays				
 			writer.writeKeyVal("renderer", renderer);
 			writer.writeKeyVal("light", light);
 			writer.writeKeyVal("reflectionProbes", reflectionProbes);
+			writer.writeKeyVal("terrains", terrains);
 			
 			writer.endObject();
 		}
@@ -103,7 +108,10 @@ namespace SceneExport{
 			reflectionProbes = 
 				ExportUtility.convertComponents<ReflectionProbe, JsonReflectionProbe>(obj,
 					(c) => new JsonReflectionProbe(c));
-
+			terrains = 
+				ExportUtility.convertComponents<Terrain, JsonTerrain>(obj,
+					(c) => new JsonTerrain(c, resMap));
+					
 			mesh = resMap.getMeshId(obj);
 
 			foreach(Transform curChild in obj.transform){

@@ -11,6 +11,41 @@ namespace SceneExport{
 			return supportedTexExtensions.Contains(ext);
 		}
 		
+		static void destroyEditorObject(Object obj){
+			if (Application.isEditor && !Application.isPlaying)
+				Object.DestroyImmediate(obj);
+			else
+				Object.Destroy(obj);
+		}
+		
+		public class EditorObjectGuard<T>: System.IDisposable where T: Object{
+			public T obj;
+			public void Dispose(){
+				destroyEditorObject(obj);
+			}
+			public EditorObjectGuard(T obj_){
+				obj = obj_;
+			}
+		}
+		
+		public static EditorObjectGuard<T> makeGuard<T>(T obj) where T: Object{
+			return new EditorObjectGuard<T>(obj);
+		}
+		
+		/*
+		Warning: Uses unity texture creation functions
+		*/
+		public static void saveRawColorsToPng(string filePath, int width, int height, Color[] colors, bool linear){
+			var fmt = TextureFormat.ARGB32;;
+			using(var guard = makeGuard(new Texture2D(width, height, fmt, false, linear))){
+				var tex = guard.obj;
+				tex.SetPixels(colors);
+				tex.Apply();
+				var bytes = tex.EncodeToPNG();
+				System.IO.File.WriteAllBytes(filePath, bytes);
+			}
+		}
+		
 		public static void copyTexture(JsonTexture jsonTex, string targetDir, string projectDir, Logger logger = null){
 			logger = Logger.getValid(logger);
 			var texPath = jsonTex.path;

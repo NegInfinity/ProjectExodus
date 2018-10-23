@@ -81,10 +81,13 @@ namespace SceneExport{
 	
 	[System.Serializable]
 	public class JsonTerrainData: IFastJsonValue{
+		public static readonly string terrainAssetExportFolder = "!terrain!";
+		
 		public TerrainData terrainData = null;
 		
 		public string name;
 		public string path;
+		public string exportPath;
 		
 		public List<int> alphaMapTextureIds = new List<int>();
 		public JsonBounds bounds = new JsonBounds();
@@ -142,6 +145,8 @@ namespace SceneExport{
 			
 			name = terrainData.name;
 			path = AssetDatabase.GetAssetPath(terrainData);
+			exportPath = System.IO.Path.Combine(terrainAssetExportFolder, path);
+			exportPath = System.IO.Path.ChangeExtension(exportPath, ".bin");
 				
 			var tex2ds = terrainData.alphamapTextures;
 			alphaMapTextureIds.Clear();

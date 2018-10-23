@@ -60,7 +60,7 @@ namespace SceneExport{
 			isTex2D = tex2D != null;
 			isRenderTarget = rendTarget != null;
 			var importer = AssetImporter.GetAtPath(assetPath);
-			var texImporter = (TextureImporter)importer;
+			var texImporter = importer as TextureImporter;//(TextureImporter)importer;
 			if (isTex2D){
 				alphaTransparency = tex2D.alphaIsTransparency;
 			}
