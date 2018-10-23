@@ -112,7 +112,7 @@ namespace SceneExport{
 				ExportUtility.convertComponents<Terrain, JsonTerrain>(obj,
 					(c) => new JsonTerrain(c, resMap));
 					
-			mesh = resMap.getMeshId(obj);
+			mesh = resMap.getOrRegMeshId(obj);
 
 			foreach(Transform curChild in obj.transform){
 				var childId = objMap.getId(curChild.gameObject); 

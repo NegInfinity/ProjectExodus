@@ -64,16 +64,9 @@ namespace SceneExport{
 		public void registerResource(string path){
 			resources.Add(path);
 		}
-
-		public int getMeshId(GameObject obj){
-			int result = -1;
-			var meshFilter = obj.GetComponent<MeshFilter>();
-			if (!meshFilter)
-				return result;
-
-			var mesh = meshFilter.sharedMesh;
-			result = meshes.getId(mesh, true, null);
-
+		
+		int getOrRegMeshId(GameObject obj, Mesh mesh){
+			int result = meshes.getId(mesh, true, null);
 			if (meshMaterials.ContainsKey(mesh))
 				return result;
 			var r = obj.GetComponent<Renderer>();
@@ -83,7 +76,20 @@ namespace SceneExport{
 			return result;
 		}
 		
+		public int getOrRegMeshId(GameObject obj){
+			//int result = -1;
+			var meshFilter = obj.GetComponent<MeshFilter>();
+			if (!meshFilter)
+				return ExportUtility.invalidId;
+
+			var mesh = meshFilter.sharedMesh;
+			return getOrRegMeshId(obj, mesh);
+		}
+		
 		public int getPrefabObjectId(GameObject obj, bool createMissing){
+			if (!obj)
+				return ExportUtility.invalidId;
+				
 			var linkedPrefab = ExportUtility.getLinkedPrefab(obj);
 			if (!linkedPrefab)
 				return ExportUtility.invalidId;
@@ -101,6 +107,9 @@ namespace SceneExport{
 		void onNewRootPrefab(GameObject rootPrefab){
 			var newMapper = new GameObjectMapper();
 			newMapper.gatherObjectIds(rootPrefab);
+			foreach(var curObj in newMapper.objectList){
+				getOrRegMeshId(curObj);
+			}
 			prefabObjects.Add(rootPrefab, newMapper);
 		}
 		

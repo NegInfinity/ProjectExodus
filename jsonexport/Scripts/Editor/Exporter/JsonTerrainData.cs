@@ -13,12 +13,14 @@ namespace SceneExport{
 		public string path;
 		public string exportPath;
 		
-		public List<int> alphaMapTextureIds = new List<int>();
+		//We... actually don't need those.
+		//public List<int> alphaMapTextureIds = new List<int>();
 		public JsonBounds bounds = new JsonBounds();
 		
 		public List<JsonTerrainDetailPrototype> detailPrototypes = new List<JsonTerrainDetailPrototype>();
 		public List<JsonTreeInstance> treeInstances = new List<JsonTreeInstance>();
 		public List<JsonTreePrototype> treePrototypes = new List<JsonTreePrototype>();
+		public List<JsonSplatPrototype> splatPrototypes = new List<JsonSplatPrototype>();
 		
 		public void writeRawJsonValue(FastJsonWriter writer){
 			writer.beginRawObject();
@@ -30,16 +32,15 @@ namespace SceneExport{
 			writer.writeKeyVal("alphaMapHeight", terrainData.alphamapHeight);
 			writer.writeKeyVal("alphaMapLayers", terrainData.alphamapLayers);
 			writer.writeKeyVal("alphaMapResolution", terrainData.alphamapResolution);
-			writer.writeKeyVal("alphaMapTextureIds", alphaMapTextureIds);
+			//writer.writeKeyVal("alphaMapTextureIds", alphaMapTextureIds);
 		
 			writer.writeKeyVal("baseMapResolution", terrainData.baseMapResolution);
 			writer.writeKeyVal("bounds", bounds);
 		
+			writer.writeKeyVal("detailWidth", terrainData.detailWidth);
 			writer.writeKeyVal("detailHeight", terrainData.detailHeight);
 			writer.writeKeyVal("terrainDetails", detailPrototypes);
-		
 			writer.writeKeyVal("detailResolution", terrainData.detailResolution);
-			writer.writeKeyVal("detailWidth", terrainData.detailWidth);
 		
 			writer.writeKeyVal("heighmapWidth", terrainData.heightmapWidth);
 			writer.writeKeyVal("heightmapHeight", terrainData.heightmapHeight);
@@ -49,7 +50,8 @@ namespace SceneExport{
 			writer.writeKeyVal("worldSize", terrainData.size);
 			writer.writeKeyVal("thickness", terrainData.thickness);
 			writer.writeKeyVal("treeInstanceCount", terrainData.treeInstanceCount);
-		
+
+			writer.writeKeyVal("splatPrototypes", splatPrototypes);		
 			writer.writeKeyVal("treeInstances", treeInstances);
 			writer.writeKeyVal("treePrototypes", treePrototypes);
 		
@@ -72,12 +74,14 @@ namespace SceneExport{
 			exportPath = System.IO.Path.Combine(terrainAssetExportFolder, path);
 			exportPath = System.IO.Path.ChangeExtension(exportPath, ".bin");
 				
+			/*
 			var tex2ds = terrainData.alphamapTextures;
 			alphaMapTextureIds.Clear();
 			foreach(var cur in tex2ds){
 				var curId = resMap.getTextureId(cur);
 				alphaMapTextureIds.Add(curId);
 			}
+			*/
 				
 			//writer.writeKeyVal("alphaMapTextureIds", alphaMapTextureIds);			
 			
@@ -101,6 +105,14 @@ namespace SceneExport{
 			foreach(var cur in srcTreeInstances){
 				treeInstances.Add(new JsonTreeInstance(cur));
 			}
+			
+			var splats = terrainData.splatPrototypes;
+			splatPrototypes.Clear();
+			foreach(var cur in splats){
+				splatPrototypes.Add(new JsonSplatPrototype(cur, resMap));
+			}
+			
+			//TODO: detail layer?
 		}
 	};
 }
