@@ -17,6 +17,7 @@ namespace SceneExport{
 	public class ProjectAssetList{
 		public List<AssetInfo> textures = new List<AssetInfo>();
 		public List<AssetInfo> materials = new List<AssetInfo>();
+		public List<AssetInfo> terrains = new List<AssetInfo>();
 		public List<AssetInfo> gameObjects = new List<AssetInfo>();
 		public List<AssetInfo> scenes = new List<AssetInfo>();
 		public List<AssetInfo> defaultAssets = new List<AssetInfo>();
@@ -39,6 +40,9 @@ namespace SceneExport{
 			}
 			else if (assetType == typeof(Material)){
 				materials.Add(assetInfo);
+			}
+			else if (assetType == typeof(TerrainData)){
+				terrains.Add(assetInfo);
 			}
 			else if (assetType == typeof(SceneAsset)){
 				scenes.Add(assetInfo);

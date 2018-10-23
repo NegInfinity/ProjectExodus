@@ -10,6 +10,8 @@ namespace SceneExport{
 		Dictionary<Mesh, List<Material>> meshMaterials = new Dictionary<Mesh, List<Material>>();
 		public HashSet<string> resources = new HashSet<string>();
 		
+		public ObjectMapper<TerrainData> terrains = new ObjectMapper<TerrainData>();
+		
 		public ObjectMapper<GameObject> prefabs = new ObjectMapper<GameObject>();
 		Dictionary<GameObject, GameObjectMapper> prefabObjects = new Dictionary<GameObject, GameObjectMapper>();
 		
@@ -25,6 +27,14 @@ namespace SceneExport{
 			if (prefabObjects.TryGetValue(rootPrefab, out result))
 				return result;
 			return null;
+		}
+		
+		public int getTerrainId(TerrainData data){
+			return terrains.getId(data, true);
+		}
+		
+		public int findTerrainId(TerrainData terrain){
+			return terrains.getId(terrain, false);
 		}
 
 		public int getTextureId(Texture tex){
@@ -126,6 +136,10 @@ namespace SceneExport{
 		
 		public JsonResourceList makeResourceList(){
 			var result = new JsonResourceList();
+			
+			foreach(var cur in terrains.objectList){
+				result.terrains.Add(new JsonTerrainData(cur, this));
+			}
 			
 			foreach(var cur in meshes.objectList){
 				result.meshes.Add(new JsonMesh(cur, this));

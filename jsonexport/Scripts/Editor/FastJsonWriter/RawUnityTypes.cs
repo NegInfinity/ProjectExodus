@@ -16,6 +16,15 @@ namespace SceneExport{
 			endObject();
 		}
 
+		public void writeRawValue(Color32 val){
+			beginRawObject();
+			writeKeyVal("r", val.r);
+			writeKeyVal("g", val.g);
+			writeKeyVal("b", val.b);
+			writeKeyVal("a", val.a);
+			endObject();
+		}
+		
 		public void writeRawValue(Vector2 val){
 			beginRawObject();
 			writeKeyVal("x", val.x);

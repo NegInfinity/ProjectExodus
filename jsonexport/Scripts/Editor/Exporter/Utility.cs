@@ -2,6 +2,12 @@
 
 namespace SceneExport{
 	public static class Utility{
+		public static Matrix4x4 toMatrix(this Quaternion v){
+			Matrix4x4 result = Matrix4x4.identity;
+			result.SetTRS(Vector3.zero, v, Vector3.one);
+			return result;
+		}
+
 		public static void saveStringToFile(string filename, string data){
 			System.IO.File.WriteAllText(filename, data, System.Text.Encoding.UTF8);
 		}

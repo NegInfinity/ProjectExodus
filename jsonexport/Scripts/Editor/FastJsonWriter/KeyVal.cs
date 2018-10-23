@@ -12,6 +12,11 @@ namespace SceneExport{
 			writeRawValue(val);
 		}
 
+		public void writeKeyVal(string key, byte val){
+			writeKey(key);
+			writeRawValue(val);
+		}
+
 		public void writeKeyVal(string key, float val){
 			writeKey(key);
 			writeRawValue(val);
@@ -28,6 +33,11 @@ namespace SceneExport{
 		}
 		
 		public void writeKeyVal(string key, Color val){
+			writeKey(key);
+			writeRawValue(val);
+		}
+		
+		public void writeKeyVal(string key, Color32 val){
 			writeKey(key);
 			writeRawValue(val);
 		}

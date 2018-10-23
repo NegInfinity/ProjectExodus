@@ -63,12 +63,9 @@ namespace SceneExport{
 			return true;
 		}
 		
-		void saveResources(string baseFilename, bool showGui, Logger logger = null){
+		void saveTextures(string baseFilename, string targetDir, string projectPath, bool showGui, Logger logger = null){
 			Logger.makeValid(ref logger);
-			string targetDir, projectPath;
-			if (!checkResourceFolder(baseFilename, out targetDir, out projectPath))
-				return;
-				
+			
 			var texIndex = 0;
 			var numTextures = resourceList.textures.Count;
 			var title = string.Format("Saving textures for {0}",
@@ -86,6 +83,37 @@ namespace SceneExport{
 				TextureUtility.copyTexture(curTex, targetDir, projectPath, logger);
 				texIndex++;
 			}
+		}
+		
+		void saveTerrains(string baseFilename, string targetDir, string projectPath, bool showGui, Logger logger = null){
+			Logger.makeValid(ref logger);
+			
+			var texIndex = 0;
+			var numTerrains = resourceList.textures.Count;
+			var title = string.Format("Saving textures for {0}",
+				baseFilename);
+			foreach(var curTex in resourceList.textures){
+				if (showGui){
+					if (ExportUtility.showCancellableProgressBar(title, 
+							string.Format("Saving texture {0}/{1}", texIndex, numTerrains),
+							texIndex, numTerrains)){
+						logger.logErrorFormat("Resource copying cancelled by the user.");
+						break;
+					}				
+				}
+				
+				TextureUtility.copyTexture(curTex, targetDir, projectPath, logger);
+				texIndex++;
+			}
+		}
+		
+		void saveResources(string baseFilename, bool showGui, Logger logger = null){
+			Logger.makeValid(ref logger);
+			string targetDir, projectPath;
+			if (!checkResourceFolder(baseFilename, out targetDir, out projectPath))
+				return;
+			
+			saveTextures(baseFilename, targetDir, projectPath, showGui, logger);	
 			if (showGui){
 				ExportUtility.hideProgressBar();
 			}
@@ -118,6 +146,23 @@ namespace SceneExport{
 		}
 		
 		public delegate bool DataProcessingDelegate<Data>(Data data, bool showGui, Logger logger);
+		
+		//TODO this needs to be optmized and collapsed into single method
+		bool addTerrainAsset(AssetInfo asset, bool showGui, Logger logger){
+			Logger.makeValid(ref logger);
+			AssetDatabase.LoadAllAssetsAtPath(asset.path);
+			var mainAsset = AssetDatabase.LoadMainAssetAtPath(asset.path);
+			var terrainData = mainAsset as TerrainData;
+			if (!mainAsset || !terrainData){
+				logger.logErrorFormat("Could not load terrain data at path {0}({1})", asset.path, asset.guid);
+				return true;
+			}
+			var id = resourceMapper.getTerrainId(terrainData);
+			if (!ExportUtility.isValidId(id)){
+				logger.logWarningFormat("Could not create id for terrain {0}({1})", asset.path, asset.guid);
+			}
+			return true;
+		}
 		
 		bool addTextureAsset(AssetInfo asset, bool showGui, Logger logger){
 			Logger.makeValid(ref logger);
@@ -227,10 +272,14 @@ namespace SceneExport{
 					(data_, gui_, log_) => {assetList.addAssetFromGuid(data_, log_); return true; }, logger))
 				return false;
 			
-			logger.logFormat("Asset information: textures: {0}; materials: {1}; gameObjects: {2}; scenes: {3}; defaultAssets: {4}; unsupported: {5};",
-				assetList.textures.Count, assetList.materials.Count, assetList.gameObjects.Count, assetList.scenes.Count, 
+			logger.logFormat("Asset information: textures: {0}; materials: {1}; gameObjects: {2}; "
+				+ "terrains: {3}; scenes: {4}; defaultAssets: {5}; unsupported: {6};",
+				assetList.textures.Count, assetList.materials.Count, assetList.gameObjects.Count, 
+				assetList.terrains.Count, assetList.scenes.Count, 
 				assetList.defaultAssets.Count, assetList.unsupportedAssets.Count);
 				
+			if (!processDataList(assetList.terrains, showGui, "Registering terrains for", "Processing terrain", addTerrainAsset, logger))
+				return false;
 			if (!processDataList(assetList.textures, showGui, "Registering textures for", "Processing texture", addTextureAsset, logger))
 				return false;
 			if (!processDataList(assetList.materials, showGui, "Registering materials for", "Processing material", addMaterialAsset, logger))
