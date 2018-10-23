@@ -1,0 +1,42 @@
+﻿using UnityEditor;
+using UnityEngine;
+using System.Collections.Generic;
+
+namespace SceneExport{
+	[System.Serializable]
+	public class JsonTerrainDetailPrototype: IFastJsonValue{
+		public DetailPrototype data;
+		
+		public int textureId = -1;
+		public int detailPrefabId = -1;
+		public int detailPrefabObjectId = -1;
+		public void writeRawJsonValue(FastJsonWriter writer){
+			writer.beginRawObject();
+			writer.writeKeyVal("bendFactor", data.bendFactor);
+			writer.writeKeyVal("dryColor", data.dryColor);
+			writer.writeKeyVal("minWidth", data.minWidth);
+			writer.writeKeyVal("maxWidth", data.maxWidth);
+			writer.writeKeyVal("minHeight", data.minHeight);
+			writer.writeKeyVal("maxHeight", data.maxHeight);
+			writer.writeKeyVal("healthyColor", data.healthyColor);
+			writer.writeKeyVal("noiseSpread", data.noiseSpread);
+			writer.writeKeyVal("renderMode", data.renderMode.ToString());
+			writer.writeKeyVal("usePrototypeMesh", data.usePrototypeMesh);
+			
+			writer.writeKeyVal("textureId", textureId);
+			writer.writeKeyVal("detailPrefabId", detailPrefabId);
+			writer.writeKeyVal("detailPrefabObjectId", detailPrefabObjectId);
+			
+			writer.endObject();
+		}		
+		
+		public JsonTerrainDetailPrototype(DetailPrototype data_, ResourceMapper resMap){		
+			data = data_;
+			
+			textureId = resMap.getTextureId(data.prototypeTexture);
+			detailPrefabId = resMap.getRootPrefabId(data.prototype, true);
+			detailPrefabObjectId = resMap.getPrefabObjectId(data.prototype, true);
+			//meshId = resMap.getPrefabObjectId
+		}
+	}
+}
