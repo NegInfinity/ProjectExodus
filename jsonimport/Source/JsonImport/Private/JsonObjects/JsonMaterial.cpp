@@ -1,6 +1,7 @@
 #include "JsonImportPrivatePCH.h"
 #include "JsonMaterial.h"
 #include "macros.h"
+#include "utilities.h"
 
 using namespace JsonObjects;
 
@@ -45,6 +46,9 @@ void JsonMaterial::load(JsonObjPtr data){
 	JSON_GET_VAR(data, emissionTex);
 	JSON_GET_VAR(data, detailMaskTex);
 	JSON_GET_VAR(data, detailAlbedoTex);
+	JSON_GET_VAR(data, detailAlbedoOffset);
+	JSON_GET_VAR(data, detailAlbedoScale);
+
 	JSON_GET_VAR(data, detailNormalMapTex);
 
 	JSON_GET_VAR(data, alphaCutoff);
@@ -57,8 +61,42 @@ void JsonMaterial::load(JsonObjPtr data){
 	JSON_GET_VAR(data, emissionColor);
 	JSON_GET_VAR(data, detailMapScale);
 	JSON_GET_VAR(data, secondaryUv);
+
+	JSON_GET_VAR(data, smoothnessMapChannel);
+	JSON_GET_VAR(data, specularHighlights);
+	JSON_GET_VAR(data, glossyReflections);
+
+	colorGammaCorrected = applyGamma(color);
+	specularColorGammaCorrected = applyGamma(specularColor);
+	emissionColorGammaCorrected = applyGamma(emissionColor);
 }
 
 JsonMaterial::JsonMaterial(JsonObjPtr data){
 	load(data);
+}
+
+static bool checkTextureOffset(const FVector2D& offset, const FVector2D& scale){
+	return (offset != FVector2D(0.0f, 0.0f)) ||
+		(scale != FVector2D(1.0f, 1.0f));
+}
+
+bool JsonMaterial::usesMainTextureTransform() const{
+	return checkTextureOffset(mainTextureOffset, mainTextureScale);
+}
+
+bool JsonMaterial::usesDetailTextureTransform() const{
+	return checkTextureOffset(detailAlbedoOffset, detailAlbedoScale);
+}
+
+bool JsonMaterial::isTransparentQueue() const{
+	return (renderQueue >= 3000) && (renderQueue < 4000);
+}
+
+bool JsonMaterial::isAlphaTestQueue() const{
+	return (renderQueue >= 2450) && (renderQueue < 3000);
+}
+
+bool JsonMaterial::isGeomQueue() const{
+	return (!isTransparentQueue() && !isAlphaTestQueue()) 
+		|| ((renderQueue >= 2000) && (renderQueue < 2450));
 }

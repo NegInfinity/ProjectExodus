@@ -3,16 +3,19 @@
 
 class JsonMaterial{
 public:
-	int id = -1;
+	JsonMaterialId id = -1;
 	int renderQueue = 0;
 	FString name;
 	FString path;
 	FString shader;
 
-	int mainTexture = -1;
+	JsonTextureId mainTexture = -1;
 	FVector2D mainTextureOffset = FVector2D(0.0f, 0.0f);//Vector2.zero;
 	FVector2D mainTextureScale = FVector2D(1.0f, 1.0f);//Vector2.one;
 	FLinearColor color = FLinearColor::White;// = Color.white;
+
+	bool usesMainTextureTransform() const;
+	bool usesDetailTextureTransform() const;
 
 	/*
 	I think those flags are quite glitchy at best, as they're derived from shader keywords. 
@@ -34,16 +37,20 @@ public:
 			
 	bool useSpecular = false;
 
-	int albedoTex = -1;
-	int specularTex = -1;
-	int metallicTex = -1;
-	int normalMapTex = -1;
-	int occlusionTex = -1;
-	int parallaxTex = -1;
-	int emissionTex = -1;
-	int detailMaskTex = -1;
-	int detailAlbedoTex = -1;
-	int detailNormalMapTex = -1;
+	JsonTextureId albedoTex = -1;
+	JsonTextureId specularTex = -1;
+	JsonTextureId metallicTex = -1;
+	JsonTextureId normalMapTex = -1;
+	JsonTextureId occlusionTex = -1;
+	JsonTextureId parallaxTex = -1;
+	JsonTextureId emissionTex = -1;
+	JsonTextureId detailMaskTex = -1;
+	JsonTextureId detailAlbedoTex = -1;
+
+	FVector2D detailAlbedoOffset = FVector2D(0.0f, 0.0f);//Vector2.zero;
+	FVector2D detailAlbedoScale = FVector2D(1.0f, 1.0f);//Vector2.one;
+
+	JsonTextureId detailNormalMapTex = -1;
 	float alphaCutoff = 1.0f;
 	float smoothness = 0.5f;
 	FLinearColor specularColor = FLinearColor::White;//Color.white;
@@ -54,6 +61,18 @@ public:
 	FLinearColor emissionColor = FLinearColor::Black;//Color.black;
 	float detailMapScale = 1.0f;
 	float secondaryUv = 1.0f;
+
+	FLinearColor colorGammaCorrected = FLinearColor::White;
+	FLinearColor specularColorGammaCorrected = FLinearColor::White;//Color.white;
+	FLinearColor emissionColorGammaCorrected = FLinearColor::Black;//Color.black;
+
+	int smoothnessMapChannel = 0;
+	float specularHighlights = 1.0f;
+	float glossyReflections = 1.0f;
+
+	bool isTransparentQueue() const;
+	bool isAlphaTestQueue() const;
+	bool isGeomQueue() const;
 
 	JsonMaterial() = default;
 	void load(JsonObjPtr data);

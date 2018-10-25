@@ -50,7 +50,14 @@ namespace SceneExport{
 		public float occlusionStrength = 1.0f;
 		public Color emissionColor = Color.black;
 		public float detailMapScale = 1.0f;
+		public Vector2 detailAlbedoOffset = Vector2.zero;
+		public Vector2 detailAlbedoScale = Vector2.one;
 		public float secondaryUv = 1.0f;
+		
+		public int smoothnessMapChannel = 0;
+		
+		public float specularHighlights = 1.0f;
+		public float glossyReflections = 1.0f;
 			
 		public void writeRawJsonValue(FastJsonWriter writer){
 			writer.beginRawObject();
@@ -88,6 +95,9 @@ namespace SceneExport{
 			writer.writeKeyVal("emissionTex", emissionTex);
 			writer.writeKeyVal("detailMaskTex", detailMaskTex);
 			writer.writeKeyVal("detailAlbedoTex", detailAlbedoTex);
+			writer.writeKeyVal("detailAlbedoOffset", detailAlbedoOffset);
+			writer.writeKeyVal("detailAlbedoScale", detailAlbedoScale);
+			
 			writer.writeKeyVal("detailNormalMapTex", detailNormalMapTex);
 			writer.writeKeyVal("alphaCutoff", alphaCutoff);
 			writer.writeKeyVal("smoothness", smoothness);
@@ -99,6 +109,11 @@ namespace SceneExport{
 			writer.writeKeyVal("emissionColor", emissionColor);
 			writer.writeKeyVal("detailMapScale", detailMapScale);
 			writer.writeKeyVal("secondaryUv", secondaryUv);
+			
+			writer.writeKeyVal("smoothnessMapChannel", smoothnessMapChannel);
+			writer.writeKeyVal("specularHighlights", specularHighlights);
+			writer.writeKeyVal("glossyReflections", glossyReflections);
+			
 			writer.endObject();			
 		}
 
@@ -170,6 +185,10 @@ namespace SceneExport{
 			emissionColor = getColor(emissionParamName, Color.black);
 			detailMapScale = getFloat("_DetailNormalMapScale", 1.0f);
 			secondaryUv = getFloat("_UVSec", 1.0f);
+			
+			smoothnessMapChannel = (int)getFloat("_SmoothnessTextureChannel", 0.0f);
+			specularHighlights = getFloat("_SpecularHighlights", 1.0f);
+			glossyReflections = getFloat("_GlossyReflections", 1.0f);
 				
 			hasMetallic = mat.HasProperty(metallicParamName) && mat.HasProperty(metallicTexParamName);
 			hasSpecular = mat.HasProperty(specTexParamName) && mat.HasProperty(specParamName);

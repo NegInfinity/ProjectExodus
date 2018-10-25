@@ -39,6 +39,7 @@
 
 using namespace JsonObjects;
 using namespace UnrealUtilities;
+//using namespace MaterialTools;
 
 void JsonImporter::loadTextures(const JsonValPtrs* textures){
 	if (!textures)
@@ -361,4 +362,15 @@ JsonObjPtr JsonImporter::loadJsonFromFile(const FString &filename){
 void JsonImporter::setupAssetPaths(const FString &jsonFilename){
 	assetRootPath = FPaths::GetPath(jsonFilename);
 	sourceBaseName = FPaths::GetBaseFilename(jsonFilename);
+}
+
+void JsonImporter::registerMaterialPath(int32 id, FString path){
+	if (matIdMap.Contains(id)){
+		UE_LOG(JsonLog, Warning, TEXT("DUplicate material registration for id %d, path \"%s\""), id, *path);
+	}
+	matIdMap.Add(id, path);
+}
+
+void JsonImporter::registerEmissiveMaterial(int32 id){
+	emissiveMaterials.Add(id);
 }

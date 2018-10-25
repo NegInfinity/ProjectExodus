@@ -27,6 +27,12 @@
 
 #include "DesktopPlatformModule.h"
 
+UTexture* JsonImporter::getTexture(int32 id){
+	if (id < 0)
+		return 0;
+	return loadTexture(id);
+}
+
 UTexture* JsonImporter::loadTexture(int32 id){
 	UE_LOG(JsonLog, Log, TEXT("Looking for tex %d"), id);
 	if (id < 0){

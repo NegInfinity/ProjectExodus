@@ -16,3 +16,4 @@
 #include "JsonObjects/loggers.h"
 #include "JsonObjects/getters.h"
 #include "JsonObjects/converters.h"
+#include "JsonObjects/utilities.h"

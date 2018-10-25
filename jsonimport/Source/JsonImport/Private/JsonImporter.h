@@ -3,6 +3,8 @@
 #include "JsonTypes.h"
 #include "JsonObjects.h"
 
+#include "MaterialBuilder.h"
+
 class UMaterialExpression;
 class UMaterialExpressionParameter;
 class UMaterialExpressionVectorParameter;
@@ -10,7 +12,6 @@ class UMaterialExpressionConstant;
 class UMaterialExpressionTextureSample;
 class UTexture;
 class UMaterial;
-
 
 class JsonImporter{
 protected:
@@ -24,6 +25,7 @@ protected:
 	//IdNameMap objectFolderPaths;
 	//IdActorMap objectActors;
 	IdSet emissiveMaterials;
+	MaterialBuilder materialBuilder;
 
 	UMaterialExpression* createMaterialInput(UMaterial *material, int32 matTextureId, 
 		const FLinearColor *matColor, FExpressionInput &matInput, bool normalMap, const TCHAR* paramName, UMaterialExpressionTextureSample ** outTexNode = 0,
@@ -56,6 +58,13 @@ protected:
 	void importPrefabs(const JsonValPtrs *prefabs);
 	void importPrefab(const JsonPrefabData& prefab);
 public:
+	void registerMaterialPath(int32 id, FString path);
+	void registerEmissiveMaterial(int32 id);
+	const FString& getAssetRootPath() const{
+		return assetRootPath;
+	}
+
+	UTexture *getTexture(int32 id);
 	UTexture* loadTexture(int32 id);
 	UMaterial* loadMaterial(int32 id);
 
