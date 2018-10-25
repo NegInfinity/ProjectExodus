@@ -27,24 +27,6 @@ protected:
 	IdSet emissiveMaterials;
 	MaterialBuilder materialBuilder;
 
-	UMaterialExpression* createMaterialInput(UMaterial *material, int32 matTextureId, 
-		const FLinearColor *matColor, FExpressionInput &matInput, bool normalMap, const TCHAR* paramName, UMaterialExpressionTextureSample ** outTexNode = 0,
-		UMaterialExpressionVectorParameter **outVecParameter = 0);
-	UMaterialExpression* createMaterialInputMultiply(UMaterial *material, int32 matTextureId, 
-		const FLinearColor *matColor, FExpressionInput &matInput, 
-		const TCHAR* texParamName, const TCHAR* vecParamName,
-		UMaterialExpressionTextureSample ** outTexNode = 0,
-		UMaterialExpressionVectorParameter **outVecParameter = 0);
-	UMaterialExpression* createMaterialSingleInput(UMaterial *material, float value, FExpressionInput &matInput, const TCHAR* inputName);
-	UMaterialExpressionTextureSample *createTextureExpression(UMaterial *material, int32 matTextureId, const TCHAR* inputName, bool normalMap = false);
-	UMaterialExpressionVectorParameter *createVectorExpression(UMaterial *material, FLinearColor color, const TCHAR* inputName);
-	UMaterialExpressionConstant* createConstantExpression(UMaterial *material, float value, const TCHAR* constantName);
-	template<typename Exp> Exp* createExpression(UMaterial *material){
-		Exp* result = NewObject<Exp>(material);
-		material->Expressions.Add(result);
-		return result;
-	}
-
 	bool saveSceneObjectsAsWorld(const JsonValPtrs *sceneObjects, const FString &sceneName, const FString &scenePath);
 	void processReflectionProbes(ImportWorkData &workData, const JsonGameObject &gameObj, int32 objId, AActor *parentActor, const FString &folderPath);
 	void processLight(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonLight &light, AActor *parentActor, const FString& folderPath);
