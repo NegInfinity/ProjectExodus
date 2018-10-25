@@ -45,6 +45,10 @@ public:
 		MaterialFingerprintId id;
 	};
 
+	bool hasDetailMaps() const{
+		return detailAlbedoTex || detailNormalTex;
+	}
+
 	void clear();
 
 	FString getMatName() const;

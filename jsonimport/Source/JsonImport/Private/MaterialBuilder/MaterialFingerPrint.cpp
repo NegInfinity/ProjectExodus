@@ -31,6 +31,8 @@ MaterialFingerprint::MaterialFingerprint(const JsonMaterial& src){
 	occlusionIntensity = src.occlusionStrength != 1.0f;
 
 	altSmoothnessTexture = src.smoothnessMapChannel != 0;
+
+	secondaryUv = (int)src.secondaryUv;
 }
 
 MaterialFingerprint::MaterialFingerprint()

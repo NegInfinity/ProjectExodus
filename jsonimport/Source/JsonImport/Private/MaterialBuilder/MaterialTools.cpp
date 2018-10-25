@@ -9,6 +9,7 @@
 #include "Materials/MaterialExpressionAdd.h"
 #include "Materials/MaterialExpressionTextureCoordinate.h"
 #include "Materials/MaterialExpressionVectorParameter.h"
+#include "Materials/MaterialExpressionScalarParameter.h"
 #include "Materials/MaterialExpressionConstant.h"
 
 using namespace MaterialTools;
@@ -36,7 +37,7 @@ UMaterialExpression* MaterialTools::createMaterialSingleInput(UMaterial *unrealM
 	return matConstant;
 }
 
-UMaterialExpressionVectorParameter* MaterialTools::createVectorExpression(UMaterial *material, FLinearColor color, const TCHAR* inputName){
+UMaterialExpressionVectorParameter* MaterialTools::createVectorParameterExpression(UMaterial *material, FLinearColor color, const TCHAR* inputName){
 	UMaterialExpressionVectorParameter* vecExpression = 
 		NewObject<UMaterialExpressionVectorParameter>(material);
 	material->Expressions.Add(vecExpression);
@@ -52,6 +53,43 @@ UMaterialExpressionVectorParameter* MaterialTools::createVectorExpression(UMater
 	}
 	return vecExpression;
 }
+
+UMaterialExpressionVectorParameter* MaterialTools::createVectorParameterExpression(UMaterial *material, const FVector4 &vec, const TCHAR* inputName){
+	UMaterialExpressionVectorParameter* vecExpression = 
+		NewObject<UMaterialExpressionVectorParameter>(material);
+	material->Expressions.Add(vecExpression);
+
+	//matInput.Expression = vecExpression;
+	vecExpression->DefaultValue.R = vec.X;
+	vecExpression->DefaultValue.G = vec.Y;
+	vecExpression->DefaultValue.B = vec.Z;
+	vecExpression->DefaultValue.A = vec.W;
+	if (inputName){
+		vecExpression->SetParameterName(inputName);
+		vecExpression->Desc = inputName;
+	}
+	return vecExpression;
+}
+
+UMaterialExpressionScalarParameter* MaterialTools::createScalarParameterExpression(UMaterial *material, float val, const TCHAR* inputName){
+	auto result = createExpression<UMaterialExpressionScalarParameter>(material, inputName);
+
+	result->DefaultValue = val;
+
+	if (inputName){
+		result->ParameterName = inputName;
+	}
+	return result;
+}
+
+UMaterialExpressionVectorParameter* MaterialTools::createVectorParameterExpression(UMaterial *material, const FVector &vec, const TCHAR* inputName){
+	return createVectorParameterExpression(material, FVector4(vec, 1.0f), inputName);
+}
+
+UMaterialExpressionVectorParameter* MaterialTools::createVectorParameterExpression(UMaterial *material, const FVector2D &vec, const TCHAR* inputName){
+	return createVectorParameterExpression(material, FVector4(vec.X, vec.Y, 0.0f, 1.0f), inputName);
+}
+
 
 UMaterialExpressionTextureSample* MaterialTools::createTextureExpression(UMaterial *material, UTexture * unrealTex, const TCHAR* inputName, bool normalMap){
 	UMaterialExpressionTextureSample *result = 0;
@@ -88,7 +126,7 @@ UMaterialExpression* MaterialTools::createMaterialInputMultiply(UMaterial *mater
 			*outTexNode = texExp;
 	}
 	if (matColor && ((*matColor != FLinearColor(1.0f, 1.0f, 1.0f, 1.0f)) || !hasTex)){
-		vecExp = createVectorExpression(material, *matColor, vecParamName);
+		vecExp = createVectorParameterExpression(material, *matColor, vecParamName);
 		if (outVecParameter)
 			*outVecParameter = vecExp;
 	}
