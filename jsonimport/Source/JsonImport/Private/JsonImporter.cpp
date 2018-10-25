@@ -31,12 +31,14 @@
 #include "JsonObjects.h"
 
 #include "Kismet2/KismetEditorUtilities.h"
+#include "UnrealUtilities.h"
 
 #define LOCTEXT_NAMESPACE "FJsonImportModule"
 
 #define JSON_DISABLE_PREFAB_IMPORT
 
 using namespace JsonObjects;
+using namespace UnrealUtilities;
 
 void JsonImporter::loadTextures(const JsonValPtrs* textures){
 	if (!textures)
