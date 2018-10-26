@@ -173,6 +173,8 @@ namespace SceneExport{
 			emissionTex = getTexId(emissionTexParamName);
 			detailMaskTex = getTexId("_DetailMask");
 			detailAlbedoTex = getTexId("_DetailAlbedoMap");
+			detailAlbedoScale = mat.GetTextureScale("_DetailAlbedoMap");
+			detailAlbedoOffset = mat.GetTextureOffset("_DetailAlbedoMap");
 			detailNormalMapTex= getTexId("_DetailNormalMap");
 
 			alphaCutoff = getFloat("_Cutoff", 1.0f);

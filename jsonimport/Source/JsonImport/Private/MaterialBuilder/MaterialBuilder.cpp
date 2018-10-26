@@ -90,7 +90,8 @@ void MaterialBuilder::arrangeNodesTree(UMaterial* material, const JsonMaterial &
 		unprocessed.Enqueue(curExpr);
 	}
 
-	int maxLevel = 0;
+	int defaultParamLevel = 1024;
+	int maxLevel = defaultParamLevel;//0;
 	while(!unprocessed.IsEmpty()){
 		//UE_LOG(JsonLogMatNodeSort, Log, TEXT("Processing items still in queue"));
 		UMaterialExpression* curExpr = 0;
@@ -100,6 +101,8 @@ void MaterialBuilder::arrangeNodesTree(UMaterial* material, const JsonMaterial &
 			continue;
 		//UE_LOG(JsonLogMatNodeSort, Log, TEXT("Current node: %x, %s"), curExpr, *curExpr->GetName());
 		int curLevel = 0;
+		if (!dstToSrc.Contains(curExpr))
+			curLevel = defaultParamLevel;
 		const auto foundLevel= exprLevels.Find(curExpr);
 		if (foundLevel){
 			curLevel = *foundLevel;
@@ -110,7 +113,6 @@ void MaterialBuilder::arrangeNodesTree(UMaterial* material, const JsonMaterial &
 		curOrder.Add(curExpr);
 		//UE_LOG(JsonLogMatNodeSort, Log, TEXT("%d items at current level"), curOrder.Num());
 
-		auto childLevel = curLevel + 1;
 		const auto children = dstToSrc.Find(curExpr);
 		if (!children)
 			continue;
@@ -118,6 +120,10 @@ void MaterialBuilder::arrangeNodesTree(UMaterial* material, const JsonMaterial &
 		for(auto child: *children){
 			if (!child)
 				continue;
+
+			auto childLevel = curLevel + 1;
+			if (!dstToSrc.Contains(child))
+				childLevel = defaultParamLevel;
 			//UE_LOG(JsonLogMatNodeSort, Log, TEXT("Processing child %s (%x)"), *child->GetName(), child);
 			auto prevLevel = exprLevels.Find(child);
 			if (prevLevel){
@@ -186,11 +192,25 @@ void MaterialBuilder::arrangeNodesTree(UMaterial* material, const JsonMaterial &
 	int32 x = -256;
 	const int32 xPadding = 32;
 	const int32 yPadding = 32;
+	const int32 yOutputSize = 8;
+	const int32 yHeaderSize = 8;
 	/*
 	const int32 xItemSize = 128;
 	const int32 yItemSize = 256;
 	const int32 yMinSize = 32;
 	*/
+
+	auto getItemHeight = [&](UMaterialExpression *arg) -> auto{
+		if (!arg)
+			return 0;
+		auto h = arg->GetHeight();
+		auto numOuts = arg->Outputs.Num();
+		auto outputSize = yHeaderSize + yOutputSize *numOuts;
+		if (h < outputSize)
+			h = outputSize;
+		return h;
+	};
+
 	for(int col = 0; col < usedLevels.Num(); col++){
 		int levelIndex = usedLevels[col];
 		const auto &curLevel = levelOrder.FindOrAdd(levelIndex);
@@ -203,9 +223,10 @@ void MaterialBuilder::arrangeNodesTree(UMaterial* material, const JsonMaterial &
 			if (!item)
 				continue;
 			auto w = item->GetWidth();
-			auto h = item->GetHeight();
+			auto h = getItemHeight(item);//item->GetHeight();
 			if (w > xSize)
 				xSize = w;
+
 			ySize += h;
 			if (row > 0)
 				ySize += yPadding;
@@ -221,7 +242,7 @@ void MaterialBuilder::arrangeNodesTree(UMaterial* material, const JsonMaterial &
 			if (!item)
 				continue;
 			auto w = item->GetWidth();
-			auto h = item->GetHeight();
+			auto h = getItemHeight(item);//item->GetHeight();
 			item->MaterialExpressionEditorX = x;
 			item->MaterialExpressionEditorY = y;
 			y += h;
@@ -445,11 +466,11 @@ void MaterialBuilder::processEmissive(UMaterial* material, const JsonMaterial &j
 		return;
 
 	auto emissiveColor = createVectorParameterExpression(material, jsonMat.emissionColor, TEXT("Emissive color"));
-	UMaterialExpression *emissiveExpr = nullptr;
+	UMaterialExpression *emissiveExpr = emissiveColor;
 
 	UTexture *emissiveTex = buildData.importer->getTexture(jsonMat.emissionTex);
 	if (emissiveTex){
-		auto emissiveTexExpr = createTextureExpression(material, emissiveTex, TEXT("Emissive TExture"));
+		auto emissiveTexExpr = createTextureExpression(material, emissiveTex, TEXT("Emissive Texture"));
 		if (buildData.mainUv)
 			emissiveTexExpr->Coordinates.Expression = buildData.mainUv;
 		auto mul = createExpression<UMaterialExpressionMultiply>(material);
