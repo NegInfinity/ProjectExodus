@@ -359,7 +359,7 @@ void MaterialBuilder::processAlbedo(UMaterial* material, const JsonMaterial &jso
 			if (buildData.detailMaskExpression){
 				auto detailLerp = createExpression<UMaterialExpressionLinearInterpolate>(material);
 				auto constWhite = createExpression<UMaterialExpressionConstant4Vector>(material);
-				constWhite->Constant = FLinearColor::White;
+				constWhite->Constant = FLinearColor(0.5f, 0.5f, 0.5f, 0.5f);//FLinearColor::White;
 				detailLerp->A.Expression = constWhite;
 				buildData.detailMaskExpression->ConnectExpression(&detailLerp->Alpha, 4);
 				detailLerp->B.Expression = detailData;
@@ -368,10 +368,13 @@ void MaterialBuilder::processAlbedo(UMaterial* material, const JsonMaterial &jso
 			}
 
 			auto mul = createExpression<UMaterialExpressionMultiply>(material);
-			mul->A.Expression = detailData;//texExpr;
+			mul->A.Expression = detailData;
 			mul->B.Expression = buildData.albedoExpression;
 
-			buildData.albedoExpression = mul;
+			auto mulx2 = createMulExpression(material, mul, 0);
+			mulx2->ConstB = 2.0f;
+
+			buildData.albedoExpression = mulx2;
 		}
 	}
 
@@ -431,39 +434,9 @@ void MaterialBuilder::processNormalMap(UMaterial* material, const JsonMaterial &
 		}
 	}
 
-#if 0
-	if (fingerprint.normalMapIntensity && buildData.normalExpression){
-		auto flatNormal = createExpression<UMaterialExpressionConstant3Vector>(material, TEXT("Flat normal"));
-		flatNormal->Constant = FLinearColor(0.0f, 0.0f, 1.0f);
-
-		auto constParam = createExpression<UMaterialExpressionConstant>(material, TEXT("Bump scale"));
-		/*
-			WARNING:
-			This is NOT the formula used by unity. Unity multiplies *.xy by bumpScale, and then computes z based on pythagora's theorem.
-		*/
-		constParam->R = jsonMat.bumpScale;
-
-		auto flattener = createExpression<UMaterialExpressionLinearInterpolate>(material, TEXT("Flatten normal"));
-		flattener->A.Expression = flatNormal;
-		flattener->B.Expression = buildData.normalExpression;
-		flattener->Alpha.Expression = constParam;
-
-		buildData.normalExpression = flattener;
-	}
-#endif
-
 	if (buildData.normalExpression){
 		material->Normal.Expression = buildData.normalExpression;
 	}
-
-	/*
-	if (jsonMat.useNormalMap){
-		UE_LOG(JsonLog, Log, TEXT("Creating normal map"));
-
-		auto normalMapTex = buildData.importer->getTexture(jsonMat.normalMapTex);
-		createMaterialInput(material, normalMapTex, nullptr, material->Normal, true, TEXT("Normal"));
-	}
-	*/
 }
 
 void MaterialBuilder::processEmissive(UMaterial* material, const JsonMaterial &jsonMat, const MaterialFingerprint &fingerprint, MaterialBuildData &buildData){
@@ -580,18 +553,26 @@ void MaterialBuilder::processSpecular(UMaterial* material, const JsonMaterial &j
 void MaterialBuilder::processRoughness(UMaterial* material, const JsonMaterial &jsonMat, const MaterialFingerprint &fingerprint, MaterialBuildData &buildData){
 	//Well, unity went ahead and added roughness-based shader, apparently. Sigh. I'll need to look into this later.
 
+	auto constRough = createScalarParameterExpression(material, 1.0f - jsonMat.smoothness, TEXT("Roughness"));
+	UMaterialExpression *roughExpr = constRough;
+
 	UMaterialExpression *smoothSource = fingerprint.altSmoothnessTexture ? buildData.albedoTexExpression: buildData.smoothTexSource;
 
 	//UMaterialExpression *roughExpression = nullptr;
-	if (!smoothSource){
-		auto constRough = createScalarParameterExpression(material, 1.0f - jsonMat.smoothness, TEXT("Roughness"));
-		material->Roughness.Expression = constRough;
-		return;
+	if (smoothSource){
+		auto smoothMask = createComponentMask(material, smoothSource, false, false, false, true);
+		auto converter = createExpression<UMaterialExpressionOneMinus>(material);
+		converter->Input.Expression = smoothMask;
+
+		auto lerp = createExpression<UMaterialExpressionLinearInterpolate>(material);
+		lerp->Alpha.Expression = converter;
+		lerp->A.Expression = constRough;
+		lerp->ConstB = 1.0f;
+
+		roughExpr = lerp;
 	}
 
-	auto *converter = createExpression<UMaterialExpressionOneMinus>(material);
-	converter->ConnectExpression(&converter->Input, 4);
-	material->Roughness.Expression = converter;
+	material->Roughness.Expression = roughExpr;
 }
 
 #ifndef MATBUILDER_OLDGEN

@@ -23,7 +23,7 @@ MaterialFingerprint::MaterialFingerprint(const JsonMaterial& src){
 
 	//flags
 	specularModel = src.hasSpecular;//yup, this overrules metallic
-	emissionEnabled = src.hasEmission;//
+	emissionEnabled = src.hasEmission && src.useEmission;// :-\ not sure how reliable this is. I saw this go both ways with false positives
 	mainTextureTransform = src.usesMainTextureTransform();
 	detailTextureTransform = src.usesDetailTextureTransform();
 
