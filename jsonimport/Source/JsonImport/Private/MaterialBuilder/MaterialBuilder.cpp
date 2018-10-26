@@ -23,6 +23,7 @@
 #include "Materials/MaterialExpressionSquareRoot.h"
 #include "Materials/MaterialExpressionSaturate.h"
 #include "Materials/MaterialExpressionClamp.h"
+#include "Materials/MaterialExpressionMax.h"
 
 #include "MaterialTools.h"
 
@@ -309,6 +310,21 @@ void MaterialBuilder::processMainUv(UMaterial* material, const JsonMaterial &jso
 	buildData.mainUv = coordExpr;
 }
 
+void MaterialBuilder::processParallax(UMaterial* material, const JsonMaterial &jsonMat, const MaterialFingerprint &fingerprint, MaterialBuildData &buildData){
+	//if (!fingerprint.
+	if (!fingerprint.parallaxTex)
+		return;
+
+	auto parallaxTex = buildData.importer->getTexture(jsonMat.parallaxTex);
+	auto parallaxTexExpr = createTextureExpression(material, parallaxTex, TEXT("Parallax"));
+	if (buildData.mainUv){
+		parallaxTexExpr->Coordinates.Expression = buildData.mainUv;
+	}
+	auto parallaxScaleExpr = createScalarParameterExpression(material, jsonMat.parallaxScale, TEXT("Parallax Scale"));
+
+	//material->parallax
+}
+
 void MaterialBuilder::processDetailUv(UMaterial* material, const JsonMaterial &jsonMat, const MaterialFingerprint &fingerprint, MaterialBuildData &buildData){
 	//if (!fingerprint.
 	if (!fingerprint.detailAlbedoTex && !fingerprint.detailNormalTex)
@@ -379,16 +395,6 @@ void MaterialBuilder::processAlbedo(UMaterial* material, const JsonMaterial &jso
 	}
 
 	material->BaseColor.Expression = buildData.albedoExpression;
-
-	/*
-	UMaterialExpressionTextureSample *albedoTexExpression = 0;
-	UMaterialExpressionVectorParameter *albedoColorExpression = 0;
-
-	UTexture *mainTexture = buildData.importer->getTexture(jsonMat.mainTexture);
-	auto albedoSource = createMaterialInputMultiply(material, mainTexture, &jsonMat.colorGammaCorrected, material->BaseColor, 
-		TEXT("Albedo(Texture)"), TEXT("Albedo(Color)"), &albedoTexExpression, &albedoColorExpression);
-
-	*/
 }
 
 void MaterialBuilder::processNormalMap(UMaterial* material, const JsonMaterial &jsonMat, const MaterialFingerprint &fingerprint, MaterialBuildData &buildData){
@@ -506,14 +512,13 @@ void MaterialBuilder::processMetallic(UMaterial* material, const JsonMaterial &j
 	UMaterialExpression *metallicExpr = nullptr;
 	if (fingerprint.metallicTex){
 		auto metallicTex = buildData.importer->getTexture(jsonMat.metallicTex);
-		if (metallicTex){
-			auto texExpr = createTextureExpression(material, metallicTex, TEXT("Metallic (texture)"));
-			if (buildData.mainUv)
-				texExpr->Coordinates.Expression = buildData.mainUv;
-			buildData.metallicTexExpression = texExpr;
-			metallicExpr = texExpr;
-		}
+		auto texExpr = createTextureExpression(material, metallicTex, TEXT("Metallic (texture)"));
+		if (buildData.mainUv)
+			texExpr->Coordinates.Expression = buildData.mainUv;
+		buildData.metallicTexExpression = texExpr;
+		metallicExpr = texExpr;
 	}
+
 	if (!metallicExpr){
 		auto metalParam = createScalarParameterExpression(material, jsonMat.metallic, TEXT("Metallic"));
 		metallicExpr = metalParam;
@@ -526,28 +531,59 @@ void MaterialBuilder::processSpecular(UMaterial* material, const JsonMaterial &j
 	if (!fingerprint.specularModel)
 		return;
 
-	UMaterialExpression *specExpr = nullptr;
+	//UMaterialExpression *specExpr = nullptr;
 
-	auto specColor = createVectorParameterExpression(material, jsonMat.specularColor, TEXT("Specular (color)"));
-	specExpr = specColor;
 	//TODO... remove color if specular is white?
-
+	//Actually, specular color texture can't be tinted in unity. Which is odd.
 	if (fingerprint.specularTex){
 		auto specTex = buildData.importer->getTexture(jsonMat.specularTex);
 		auto specTexNode = createTextureExpression(material, specTex, TEXT("Specular (texture)"));
-		buildData.specularTexExpression = specTexNode;
+		if (buildData.mainUv){
+			specTexNode->Coordinates.Expression = buildData.mainUv;
+		}
 
+		/*
 		auto mul = createExpression<UMaterialExpressionMultiply>(material);
 		mul->A.Expression = specTexNode;
 		mul->B.Expression = specExpr;
+		*/
 
-		specExpr = mul;
+		buildData.specularTexExpression = specTexNode;
+		buildData.specularExpression = specTexNode;//mul;
+	}
+	else{
+		auto specColor = createVectorParameterExpression(material, jsonMat.specularColor, TEXT("Specular (color)"));
+		buildData.specularColorExpression = specColor;
+		buildData.specularExpression = specColor;
 	}
 
 	/*
 	TODO: The whole approximation thing
 	*/
-	material->Specular.Expression = specExpr;
+	{
+		auto rMask = createComponentMask(material, buildData.specularExpression, true, false, false, false);
+		auto gMask = createComponentMask(material, buildData.specularExpression, false, true, false, false);
+		auto bMask = createComponentMask(material, buildData.specularExpression, false, false, true, false);
+
+		auto max1 = createExpression<UMaterialExpressionMax>(material);
+		max1->A.Expression = rMask;
+		max1->B.Expression = gMask;
+		auto max2 = createExpression<UMaterialExpressionMax>(material);
+		max2->A.Expression = max1;
+		max2->B.Expression = bMask;
+
+		auto metal = createMulExpression(material, max2, max2);
+		auto lerp = createExpression<UMaterialExpressionLinearInterpolate>(material);
+
+		lerp->Alpha.Expression = metal;
+		lerp->A.Expression = buildData.albedoExpression;
+		lerp->B.Expression = buildData.specularExpression;
+
+		material->BaseColor.Expression = lerp;
+		material->Metallic.Expression = metal;
+	}
+
+	//material->Specular.Expression = specExpr;
 }
 
 void MaterialBuilder::processRoughness(UMaterial* material, const JsonMaterial &jsonMat, const MaterialFingerprint &fingerprint, MaterialBuildData &buildData){
@@ -582,6 +618,10 @@ void MaterialBuilder::buildMaterial(UMaterial* material, const JsonMaterial &jso
 
 	//sets up tex coordinate nodes...
 	processMainUv(material, jsonMat, fingerprint, buildData);
+
+	//this is a stub
+	//processParallax(material, jsonMat, fingerprint, buildData);
+
 	//detail coordinates, if necessary.
 	processDetailUv(material, jsonMat, fingerprint, buildData);
 	//this one creates detail mask
@@ -610,8 +650,11 @@ void MaterialBuilder::buildMaterial(UMaterial* material, const JsonMaterial &jso
 #endif
 
 void MaterialBuilder::processOpacity(UMaterial* material, const JsonMaterial &jsonMat, const MaterialFingerprint &fingerprint, MaterialBuildData &buildData){
-	if (jsonMat.isTransparentQueue())
+	bool translucent = false;
+	if (jsonMat.isTransparentQueue()){
 		material->BlendMode = BLEND_Translucent;
+		translucent = true;
+	}
 	if (jsonMat.isAlphaTestQueue())
 		material->BlendMode = BLEND_Masked;
 	if (jsonMat.isGeomQueue())
@@ -621,6 +664,10 @@ void MaterialBuilder::processOpacity(UMaterial* material, const JsonMaterial &js
 	if (!needsOpacity)
 		return;
 
+	if (translucent){
+		material->TranslucencyLightingMode = TLM_SurfacePerPixelLighting;//TLM_Surface;
+	}
+
 	auto &opacityTarget = jsonMat.isTransparentQueue() ? material->Opacity: material->OpacityMask;
 
 	auto albedoTexExpression = buildData.albedoTexExpression;
@@ -629,7 +676,11 @@ void MaterialBuilder::processOpacity(UMaterial* material, const JsonMaterial &js
 	bool sourceNeedToSpecifyChannel = true;
 	UMaterialExpression *opacitySource = nullptr;
 
-	//TODO: Detailmap?
+	if (fingerprint.altSmoothnessTexture){
+		albedoTexExpression = 0; //setting this flag effectively disables texture alpha as opacity source
+	}
+	
+	//Detailmap alpha is not being used, as far as I can tell.
 	if (albedoTexExpression && albedoColorExpression){
 		auto opacityMul = createExpression<UMaterialExpressionMultiply>(material);
 		albedoTexExpression->ConnectExpression(&opacityMul->A, 4);

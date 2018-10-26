@@ -29,6 +29,7 @@ public:
 
 	UMaterialExpression *metallicTexExpression = nullptr;
 	UMaterialExpression *specularTexExpression = nullptr;
+	UMaterialExpression *specularColorExpression = nullptr;
 	UMaterialExpression *smoothTexSource= nullptr;
 
 	UMaterialExpression *albedoExpression = nullptr;
@@ -62,5 +63,6 @@ protected:
 	void processSpecular(UMaterial* material, const JsonMaterial &jsonMat, const MaterialFingerprint &fingerprint, MaterialBuildData &buildData);
 	void processDetailMask(UMaterial* material, const JsonMaterial &jsonMat, const MaterialFingerprint &fingerprint, MaterialBuildData &buildData);
 	void processRoughness(UMaterial* material, const JsonMaterial &jsonMat, const MaterialFingerprint &fingerprint, MaterialBuildData &buildData);
+	void processParallax(UMaterial* material, const JsonMaterial &jsonMat, const MaterialFingerprint &fingerprint, MaterialBuildData &buildData);
 };
 
