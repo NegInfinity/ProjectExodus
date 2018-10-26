@@ -17,7 +17,12 @@
 #include "Materials/MaterialExpressionConstant3Vector.h"
 #include "Materials/MaterialExpressionConstant4Vector.h"
 #include "Materials/MaterialExpressionAppendVector.h"
+#include "Materials/MaterialExpressionComponentMask.h"
 #include "Materials/MaterialExpressionOneMinus.h"
+#include "Materials/MaterialExpressionDotProduct.h"
+#include "Materials/MaterialExpressionSquareRoot.h"
+#include "Materials/MaterialExpressionSaturate.h"
+#include "Materials/MaterialExpressionClamp.h"
 
 #include "MaterialTools.h"
 
@@ -253,7 +258,6 @@ void MaterialBuilder::arrangeNodesTree(UMaterial* material, const JsonMaterial &
 	}
 }
 
-
 UMaterialExpression* makeTextureTransformNodes(UMaterial* material, 
 	const FVector2D &scaleVec, const FVector2D& offsetVec, int coordIndex = 0, 
 	const TCHAR* coordNodeName = 0, const TCHAR* coordScaleParamName = 0, const TCHAR* coordOffsetParamName = 0, 
@@ -287,6 +291,7 @@ UMaterialExpression* makeTextureTransformNodes(UMaterial* material,
 
 	return add;
 }
+
 
 void MaterialBuilder::processMainUv(UMaterial* material, const JsonMaterial &jsonMat, 
 		const MaterialFingerprint &fingerprint, MaterialBuildData &buildData){
@@ -392,42 +397,41 @@ void MaterialBuilder::processNormalMap(UMaterial* material, const JsonMaterial &
 		}
 		buildData.normalExpression = normTexExpr;
 		buildData.normalTexExpression = normTexExpr;
+
+		if (fingerprint.normalMapIntensity){
+			auto bumpScaleParam = createScalarParameterExpression(
+				material, jsonMat.bumpScale, TEXT("Bump Scale (Normal intensity)"));
+			auto scale = makeNormalMapScaler(material, normTexExpr, bumpScaleParam);
+			buildData.normalExpression = scale;
+		}
 	}
 
 	if (fingerprint.detailNormalTex){
 		auto detailNormalMapTex = buildData.importer->getTexture(jsonMat.detailNormalMapTex);
 		auto detNormTexExpr = createTextureExpression(material, detailNormalMapTex, TEXT("Normal Map(detail)"), true);
 		buildData.detailNormalTexExpression = detNormTexExpr;
+		buildData.detailNormalExpression = detNormTexExpr;
 		if (buildData.detailUv){
 			detNormTexExpr->Coordinates.Expression = buildData.detailUv;
 		}
 
-		if (buildData.normalExpression){
-			auto lerp = createExpression<UMaterialExpressionLinearInterpolate>(material);
-			lerp->A.Expression = buildData.normalExpression;
-			if (buildData.detailMaskExpression){
-				auto mul = createExpression<UMaterialExpressionMultiply>(material);
-				auto constHalf = createExpression<UMaterialExpressionConstant>(material);
-				constHalf->R = 0.5f;
-				mul->B.Expression = constHalf;
-				buildData.detailMaskExpression->ConnectExpression(&mul->A, 4);
-				lerp->Alpha.Expression = mul;
-			}
-			else{
-				lerp->ConstAlpha = 0.5f;
-			}
-			lerp->B.Expression = detNormTexExpr;
+		if (fingerprint.detailNormalMapScale){
+			auto detailNormScaleParam = createScalarParameterExpression(
+				material, jsonMat.bumpScale, TEXT("Detail Normal Scale (DetailNormal intensity)"));
+			auto detScale = makeNormalMapScaler(material, detNormTexExpr, detailNormScaleParam);
+			buildData.detailNormalExpression  = detScale;
+		}
 
-			auto norm = createExpression<UMaterialExpressionNormalize>(material);
-			norm->VectorInput.Expression = lerp;
-
-			buildData.normalExpression = norm;
+		if (!buildData.normalExpression){
+			buildData.normalExpression = buildData.detailNormalExpression;
 		}
 		else{
-			buildData.normalExpression = detNormTexExpr;
+			auto expr = makeNormalBlend(material, buildData.normalExpression, buildData.detailNormalExpression);
+			buildData.normalExpression = expr;
 		}
 	}
 
+#if 0
 	if (fingerprint.normalMapIntensity && buildData.normalExpression){
 		auto flatNormal = createExpression<UMaterialExpressionConstant3Vector>(material, TEXT("Flat normal"));
 		flatNormal->Constant = FLinearColor(0.0f, 0.0f, 1.0f);
@@ -446,6 +450,7 @@ void MaterialBuilder::processNormalMap(UMaterial* material, const JsonMaterial &
 
 		buildData.normalExpression = flattener;
 	}
+#endif
 
 	if (buildData.normalExpression){
 		material->Normal.Expression = buildData.normalExpression;

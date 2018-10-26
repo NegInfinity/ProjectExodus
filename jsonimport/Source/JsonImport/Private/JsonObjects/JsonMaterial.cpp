@@ -48,6 +48,7 @@ void JsonMaterial::load(JsonObjPtr data){
 	JSON_GET_VAR(data, detailAlbedoTex);
 	JSON_GET_VAR(data, detailAlbedoOffset);
 	JSON_GET_VAR(data, detailAlbedoScale);
+	JSON_GET_VAR(data, detailNormalMapScale);
 
 	JSON_GET_VAR(data, detailNormalMapTex);
 

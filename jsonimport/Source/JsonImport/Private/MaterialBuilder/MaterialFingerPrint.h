@@ -33,6 +33,7 @@ public:
 			bool mainTextureTransform: 1;//texture transformation set
 			bool detailTextureTransform: 1;//texture transformation set for detail maps
 			bool normalMapIntensity: 1;//normalmap slider is being used
+			bool detailNormalMapScale: 1;//detail normal map scale
 			bool occlusionIntensity: 1;//occlusion intensity is being used
 			bool altSmoothnessTexture: 1;//if true, smoothness is taken from either metallic or specular alpha.
 

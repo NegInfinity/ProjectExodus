@@ -8,6 +8,7 @@ class UMaterialExpressionVectorParameter;
 class UMaterialExpressionScalarParameter;
 class UMaterialExpressionConstant;
 class UMaterialExpressionTextureSample;
+class UMaterialExpressionComponentMask;
 class UTexture;
 class UMaterial;
 
@@ -33,6 +34,17 @@ namespace MaterialTools{
 	UMaterialExpressionVectorParameter *createVectorParameterExpression(UMaterial *material, const FVector2D &vec, const TCHAR* inputName);
 
 	UMaterialExpressionConstant* createConstantExpression(UMaterial *material, float value, const TCHAR* constantName);
+	UMaterialExpressionComponentMask* createComponentMask(UMaterial *material, bool r, bool g, bool b, bool a, const TCHAR* name = 0);
+	UMaterialExpressionComponentMask* createComponentMask(UMaterial *material, UMaterialExpression* src, bool r, bool g, bool b, bool a, const TCHAR* name = 0);
+
+	UMaterialExpressionAdd* createAddExpression(UMaterial *material, UMaterialExpression *arg1, UMaterialExpression *arg2, const TCHAR *name = 0);
+	UMaterialExpressionMultiply* createMulExpression(UMaterial *material, UMaterialExpression *arg1, UMaterialExpression *arg2, const TCHAR *name = 0);
+
+	//normalize(Vec3(n1.xy + n2.xy, n1.z*n2.z));
+	UMaterialExpression* makeNormalBlend(UMaterial* material, UMaterialExpression *norm1, UMaterialExpression *norm2);
+	//normal.xy *= bumpScale;
+	//normal.z = sqrt(1.0 - saturate(dot(normal.xy, normal.xy)));
+	UMaterialExpression* makeNormalMapScaler(UMaterial* material, UMaterialExpression *normalTex, UMaterialExpression* scaleFactor);
 
 	template<typename Exp> Exp* createExpression(UMaterial *material, const TCHAR* name = 0){
 		Exp* result = NewObject<Exp>(material);

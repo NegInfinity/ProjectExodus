@@ -50,6 +50,8 @@ public:
 	FVector2D detailAlbedoOffset = FVector2D(0.0f, 0.0f);//Vector2.zero;
 	FVector2D detailAlbedoScale = FVector2D(1.0f, 1.0f);//Vector2.one;
 
+	float detailNormalMapScale = 1.0f;
+
 	JsonTextureId detailNormalMapTex = -1;
 	float alphaCutoff = 1.0f;
 	float smoothness = 0.5f;

@@ -11,9 +11,114 @@
 #include "Materials/MaterialExpressionVectorParameter.h"
 #include "Materials/MaterialExpressionScalarParameter.h"
 #include "Materials/MaterialExpressionConstant.h"
-
+#include "Materials/MaterialExpressionComponentMask.h"
 
 using namespace MaterialTools;
+
+//normal.xy *= bumpScale;
+//normal.z = sqrt(1.0 - saturate(dot(normal.xy, normal.xy)));
+UMaterialExpression* MaterialTools::makeNormalMapScaler(UMaterial* material, UMaterialExpression *normalTex, UMaterialExpression* scaleFactor){
+	auto normSource = normalTex;
+	auto normMask = createExpression<UMaterialExpressionComponentMask>(material);
+	normMask->Input.Expression = normSource;
+	normMask->R = normMask->G = true;
+	normMask->B = normMask->A = false;
+
+	auto mulXy = createExpression<UMaterialExpressionMultiply>(material);
+	//auto dotExp = createExpression<UMaterialExpressionDot
+
+	mulXy->A.Expression = normMask;
+	mulXy->B.Expression = scaleFactor;
+
+	auto dotExp = createExpression<UMaterialExpressionDotProduct>(material);
+	dotExp->A.Expression = mulXy;
+	dotExp->B.Expression = mulXy;
+
+	/*
+	auto satExp = createExpression<UMaterialExpressionSaturate>(material);
+	satExp->Input.Expression = dotExp; //This doesn't work?
+	*/
+	auto satExp = createExpression<UMaterialExpressionClamp>(material);
+	satExp->Input.Expression = dotExp;
+	satExp->MinDefault = 0.0f;
+	satExp->MaxDefault = 1.0f;
+
+	auto oneMinus = createExpression<UMaterialExpressionOneMinus>(material);
+	oneMinus->Input.Expression = satExp;
+
+	auto sqrtExp = createExpression<UMaterialExpressionSquareRoot>(material);
+	sqrtExp->Input.Expression = oneMinus;
+
+	auto finAppend = createExpression<UMaterialExpressionAppendVector>(material);
+	finAppend->A.Expression = mulXy;
+	finAppend->B.Expression = sqrtExp;
+
+	return finAppend;
+}
+
+//normalize(Vec3(n1.xy + n2.xy, n1.z*n2.z));
+UMaterialExpression* MaterialTools::makeNormalBlend(UMaterial* material, UMaterialExpression *norm1, UMaterialExpression *norm2){
+	auto n1xy = createComponentMask(material, norm1, true, true, false, false);
+	auto n2xy = createComponentMask(material, norm2, true, true, false, false);
+	auto n1z = createComponentMask(material, norm1, false, false, true, false);
+	auto n2z = createComponentMask(material, norm2, false, false, true, false);
+
+	auto xyAdd = createExpression<UMaterialExpressionAdd>(material);
+	auto zMul = createExpression<UMaterialExpressionMultiply>(material);
+	xyAdd->A.Expression = n1xy;
+	xyAdd->B.Expression = n2xy;
+
+	zMul->A.Expression = n1z;
+	zMul->B.Expression = n2z;
+
+	auto combine = createExpression<UMaterialExpressionAppendVector>(material);
+	combine->A.Expression = xyAdd;
+	combine->B.Expression = zMul;
+
+	auto norm = createExpression<UMaterialExpressionNormalize>(material);
+	norm->VectorInput.Expression = combine;
+
+	return norm;
+}
+
+UMaterialExpressionAdd* MaterialTools::createAddExpression(UMaterial *material, UMaterialExpression *arg1, UMaterialExpression *arg2, const TCHAR *name){
+	auto result = createExpression<UMaterialExpressionAdd>(material, name);
+	if (arg1){
+		result->A.Expression= arg1;
+	}
+	if (arg2){
+		result->B.Expression = arg2;
+	}
+	return result;
+}
+
+UMaterialExpressionMultiply* MaterialTools::createMulExpression(UMaterial *material, UMaterialExpression *arg1, UMaterialExpression *arg2, const TCHAR *name){
+	auto result = createExpression<UMaterialExpressionMultiply>(material, name);
+	if (arg1){
+		result->A.Expression= arg1;
+	}
+	if (arg2){
+		result->B.Expression = arg2;
+	}
+	return result;
+}
+
+UMaterialExpressionComponentMask* MaterialTools::createComponentMask(UMaterial *material, UMaterialExpression* src, bool r, bool g, bool b, bool a, const TCHAR* name){
+	auto result = createComponentMask(material, r, g, b, a, name);
+	if (src)
+		result->Input.Expression = src;
+	return result;
+}
+
+UMaterialExpressionComponentMask* MaterialTools::createComponentMask(UMaterial *material, bool r, bool g, bool b, bool a, const TCHAR* name){
+	auto result = createExpression<UMaterialExpressionComponentMask>(material, name);
+	result->R = r;// ? 1: 0;
+	result->G = g;// ? 1: 0;
+	result->B = b;// ? 1: 0;
+	result->A = a;// ? 1: 0;
+	return result;
+}
+
 
 UMaterialExpressionConstant* MaterialTools::createConstantExpression(UMaterial *material, float value, const TCHAR* constantName){
 	auto matConstant = NewObject<UMaterialExpressionConstant>(material);

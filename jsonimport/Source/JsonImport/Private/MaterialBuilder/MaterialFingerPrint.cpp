@@ -28,6 +28,7 @@ MaterialFingerprint::MaterialFingerprint(const JsonMaterial& src){
 	detailTextureTransform = src.usesDetailTextureTransform();
 
 	normalMapIntensity = src.bumpScale != 1.0f;
+	detailNormalMapScale = src.detailNormalMapScale != 1.0f;
 	occlusionIntensity = src.occlusionStrength != 1.0f;
 
 	altSmoothnessTexture = src.smoothnessMapChannel != 0;

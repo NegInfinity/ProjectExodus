@@ -21,7 +21,9 @@ public:
 	UMaterialExpression *albedoDetailTexExpression = nullptr;
 
 	UMaterialExpression *normalTexExpression = nullptr;
+	UMaterialExpression *normalExpression = nullptr;
 	UMaterialExpression *detailNormalTexExpression = nullptr;
+	UMaterialExpression *detailNormalExpression = nullptr;
 
 	UMaterialExpression *detailMaskExpression = nullptr;
 
@@ -33,7 +35,6 @@ public:
 	UMaterialExpression *specularExpression = nullptr;
 	UMaterialExpression *metallicExpression = nullptr;
 	UMaterialExpression *emissiveExpression = nullptr;
-	UMaterialExpression *normalExpression = nullptr;
 
 	MaterialBuildData(JsonMaterialId matId_, JsonImporter *importer_)
 	:matId(matId_), importer(importer_){

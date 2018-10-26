@@ -41,6 +41,7 @@ namespace SceneExport{
 		public int detailMaskTex = -1;
 		public int detailAlbedoTex = -1;
 		public int detailNormalMapTex = -1;
+		
 		public float alphaCutoff = 1.0f;
 		public float smoothness = 0.5f;
 		public Color specularColor = Color.white;
@@ -52,6 +53,7 @@ namespace SceneExport{
 		public float detailMapScale = 1.0f;
 		public Vector2 detailAlbedoOffset = Vector2.zero;
 		public Vector2 detailAlbedoScale = Vector2.one;
+		public float detailNormalMapScale = 1.0f;
 		public float secondaryUv = 1.0f;
 		
 		public int smoothnessMapChannel = 0;
@@ -97,6 +99,7 @@ namespace SceneExport{
 			writer.writeKeyVal("detailAlbedoTex", detailAlbedoTex);
 			writer.writeKeyVal("detailAlbedoOffset", detailAlbedoOffset);
 			writer.writeKeyVal("detailAlbedoScale", detailAlbedoScale);
+			writer.writeKeyVal("detailNormalMapScale", detailNormalMapScale);
 			
 			writer.writeKeyVal("detailNormalMapTex", detailNormalMapTex);
 			writer.writeKeyVal("alphaCutoff", alphaCutoff);
@@ -175,7 +178,8 @@ namespace SceneExport{
 			detailAlbedoTex = getTexId("_DetailAlbedoMap");
 			detailAlbedoScale = mat.GetTextureScale("_DetailAlbedoMap");
 			detailAlbedoOffset = mat.GetTextureOffset("_DetailAlbedoMap");
-			detailNormalMapTex= getTexId("_DetailNormalMap");
+			detailNormalMapTex = getTexId("_DetailNormalMap");
+			detailNormalMapScale = getFloat("_DetailNormalMapScale", 1.0f);
 
 			alphaCutoff = getFloat("_Cutoff", 1.0f);
 			smoothness = getFloat("_Glossiness", 0.5f);
