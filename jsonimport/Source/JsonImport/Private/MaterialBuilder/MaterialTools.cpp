@@ -12,6 +12,7 @@
 #include "Materials/MaterialExpressionScalarParameter.h"
 #include "Materials/MaterialExpressionConstant.h"
 
+
 using namespace MaterialTools;
 
 UMaterialExpressionConstant* MaterialTools::createConstantExpression(UMaterial *material, float value, const TCHAR* constantName){

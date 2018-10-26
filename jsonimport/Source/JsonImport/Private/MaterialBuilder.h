@@ -6,6 +6,8 @@
 class JsonImporter;
 class UMaterialExpression;
 
+DECLARE_LOG_CATEGORY_EXTERN(JsonLogMatNodeSort, Log, All);
+
 class MaterialBuildData{
 public:
 	JsonMaterialId matId = -1;
@@ -45,7 +47,8 @@ public:
 	MaterialBuilder() = default;
 protected:
 	void buildMaterial(UMaterial* material, const JsonMaterial &jsonMat, const MaterialFingerprint &fingerprint, MaterialBuildData &buildData);
-	void arrangeNodes(UMaterial* material, const JsonMaterial &jsonMat, const MaterialFingerprint &fingerprint, MaterialBuildData &buildData);
+	void arrangeNodesGrid(UMaterial* material, const JsonMaterial &jsonMat, const MaterialFingerprint &fingerprint, MaterialBuildData &buildData);
+	void arrangeNodesTree(UMaterial* material, const JsonMaterial &jsonMat, const MaterialFingerprint &fingerprint, MaterialBuildData &buildData);
 	void processOpacity(UMaterial* material, const JsonMaterial &jsonMat, const MaterialFingerprint &fingerprint, MaterialBuildData &buildData);
 	void processMainUv(UMaterial* material, const JsonMaterial &jsonMat, const MaterialFingerprint &fingerprint, MaterialBuildData &buildData);
 	void processDetailUv(UMaterial* material, const JsonMaterial &jsonMat, const MaterialFingerprint &fingerprint, MaterialBuildData &buildData);

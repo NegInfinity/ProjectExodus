@@ -16,13 +16,18 @@
 #include "Materials/MaterialExpressionConstant.h"
 #include "Materials/MaterialExpressionConstant3Vector.h"
 #include "Materials/MaterialExpressionConstant4Vector.h"
+#include "Materials/MaterialExpressionAppendVector.h"
 #include "Materials/MaterialExpressionOneMinus.h"
 
 #include "MaterialTools.h"
 
+DEFINE_LOG_CATEGORY(JsonLogMatNodeSort);
+
 using namespace MaterialTools;
 
-void MaterialBuilder::arrangeNodes(UMaterial* material, const JsonMaterial &jsonMat, 
+//#define MATBUILDER_OLDGEN
+
+void MaterialBuilder::arrangeNodesGrid(UMaterial* material, const JsonMaterial &jsonMat, 
 		const MaterialFingerprint &fingerprint, MaterialBuildData &buildData){
 	auto numExpressions = material->Expressions.Num();
 	int expressionRows = (int)(sqrtf((float)numExpressions))+1;
@@ -44,6 +49,224 @@ void MaterialBuilder::arrangeNodes(UMaterial* material, const JsonMaterial &json
 	}
 }
 
+void MaterialBuilder::arrangeNodesTree(UMaterial* material, const JsonMaterial &jsonMat, const MaterialFingerprint &fingerprint, MaterialBuildData &buildData){
+	TMap<UMaterialExpression*, TSet<UMaterialExpression*>> srcToDst, dstToSrc;
+	auto registerConnection = [&](UMaterialExpression* src, UMaterialExpression* dst){
+		if (!src || !dst)
+			return;
+		if (src == dst)
+			return;
+		srcToDst.FindOrAdd(src).Add(dst);
+		dstToSrc.FindOrAdd(dst).Add(src);
+	};
+
+	//UE_LOG(JsonLogMatNodeSort, Log, TEXT("Sorting expressions"));
+	//calculate connection chain
+	for(auto curExpr: material->Expressions){
+		auto inputs = curExpr->GetInputs();
+		for(auto curInput: inputs){
+			if (!curInput || !curInput->Expression)
+				continue;
+			registerConnection(curInput->Expression, curExpr);
+		}
+	}
+	//UE_LOG(JsonLogMatNodeSort, Log, TEXT("srcToDst connections: %d, dstToSrc connections: %d"), srcToDst.Num(), dstToSrc.Num());
+
+	TSet<UMaterialExpression*> topLevel;
+	//find top level ones
+	//UE_LOG(JsonLogMatNodeSort, Log, TEXT("Gathering top level nodes"));
+	for(auto curExpr: material->Expressions){
+		if (!srcToDst.Contains(curExpr))
+			topLevel.Add(curExpr);
+	}
+	//UE_LOG(JsonLogMatNodeSort, Log, TEXT("%d nodes found"), topLevel.Num());
+
+	TMap<UMaterialExpression*, int> exprLevels;
+	TQueue<UMaterialExpression*> unprocessed;
+	TMap<int, TArray<UMaterialExpression*>> levelOrder;
+
+	//UE_LOG(JsonLogMatNodeSort, Log, TEXT("Enqueueing top-level nodes"));
+	for(auto curExpr: topLevel){
+		unprocessed.Enqueue(curExpr);
+	}
+
+	int maxLevel = 0;
+	while(!unprocessed.IsEmpty()){
+		//UE_LOG(JsonLogMatNodeSort, Log, TEXT("Processing items still in queue"));
+		UMaterialExpression* curExpr = 0;
+		if (!unprocessed.Dequeue(curExpr))
+			break;
+		if (!curExpr)
+			continue;
+		//UE_LOG(JsonLogMatNodeSort, Log, TEXT("Current node: %x, %s"), curExpr, *curExpr->GetName());
+		int curLevel = 0;
+		const auto foundLevel= exprLevels.Find(curExpr);
+		if (foundLevel){
+			curLevel = *foundLevel;
+		}
+		//UE_LOG(JsonLogMatNodeSort, Log, TEXT("Current level: %d"), curLevel);
+
+		auto& curOrder = levelOrder.FindOrAdd(curLevel);
+		curOrder.Add(curExpr);
+		//UE_LOG(JsonLogMatNodeSort, Log, TEXT("%d items at current level"), curOrder.Num());
+
+		auto childLevel = curLevel + 1;
+		const auto children = dstToSrc.Find(curExpr);
+		if (!children)
+			continue;
+		//UE_LOG(JsonLogMatNodeSort, Log, TEXT("%d children found"), children->Num());
+		for(auto child: *children){
+			if (!child)
+				continue;
+			//UE_LOG(JsonLogMatNodeSort, Log, TEXT("Processing child %s (%x)"), *child->GetName(), child);
+			auto prevLevel = exprLevels.Find(child);
+			if (prevLevel){
+				if (*prevLevel >= childLevel){
+					//UE_LOG(JsonLogMatNodeSort, Log, TEXT("Child %s (%x) already registered on level %d"), *child->GetName(), child, *prevLevel);
+					continue;
+				}
+				levelOrder.FindOrAdd(*prevLevel).Remove(child);
+			}
+			//UE_LOG(JsonLogMatNodeSort, Log, TEXT("Child %s (%x) enqueued for processing"), *child->GetName(), child);
+			unprocessed.Enqueue(child);
+			exprLevels.Add(child, childLevel);
+			if (childLevel > maxLevel)
+				maxLevel = childLevel;
+		}
+	}
+
+	TArray<int> usedLevels;
+	auto maxNumItems = 0;
+	//UE_LOG(JsonLogMatNodeSort, Log, TEXT("Gathering used levels"));
+	for(int i = 0; i <= maxLevel; i++){
+		auto numItems = levelOrder.FindOrAdd(i).Num();
+		if (numItems > 0)
+			usedLevels.Add(i);
+		//UE_LOG(JsonLogMatNodeSort, Log, TEXT("Registered level %d"), i);
+		if (numItems > maxNumItems)
+			maxNumItems = numItems;
+	}
+	//UE_LOG(JsonLogMatNodeSort, Log, TEXT("%d levels total"), usedLevels.Num());
+
+	//Now, actual grid.
+
+	auto numRows = maxNumItems;
+	auto numColumns = usedLevels.Num();
+	//UE_LOG(JsonLogMatNodeSort, Log, TEXT("numRows: %d; numColumns: %d"), numRows, numColumns);
+	if ((numRows == 0) || (numColumns == 0)){
+		//UE_LOG(JsonLogMatNodeSort, Log, TEXT("Nothing to do, returning"));
+		return;
+	}
+
+
+#if 0
+	int32 xSize = 128;
+	int32 ySize = 256;
+	//UE_LOG(JsonLogMatNodeSort, Log, TEXT("Sorting material node tree"));
+	for(int col = 0; col < usedLevels.Num(); col++){
+		//UE_LOG(JsonLogMatNodeSort, Log, TEXT("Processing column %d out of %d"), col, usedLevels.Num());
+		int levelIndex = usedLevels[col];
+		//UE_LOG(JsonLogMatNodeSort, Log, TEXT("Current level %d"), levelIndex);
+		int x = xSize * (-1 -col);//(col - numColumns);
+		const auto &curLevel = levelOrder.FindOrAdd(levelIndex);
+		int curNumRows = curLevel.Num();
+		int yOffset = (maxNumItems - curNumRows) * ySize / 2;
+		//UE_LOG(JsonLogMatNodeSort, Log, TEXT("Num rows: %d, yOffset: %d"), curNumRows, yOffset);
+		for (int row = 0; row < curNumRows; row++){
+			int y = yOffset + row * ySize;
+			auto item = curLevel[row];
+			if (!item)
+				continue;
+			item->MaterialExpressionEditorX = x;
+			item->MaterialExpressionEditorY = y;
+			//UE_LOG(JsonLogMatNodeSort, Log, TEXT("x: %d; y: %d for item %s(%x)"), x, y, *item->GetName(), item);
+		}
+	}
+#endif
+	int32 x = -256;
+	const int32 xPadding = 32;
+	const int32 yPadding = 32;
+	/*
+	const int32 xItemSize = 128;
+	const int32 yItemSize = 256;
+	const int32 yMinSize = 32;
+	*/
+	for(int col = 0; col < usedLevels.Num(); col++){
+		int levelIndex = usedLevels[col];
+		const auto &curLevel = levelOrder.FindOrAdd(levelIndex);
+		int curNumRows = curLevel.Num();
+
+		int xSize = 0;
+		int ySize = 0;
+		for (int row = 0; row < curNumRows; row++){
+			auto item = curLevel[row];
+			if (!item)
+				continue;
+			auto w = item->GetWidth();
+			auto h = item->GetHeight();
+			if (w > xSize)
+				xSize = w;
+			ySize += h;
+			if (row > 0)
+				ySize += yPadding;
+		}
+
+		//int ySize = yItemSize * curNumRows;
+		int yOffset = -ySize/2;
+		int y = yOffset;
+		x -= xSize;
+		for (int row = 0; row < curNumRows; row++){
+			//int y = yOffset + row * ySize;
+			auto item = curLevel[row];
+			if (!item)
+				continue;
+			auto w = item->GetWidth();
+			auto h = item->GetHeight();
+			item->MaterialExpressionEditorX = x;
+			item->MaterialExpressionEditorY = y;
+			y += h;
+			if (row)
+				y += yPadding;
+		}
+		x -= xPadding;
+	}
+}
+
+
+UMaterialExpression* makeTextureTransformNodes(UMaterial* material, 
+	const FVector2D &scaleVec, const FVector2D& offsetVec, int coordIndex = 0, 
+	const TCHAR* coordNodeName = 0, const TCHAR* coordScaleParamName = 0, const TCHAR* coordOffsetParamName = 0, 
+	bool coordNodeOnly = false){
+
+	auto texCoord = createExpression<UMaterialExpressionTextureCoordinate>(material, coordNodeName);
+	texCoord->CoordinateIndex = coordIndex;
+
+	if (coordNodeOnly)
+		return texCoord;
+
+	auto uvScale = createVectorParameterExpression(material, scaleVec, coordScaleParamName);
+	auto uvOffset = createVectorParameterExpression(material, offsetVec, coordOffsetParamName);
+
+	auto uvScaleVec2 = createExpression<UMaterialExpressionAppendVector>(material);
+	auto uvOffsetVec2 = createExpression<UMaterialExpressionAppendVector>(material);
+
+	uvScale->ConnectExpression(&uvScaleVec2->A, 1);
+	uvScale->ConnectExpression(&uvScaleVec2->B, 2);
+
+	uvOffset->ConnectExpression(&uvOffsetVec2->A, 1);
+	uvOffset->ConnectExpression(&uvOffsetVec2->B, 2);
+
+	auto add = createExpression<UMaterialExpressionAdd>(material);
+	auto mul = createExpression<UMaterialExpressionMultiply>(material);
+	add->A.Expression = mul;
+	add->B.Expression = uvOffsetVec2;
+
+	mul->A.Expression = texCoord;
+	mul->B.Expression = uvScaleVec2;
+
+	return add;
+}
+
 void MaterialBuilder::processMainUv(UMaterial* material, const JsonMaterial &jsonMat, 
 		const MaterialFingerprint &fingerprint, MaterialBuildData &buildData){
 	if (!fingerprint.mainTextureTransform)
@@ -54,19 +277,10 @@ void MaterialBuilder::processMainUv(UMaterial* material, const JsonMaterial &jso
 		&& !fingerprint.detailMaskTex && !fingerprint.emissionTex)
 		return;
 
-	auto texCoord = createExpression<UMaterialExpressionTextureCoordinate>(material, TEXT("Main UV coords"));
-	auto uvScale = createVectorParameterExpression(material, jsonMat.mainTextureScale, TEXT("Main UV scale"));
-	auto uvOffset = createVectorParameterExpression(material, jsonMat.mainTextureOffset, TEXT("Main UV offset"));
+	auto coordExpr = makeTextureTransformNodes(material, jsonMat.mainTextureScale, jsonMat.mainTextureOffset, 0, 
+		TEXT("Main UV coords"), TEXT("Main UV scale"), TEXT("Main UV offset"));
 
-	auto add = createExpression<UMaterialExpressionAdd>(material);
-	auto mul = createExpression<UMaterialExpressionMultiply>(material);
-	add->A.Expression = mul;
-	add->B.Expression = uvOffset;
-
-	mul->A.Expression = texCoord;
-	mul->B.Expression = uvScale;
-
-	buildData.mainUv = mul;
+	buildData.mainUv = coordExpr;
 }
 
 void MaterialBuilder::processDetailUv(UMaterial* material, const JsonMaterial &jsonMat, const MaterialFingerprint &fingerprint, MaterialBuildData &buildData){
@@ -74,38 +288,22 @@ void MaterialBuilder::processDetailUv(UMaterial* material, const JsonMaterial &j
 	if (!fingerprint.detailAlbedoTex && !fingerprint.detailNormalTex)
 		return;
 
-	auto texCoord = createExpression<UMaterialExpressionTextureCoordinate>(material, TEXT("Detail UV coords"));
-	texCoord->CoordinateIndex = (int32)fingerprint.secondaryUv;
+	auto texCoord = makeTextureTransformNodes(material, jsonMat.detailAlbedoScale, jsonMat.detailAlbedoOffset, jsonMat.secondaryUv, 
+		TEXT("Detail UV coords"), TEXT("Detail UV scale"), TEXT("Detail UV offset"), !fingerprint.detailTextureTransform);
 
-	if (!fingerprint.detailTextureTransform){
-		buildData.detailUv = texCoord;
-		return;
-	}
-
-	auto uvScale = createVectorParameterExpression(material, jsonMat.mainTextureScale, TEXT("Detail UV scale"));
-	auto uvOffset = createVectorParameterExpression(material, jsonMat.mainTextureOffset, TEXT("Detail UV offset"));
-
-	auto add = createExpression<UMaterialExpressionAdd>(material);
-	auto mul = createExpression<UMaterialExpressionMultiply>(material);
-	add->A.Expression = mul;
-	add->B.Expression = uvOffset;
-
-	mul->A.Expression = texCoord;
-	mul->B.Expression = uvScale;
-
-	buildData.detailUv = mul;
+	buildData.detailUv = texCoord;
 }
 
 void MaterialBuilder::processAlbedo(UMaterial* material, const JsonMaterial &jsonMat, const MaterialFingerprint &fingerprint, MaterialBuildData &buildData){
 	UE_LOG(JsonLog, Log, TEXT("Creating albedo"));
 
-	auto albedoColorExpr = createVectorParameterExpression(material, jsonMat.emissionColorGammaCorrected, TEXT("Albedo Color"));
+	auto albedoColorExpr = createVectorParameterExpression(material, jsonMat.colorGammaCorrected, TEXT("Albedo Color"));
 	buildData.albedoExpression = albedoColorExpr;
 	buildData.albedoColorExpression = albedoColorExpr;
 
 	//texture
 	if (fingerprint.albedoTex){
-		albedoTex = buildData.importer->getTexture(jsonMat.albedoTex);
+		auto albedoTex = buildData.importer->getTexture(jsonMat.albedoTex);
 		if (albedoTex){
 			auto texExpr = createTextureExpression(material, albedoTex, TEXT("Albedo Texture"), false);
 
@@ -123,7 +321,7 @@ void MaterialBuilder::processAlbedo(UMaterial* material, const JsonMaterial &jso
 
 	//detail
 	if (fingerprint.detailAlbedoTex){
-		detailAlbedoTex = buildData.importer->getTexture(jsonMat.detailAlbedoTex);
+		auto detailAlbedoTex = buildData.importer->getTexture(jsonMat.detailAlbedoTex);
 		if (detailAlbedoTex){
 			auto texExpr = createTextureExpression(material, detailAlbedoTex, TEXT("Detail Map(Albedo"), false);
 			buildData.albedoDetailTexExpression = texExpr;
@@ -191,8 +389,8 @@ void MaterialBuilder::processNormalMap(UMaterial* material, const JsonMaterial &
 				auto constHalf = createExpression<UMaterialExpressionConstant>(material);
 				constHalf->R = 0.5f;
 				mul->B.Expression = constHalf;
-				buildData.detailMaskExpression->ConnectExpression(&mul->A.Expression, 4);
-				lerp->Alpha = mul;
+				buildData.detailMaskExpression->ConnectExpression(&mul->A, 4);
+				lerp->Alpha.Expression = mul;
 			}
 			else{
 				lerp->ConstAlpha = 0.5f;
@@ -246,16 +444,16 @@ void MaterialBuilder::processEmissive(UMaterial* material, const JsonMaterial &j
 	if (!fingerprint.emissionEnabled)
 		return;
 
-	auto emissiveColor = createVectorParameterExpression(material, jsonMat.emissionColor, TEXT("Emissive color");
+	auto emissiveColor = createVectorParameterExpression(material, jsonMat.emissionColor, TEXT("Emissive color"));
 	UMaterialExpression *emissiveExpr = nullptr;
 
 	UTexture *emissiveTex = buildData.importer->getTexture(jsonMat.emissionTex);
 	if (emissiveTex){
-		auto texExpr = createTextureExpression(material, emissiveTex, TEXT("Emissive TExture"));
+		auto emissiveTexExpr = createTextureExpression(material, emissiveTex, TEXT("Emissive TExture"));
 		if (buildData.mainUv)
-			texExpr->Coordinates.Expression = buildData.mainUv;
+			emissiveTexExpr->Coordinates.Expression = buildData.mainUv;
 		auto mul = createExpression<UMaterialExpressionMultiply>(material);
-		mul->A.Expression = emissiveTex;
+		mul->A.Expression = emissiveTexExpr;
 		mul->B.Expression = emissiveColor;
 
 		emissiveExpr = mul;
@@ -268,7 +466,7 @@ void MaterialBuilder::processDetailMask(UMaterial* material, const JsonMaterial 
 	if (!fingerprint.detailMaskTex || !fingerprint.hasDetailMaps())
 		return;
 
-	auto detailTex = buildData.importer->getTexture(detailMaskTex);
+	auto detailTex = buildData.importer->getTexture(jsonMat.detailMaskTex);
 
 	auto detailTexNode = createTextureExpression(material, detailTex, TEXT("Detail texture"), false);
 	if (buildData.mainUv){
@@ -356,7 +554,7 @@ void MaterialBuilder::processSpecular(UMaterial* material, const JsonMaterial &j
 void MaterialBuilder::processRoughness(UMaterial* material, const JsonMaterial &jsonMat, const MaterialFingerprint &fingerprint, MaterialBuildData &buildData){
 	//Well, unity went ahead and added roughness-based shader, apparently. Sigh. I'll need to look into this later.
 
-	UMaterialExpresion *smoothSource = fingerprint.altSmoothnessTexture ? buildData.albedoTexExpression: buildData.smoothTexSource;
+	UMaterialExpression *smoothSource = fingerprint.altSmoothnessTexture ? buildData.albedoTexExpression: buildData.smoothTexSource;
 
 	//UMaterialExpression *roughExpression = nullptr;
 	if (!smoothSource){
@@ -370,124 +568,39 @@ void MaterialBuilder::processRoughness(UMaterial* material, const JsonMaterial &
 	material->Roughness.Expression = converter;
 }
 
+#ifndef MATBUILDER_OLDGEN
+
 void MaterialBuilder::buildMaterial(UMaterial* material, const JsonMaterial &jsonMat, 
 		const MaterialFingerprint &fingerprint, MaterialBuildData &buildData){
 
+	//sets up tex coordinate nodes...
 	processMainUv(material, jsonMat, fingerprint, buildData);
+	//detail coordinates, if necessary.
 	processDetailUv(material, jsonMat, fingerprint, buildData);
-
+	//this one creates detail mask
 	processDetailMask(material, jsonMat, fingerprint, buildData);
+	//albedo and albedo detail
 	processAlbedo(material, jsonMat, fingerprint, buildData);
-
-	/*
-	logValue("Transparent queue", jsonMat.isTransparentQueue());
-	logValue("Alpha test queue", jsonMat.isAlphaTestQueue());
-	logValue("Geom queue", jsonMat.isGeomQueue());
-	*/
-
-#if 0
-	//albedo
-	UMaterialExpressionTextureSample *albedoTexExpression = 0;
-	UMaterialExpressionVectorParameter *albedoColorExpression = 0;
-
-	UTexture *mainTexture = buildData.importer->getTexture(jsonMat.mainTexture);
-	auto albedoSource = createMaterialInputMultiply(material, mainTexture, &jsonMat.colorGammaCorrected, material->BaseColor, 
-		TEXT("Albedo(Texture)"), TEXT("Albedo(Color)"), &albedoTexExpression, &albedoColorExpression);
-#endif		
+	//normalmap and normalmap detail
 	processNormalMap(material, jsonMat, fingerprint, buildData);
-
-#if 0
-	if (jsonMat.useNormalMap){
-		UE_LOG(JsonLog, Log, TEXT("Creating normal map"));
-
-		auto normalMapTex = buildData.importer->getTexture(jsonMat.normalMapTex);
-		createMaterialInput(material, normalMapTex, nullptr, material->Normal, true, TEXT("Normal"));
-	}
-#endif
-
-#if 0
-	UE_LOG(JsonLog, Log, TEXT("Creating specular"));//TODO: connect specular alpha to smoothness
-
-	UMaterialExpressionTextureSample *specTexExpression = 0;
-
-	if (jsonMat.hasSpecular){
-		auto specularTex = buildData.importer->getTexture(jsonMat.specularTex);
-		createMaterialInput(material, specularTex, &jsonMat.specularColorGammaCorrected, material->Specular, false, 
-			TEXT("Specular Color"), &specTexExpression);
-	}
-	else{
-		// ?? Not sure if this is correct
-		//material->Specular.Expression = albedoSource;
-		//Nope, this is not correct. 
-	}
-#endif
+	//specular and specular detail
 	processSpecular(material, jsonMat, fingerprint, buildData);
-
-#if 0
-	auto occlusionTex = buildData.importer->getTexture(jsonMat.occlusionTex);
-	createMaterialInput(material, occlusionTex, nullptr, material->AmbientOcclusion, false, TEXT("Ambient Occlusion"));
-#endif
+	//occlsion and occlusion slider
 	processOcclusion(material, jsonMat, fingerprint, buildData);
-
+	//emissive color and texture
 	processEmissive(material, jsonMat, fingerprint, buildData);
-
-#if 0
-	if (jsonMat.hasEmission){
-		UE_LOG(JsonLog, Log, TEXT("Creating emissive"));
-
-		UMaterialExpressionTextureSample *emissiveTexExp = 0;
-
-		auto emissionTex = buildData.importer->getTexture(jsonMat.emissionTex);
-
-		createMaterialInputMultiply(material, emissionTex, jsonMat.hasEmissionColor ? &jsonMat.emissionColor: 0, material->EmissiveColor, 
-			TEXT("Emission Texture"), TEXT("Emission Color"));
-		material->bUseEmissiveForDynamicAreaLighting = true;
-		buildData.importer->registerEmissiveMaterial(buildData.matId);
-	}
-#endif
-
+	//metallic color and texture
 	processMetallic(material, jsonMat, fingerprint, buildData);
-#if 0 
-	//if (useMetallic){
-	if (jsonMat.hasMetallic){
-		UE_LOG(JsonLog, Log, TEXT("Creating metallic value"));
-		createMaterialSingleInput(material, jsonMat.metallic, material->Metallic, TEXT("Metallic"));
-	}
-#endif
-
+	//roughness/smoothness
 	processRoughness(material, jsonMat, fingerprint, buildData);
-
-#if 0
-	UE_LOG(JsonLog, Log, TEXT("hasMetallic: %d; hasSpecular: %d"), (int)(jsonMat.hasSpecular), (int)jsonMat.hasMetallic);
-	UE_LOG(JsonLog, Log, TEXT("specularMode:%d"), (int)(jsonMat.useSpecular));
-	UE_LOG(JsonLog, Log, TEXT("specTex exiss:%d"), (int)(specTexExpression != nullptr));
-	if (specTexExpression)
-		UE_LOG(JsonLog, Log, TEXT("num outputs: %d"), specTexExpression->Outputs.Num());
-
-	//if (useSpecular && (specTexExpression != nullptr) && (specTexExpression->Outputs.Num() == 5)){
-	//useSpecular is false? the heck..
-	//if ((specTexExpression != nullptr) && (specTexExpression->Outputs.Num() == 5)){
-	if (jsonMat.hasSpecular && (specTexExpression != nullptr) && (specTexExpression->Outputs.Num() == 5)){
-		auto mulNode = NewObject<UMaterialExpressionMultiply>(material);
-		material->Expressions.Add(mulNode);
-		auto addNode = NewObject<UMaterialExpressionAdd>(material);
-		material->Expressions.Add(addNode);
-		addNode->ConstA = 1.0f;
-		addNode->B.Expression = mulNode;
-		mulNode->ConstA = -1.0f;
-
-		specTexExpression->ConnectExpression(&mulNode->B, 4);
-		material->Roughness.Expression = addNode;
-	}
-	else{
-		createMaterialSingleInput(material, 1.0f - jsonMat.smoothness, material->Roughness, TEXT("Roughness"));
-	}
-#endif
-
+	//opacity
 	processOpacity(material, jsonMat, fingerprint, buildData);
-
-	arrangeNodes(material, jsonMat, fingerprint, buildData);
+	//sort this as a grid.
+	//arrangeNodesGrid(material, jsonMat, fingerprint, buildData);
+	arrangeNodesTree(material, jsonMat, fingerprint, buildData);
 }
+
+#endif
 
 void MaterialBuilder::processOpacity(UMaterial* material, const JsonMaterial &jsonMat, const MaterialFingerprint &fingerprint, MaterialBuildData &buildData){
 	if (jsonMat.isTransparentQueue())
@@ -528,7 +641,7 @@ void MaterialBuilder::processOpacity(UMaterial* material, const JsonMaterial &js
 	//TODO: detail map?
 	if (opacitySource){
 		if (sourceNeedToSpecifyChannel)
-			opacitySource->ConnectExpression(&opacityTarget.Expression, 4);
+			opacitySource->ConnectExpression(&opacityTarget, 4);
 		else
 			opacityTarget.Expression = opacitySource;
 	}
@@ -584,3 +697,134 @@ UMaterial* MaterialBuilder::importMaterial(JsonObjPtr obj, JsonImporter *importe
 
 	return importMaterial(jsonMat, importer, matId);
 }
+
+#ifdef MATBUILDER_OLDGEN
+void MaterialBuilder::buildMaterial(UMaterial* material, const JsonMaterial &jsonMat, 
+		const MaterialFingerprint &fingerprint, JsonImporter *importer, MaterialBuildData &buildData){
+
+	logValue("Transparent queue", jsonMat.isTransparentQueue());
+	logValue("Alpha test queue", jsonMat.isAlphaTestQueue());
+	logValue("Geom queue", jsonMat.isGeomQueue());
+
+	//albedo
+	UE_LOG(JsonLog, Log, TEXT("Creating albedo"));
+	UMaterialExpressionTextureSample *albedoTexExpression = 0;
+	UMaterialExpressionVectorParameter *albedoColorExpression = 0;
+
+	UTexture *mainTexture = importer->getTexture(jsonMat.mainTexture);
+	auto albedoSource = createMaterialInputMultiply(material, mainTexture, &jsonMat.colorGammaCorrected, material->BaseColor, 
+		TEXT("Albedo(Texture)"), TEXT("Albedo(Color)"), &albedoTexExpression, &albedoColorExpression);
+
+	if (jsonMat.useNormalMap){
+		UE_LOG(JsonLog, Log, TEXT("Creating normal map"));
+
+		auto normalMapTex = importer->getTexture(jsonMat.normalMapTex);
+		createMaterialInput(material, normalMapTex, nullptr, material->Normal, true, TEXT("Normal"));
+	}
+
+	UE_LOG(JsonLog, Log, TEXT("Creating specular"));//TODO: connect specular alpha to smoothness
+
+	UMaterialExpressionTextureSample *specTexExpression = 0;
+
+	if (jsonMat.hasSpecular){
+		auto specularTex = importer->getTexture(jsonMat.specularTex);
+		createMaterialInput(material, specularTex, &jsonMat.specularColorGammaCorrected, material->Specular, false, 
+			TEXT("Specular Color"), &specTexExpression);
+	}
+	else{
+		// ?? Not sure if this is correct
+		//material->Specular.Expression = albedoSource;
+		//Nope, this is not correct. 
+	}
+
+	auto occlusionTex = importer->getTexture(jsonMat.occlusionTex);
+	createMaterialInput(material, occlusionTex, nullptr, material->AmbientOcclusion, false, TEXT("Ambient Occlusion"));
+
+	if (jsonMat.hasEmission){
+		UE_LOG(JsonLog, Log, TEXT("Creating emissive"));
+
+		UMaterialExpressionTextureSample *emissiveTexExp = 0;
+
+		auto emissionTex = importer->getTexture(jsonMat.emissionTex);
+
+		createMaterialInputMultiply(material, emissionTex, jsonMat.hasEmissionColor ? &jsonMat.emissionColor: 0, material->EmissiveColor, 
+			TEXT("Emission Texture"), TEXT("Emission Color"));
+		material->bUseEmissiveForDynamicAreaLighting = true;
+		importer->registerEmissiveMaterial(buildData.matId);
+	}
+
+	//if (useMetallic){
+	if (jsonMat.hasMetallic){
+		UE_LOG(JsonLog, Log, TEXT("Creating metallic value"));
+		createMaterialSingleInput(material, jsonMat.metallic, material->Metallic, TEXT("Metallic"));
+	}
+
+	UE_LOG(JsonLog, Log, TEXT("hasMetallic: %d; hasSpecular: %d"), (int)(jsonMat.hasSpecular), (int)jsonMat.hasMetallic);
+	UE_LOG(JsonLog, Log, TEXT("specularMode:%d"), (int)(jsonMat.useSpecular));
+	UE_LOG(JsonLog, Log, TEXT("specTex exiss:%d"), (int)(specTexExpression != nullptr));
+	if (specTexExpression)
+		UE_LOG(JsonLog, Log, TEXT("num outputs: %d"), specTexExpression->Outputs.Num());
+
+	//if (useSpecular && (specTexExpression != nullptr) && (specTexExpression->Outputs.Num() == 5)){
+	//useSpecular is false? the heck..
+	//if ((specTexExpression != nullptr) && (specTexExpression->Outputs.Num() == 5)){
+	if (jsonMat.hasSpecular && (specTexExpression != nullptr) && (specTexExpression->Outputs.Num() == 5)){
+		auto mulNode = NewObject<UMaterialExpressionMultiply>(material);
+		material->Expressions.Add(mulNode);
+		auto addNode = NewObject<UMaterialExpressionAdd>(material);
+		material->Expressions.Add(addNode);
+		addNode->ConstA = 1.0f;
+		addNode->B.Expression = mulNode;
+		mulNode->ConstA = -1.0f;
+
+		specTexExpression->ConnectExpression(&mulNode->B, 4);
+		material->Roughness.Expression = addNode;
+	}
+	else{
+		createMaterialSingleInput(material, 1.0f - jsonMat.smoothness, material->Roughness, TEXT("Roughness"));
+	}
+
+	if (jsonMat.isTransparentQueue())
+		material->BlendMode = BLEND_Translucent;
+	if (jsonMat.isAlphaTestQueue())
+		material->BlendMode = BLEND_Masked;
+	if (jsonMat.isGeomQueue())
+		material->BlendMode = BLEND_Opaque;
+
+	bool needsOpacity = (jsonMat.isTransparentQueue() || jsonMat.isAlphaTestQueue()) && !jsonMat.isGeomQueue();
+	if (needsOpacity){
+		auto &opacityTarget = jsonMat.isTransparentQueue() ? material->Opacity: material->OpacityMask;
+
+		if (albedoTexExpression && albedoColorExpression){
+			auto opacityMul = createExpression<UMaterialExpressionMultiply>(material);
+			albedoTexExpression->ConnectExpression(&opacityMul->A, 4);
+			albedoColorExpression->ConnectExpression(&opacityMul->B, 4);
+			opacityTarget.Expression = opacityMul;
+		}else if (albedoTexExpression != 0)
+			albedoTexExpression->ConnectExpression(&opacityTarget, 4);
+		else if (albedoColorExpression != 0)
+			albedoColorExpression->ConnectExpression(&opacityTarget, 4);
+		else{
+			UE_LOG(JsonLog, Warning, TEXT("Could not find matchin opacity source in material %s"), *jsonMat.name);
+		}
+	}
+
+	auto numExpressions = material->Expressions.Num();
+	int expressionRows = (int)(sqrtf((float)numExpressions))+1;
+	if (expressionRows != 0){
+			for (int i = 0; i < numExpressions; i++){
+					auto cur = material->Expressions[i];
+					auto row = i / expressionRows;
+					auto col = i % expressionRows;
+
+					int32 size = 256;
+
+					int32 x = (col - expressionRows) * size;
+					int32 y = row * size;
+
+					cur->MaterialExpressionEditorX = x;
+					cur->MaterialExpressionEditorY = y;
+			}
+	}	
+}
+#endif
