@@ -3,6 +3,7 @@
 #include "JsonLight.h"
 #include "JsonRenderer.h"
 #include "JsonReflectionProbe.h"
+#include "JsonTerrain.h"
 
 class JsonGameObject{
 public:
@@ -34,8 +35,13 @@ public:
 	TArray<JsonLight> lights;
 	TArray<JsonReflectionProbe> probes;
 	TArray<JsonRenderer> renderers;
+	TArray<JsonTerrain> terrains;
 
 	IntArray getFirstMaterials() const;
+
+	bool hasTerrain() const{
+		return terrains.Num() > 0;
+	}
 
 	bool hasMesh() const{
 		return meshId >= 0;

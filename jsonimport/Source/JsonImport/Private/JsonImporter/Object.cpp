@@ -36,6 +36,8 @@
 
 #include "DesktopPlatformModule.h"
 
+#include "JsonObjects/JsonBinaryTerrain.h"
+
 static void setParentAndFolder(AActor *actor, AActor *parentActor, const FString& folderPath, ImportWorkData &workData){
 	if (!actor)
 		return;
@@ -92,6 +94,54 @@ void JsonImporter::importObject(const JsonGameObject &jsonGameObj , int32 objId,
 
 	if (jsonGameObj.hasMesh())
 		processMesh(workData, jsonGameObj, objId, parentActor, folderPath);
+
+	if (jsonGameObj.hasTerrain())
+		processTerrains(workData, jsonGameObj, parentActor, folderPath);
+}
+
+void JsonImporter::processTerrains(ImportWorkData &workData, const JsonGameObject &gameObj, AActor *parentActor, const FString& folderPath){
+	UE_LOG(JsonLog, Log, TEXT("Processing terrains for object %d"), gameObj.id);
+	for(const auto& cur: gameObj.terrains){
+		processTerrain(workData, gameObj, cur, parentActor, folderPath);
+	}
+}
+
+void JsonImporter::processTerrain(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonTerrain &jsonTerrain, 
+		AActor *parentActor, const FString& folderPath){
+	
+	auto dataId = jsonTerrain.terrainDataId;
+	UE_LOG(JsonLogTerrain, Log, TEXT("Terrain data id found: %d"), dataId);
+
+	auto terrainData = terrainDataMap.Find(dataId);
+	if (!terrainData){
+		UE_LOG(JsonLogTerrain, Warning, TEXT("Terrain data could not be found for id: %d"), dataId);
+		return;
+	}
+
+	UE_LOG(JsonLogTerrain, Log, TEXT("Located export path %s for terrain %d"), *terrainData->exportPath, dataId);
+
+	auto fullBinPath = FPaths::Combine(assetRootPath, terrainData->exportPath);
+	UE_LOG(JsonLogTerrain, Log, TEXT("Full bin path: %s"), *fullBinPath);
+
+	if (!FPaths::FileExists(fullBinPath)){
+		UE_LOG(JsonLogTerrain, Error, TEXT("Binary terain file \"%s\" not found for id %d"), *fullBinPath, dataId);
+		return;
+	}
+
+	JsonBinaryTerrain binData;
+	if (!binData.load(fullBinPath)){
+		UE_LOG(JsonLogTerrain, Error, TEXT("Load filed for terrain data %d \"%s\""), dataId, *fullBinPath);
+		return;
+	}
+
+	UE_LOG(JsonLogTerrain, Log, TEXT("Terrain loaded. HMap: %d x %d; Alpha Maps: %d x %d, %d layers; Detail: %d x %d, %d layers"),
+		binData.heightMap.getWidth(), binData.heightMap.getHeight(),
+		binData.alphaMaps.getWidth(), binData.alphaMaps.getHeight(), binData.alphaMaps.getNumLayers(),
+		binData.detailMaps.getWidth(), binData.detailMaps.getHeight(), binData.alphaMaps.getNumLayers());
+
+	//Actor spawn?
+
+	//binData.load(
 }
 
 void JsonImporter::processMesh(ImportWorkData &workData, const JsonGameObject &jsonGameObj, int objId, AActor *parentActor, const FString& folderPath){

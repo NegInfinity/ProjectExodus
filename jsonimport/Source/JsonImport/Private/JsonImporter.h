@@ -4,6 +4,7 @@
 #include "JsonObjects.h"
 
 #include "MaterialBuilder.h"
+#include "JsonObjects/JsonTerrainData.h"
 
 class UMaterialExpression;
 class UMaterialExpressionParameter;
@@ -15,14 +16,14 @@ class UMaterial;
 
 class JsonImporter{
 protected:
-	FString assetRootPath;
+	FString assetRootPath;//TODO: rename to srcAssetRootPath. Points to json file folder.
 	FString assetCommonPath;
 	FString sourceBaseName;
 	IdNameMap meshIdMap;
 	IdNameMap texIdMap;
 	IdNameMap matIdMap;
 
-	TMap<JsonId, JsonTerrain> terrainIdMap;
+	TMap<JsonId, JsonTerrainData> terrainDataMap;
 
 	//This data should be reset between scenes. Otherwise thingsb ecome bad.
 	//IdNameMap objectFolderPaths;
@@ -36,6 +37,9 @@ protected:
 	void processLights(ImportWorkData &workData, const JsonGameObject &gameObj, AActor *parentActor, const FString& folderPath);
 	void processMesh(ImportWorkData &workData, const JsonGameObject &gameObj, int objId, AActor *parentActor, const FString& folderPath);
 
+	void processTerrain(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonTerrain &jsonTerrain, AActor *parentActor, const FString& folderPath);
+	void processTerrains(ImportWorkData &workData, const JsonGameObject &gameObj, AActor *parentActor, const FString& folderPath);
+
 	UWorld *createWorldForScene(const FString &sceneName, const FString &scenePath);
 	bool saveLoadedWorld(UWorld *world, const FString &sceneName, const FString &sceneAssetPath);
 	void importScene(JsonObjPtr sceneData, bool createWorld);
@@ -43,7 +47,7 @@ protected:
 	void importPrefabs(const JsonValPtrs *prefabs);
 	void importPrefab(const JsonPrefabData& prefab);
 
-	void importTerrainData(JsonObjPtr jsonData, const FString &rootPath);
+	void importTerrainData(JsonObjPtr jsonData, JsonId terrainId, const FString &rootPath);
 	void loadTerrains(const JsonValPtrs* terrains);
 public:
 	void registerMaterialPath(int32 id, FString path);

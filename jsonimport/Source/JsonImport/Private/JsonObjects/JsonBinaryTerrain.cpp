@@ -27,7 +27,7 @@ bool JsonBinaryTerrain::load(const FString &filename){
 		return false;
 	}
 
-	auto fileSize = fileBuffer.Num() - 2; ///As per documentation, there are two padding bytes at the end.... for some reason?
+	auto fileSize = fileBuffer.Num();//Aaand nope.  - 2; ///As per documentation, there are two padding bytes at the end.... for some reason?
 
 	int32 hMapW = 0, hMapH = 0, alphaMapW = 0, alphaMapH = 0, 
 		numAlphaMaps = 0, detailMapW = 0, detailMapH = 0, numDetailMaps = 0;
