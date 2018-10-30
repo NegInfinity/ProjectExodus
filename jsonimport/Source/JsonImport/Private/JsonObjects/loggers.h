@@ -13,4 +13,5 @@ namespace JsonObjects{
 	void logValue(const FString &msg, const float val);
 	void logValue(const FString &msg, const FString &val);
 	void logValue(const FString &msg, const FLinearColor &val);
+	void logValue(const FString &msg, const StringArray &val);
 }

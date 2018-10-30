@@ -44,6 +44,7 @@ public class JsonImport : ModuleRules
 				"Slate",
 				"SlateCore",
 				"Json",
+				"Landscape",
 				"DesktopPlatform", 
 				"RawMesh",
 				"MaterialEditor",

@@ -19,4 +19,5 @@ using JsonObjectId = JsonId;
 
 using IntArray = TArray<int32>;
 using FloatArray = TArray<float>;
+using StringArray = TArray<FString>;
 

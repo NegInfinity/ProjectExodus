@@ -25,6 +25,11 @@ void JsonTerrainData::load(JsonObjPtr data){
 	JSON_GET_VAR(data, detailWidth);
 	JSON_GET_VAR(data, detailHeight);
 
+	JSON_GET_VAR(data, heightMapRawPath);
+	JSON_GET_VAR(data, alphaMapRawPaths);
+	JSON_GET_VAR(data, detailMapRawPaths);
+
+
 	//TArray<JsonTerrainDextailPrototype> detailPrototypes;//terrainDetails --> detailPrototypes
 	getJsonObjArray(data, detailPrototypes, "detailPrototypes");
 	JSON_GET_VAR(data, detailResolution);

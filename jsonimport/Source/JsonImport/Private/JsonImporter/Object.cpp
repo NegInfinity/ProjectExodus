@@ -37,6 +37,7 @@
 #include "DesktopPlatformModule.h"
 
 #include "JsonObjects/JsonBinaryTerrain.h"
+#include "Landscape.h"
 
 static void setParentAndFolder(AActor *actor, AActor *parentActor, const FString& folderPath, ImportWorkData &workData){
 	if (!actor)
@@ -97,51 +98,6 @@ void JsonImporter::importObject(const JsonGameObject &jsonGameObj , int32 objId,
 
 	if (jsonGameObj.hasTerrain())
 		processTerrains(workData, jsonGameObj, parentActor, folderPath);
-}
-
-void JsonImporter::processTerrains(ImportWorkData &workData, const JsonGameObject &gameObj, AActor *parentActor, const FString& folderPath){
-	UE_LOG(JsonLog, Log, TEXT("Processing terrains for object %d"), gameObj.id);
-	for(const auto& cur: gameObj.terrains){
-		processTerrain(workData, gameObj, cur, parentActor, folderPath);
-	}
-}
-
-void JsonImporter::processTerrain(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonTerrain &jsonTerrain, 
-		AActor *parentActor, const FString& folderPath){
-	
-	auto dataId = jsonTerrain.terrainDataId;
-	UE_LOG(JsonLogTerrain, Log, TEXT("Terrain data id found: %d"), dataId);
-
-	auto terrainData = terrainDataMap.Find(dataId);
-	if (!terrainData){
-		UE_LOG(JsonLogTerrain, Warning, TEXT("Terrain data could not be found for id: %d"), dataId);
-		return;
-	}
-
-	UE_LOG(JsonLogTerrain, Log, TEXT("Located export path %s for terrain %d"), *terrainData->exportPath, dataId);
-
-	auto fullBinPath = FPaths::Combine(assetRootPath, terrainData->exportPath);
-	UE_LOG(JsonLogTerrain, Log, TEXT("Full bin path: %s"), *fullBinPath);
-
-	if (!FPaths::FileExists(fullBinPath)){
-		UE_LOG(JsonLogTerrain, Error, TEXT("Binary terain file \"%s\" not found for id %d"), *fullBinPath, dataId);
-		return;
-	}
-
-	JsonBinaryTerrain binData;
-	if (!binData.load(fullBinPath)){
-		UE_LOG(JsonLogTerrain, Error, TEXT("Load filed for terrain data %d \"%s\""), dataId, *fullBinPath);
-		return;
-	}
-
-	UE_LOG(JsonLogTerrain, Log, TEXT("Terrain loaded. HMap: %d x %d; Alpha Maps: %d x %d, %d layers; Detail: %d x %d, %d layers"),
-		binData.heightMap.getWidth(), binData.heightMap.getHeight(),
-		binData.alphaMaps.getWidth(), binData.alphaMaps.getHeight(), binData.alphaMaps.getNumLayers(),
-		binData.detailMaps.getWidth(), binData.detailMaps.getHeight(), binData.alphaMaps.getNumLayers());
-
-	//Actor spawn?
-
-	//binData.load(
 }
 
 void JsonImporter::processMesh(ImportWorkData &workData, const JsonGameObject &jsonGameObj, int objId, AActor *parentActor, const FString& folderPath){
@@ -441,4 +397,118 @@ void JsonImporter::processLights(ImportWorkData &workData, const JsonGameObject 
 		const auto &curLight = gameObj.lights[i];
 		processLight(workData, gameObj, curLight, parentActor, folderPath);
 	}
+}
+
+void JsonImporter::processTerrains(ImportWorkData &workData, const JsonGameObject &gameObj, AActor *parentActor, const FString& folderPath){
+	UE_LOG(JsonLog, Log, TEXT("Processing terrains for object %d"), gameObj.id);
+	for(const auto& cur: gameObj.terrains){
+		processTerrain(workData, gameObj, cur, parentActor, folderPath);
+	}
+}
+
+void JsonImporter::processTerrain(ImportWorkData &workData, const JsonGameObject &jsonGameObj, const JsonTerrain &jsonTerrain, 
+		AActor *parentActor, const FString& folderPath){
+	
+	auto dataId = jsonTerrain.terrainDataId;
+	UE_LOG(JsonLogTerrain, Log, TEXT("Terrain data id found: %d"), dataId);
+
+	auto terrainData = terrainDataMap.Find(dataId);
+	if (!terrainData){
+		UE_LOG(JsonLogTerrain, Warning, TEXT("Terrain data could not be found for id: %d"), dataId);
+		return;
+	}
+	UE_LOG(JsonLogTerrain, Log, TEXT("Height map raw path: \"%s\""), *(terrainData->heightMapRawPath));
+	UE_LOG(JsonLogTerrain, Log, TEXT("Num alpha maps; %d, num detailMaps: %d"), terrainData->alphaMapRawPaths.Num(), terrainData->detailMapRawPaths.Num());
+
+	for(const auto& cur: terrainData->alphaMapRawPaths)
+		UE_LOG(JsonLogTerrain, Log, TEXT("Alpha map raw path: \"%s\""), *cur);
+
+	for(const auto& cur: terrainData->detailMapRawPaths)
+		UE_LOG(JsonLogTerrain, Log, TEXT("Detail map raw path: \"%s\""), *cur);
+
+	UE_LOG(JsonLogTerrain, Log, TEXT("Located export path %s for terrain %d"), *terrainData->exportPath, dataId);
+
+	/*
+	auto fullBinPath = FPaths::Combine(assetRootPath, terrainData->exportPath);
+	UE_LOG(JsonLogTerrain, Log, TEXT("Full bin path: %s"), *fullBinPath);
+
+	if (!FPaths::FileExists(fullBinPath)){
+		UE_LOG(JsonLogTerrain, Error, TEXT("Binary terain file \"%s\" not found for id %d"), *fullBinPath, dataId);
+		return;
+	}
+
+	JsonBinaryTerrain binData;
+	if (!binData.load(fullBinPath)){
+		UE_LOG(JsonLogTerrain, Error, TEXT("Load filed for terrain data %d \"%s\""), dataId, *fullBinPath);
+		return;
+	}
+
+
+	UE_LOG(JsonLogTerrain, Log, TEXT("Terrain loaded. HMap: %d x %d; Alpha Maps: %d x %d, %d layers; Detail: %d x %d, %d layers"),
+		binData.heightMap.getWidth(), binData.heightMap.getHeight(),
+		binData.alphaMaps.getWidth(), binData.alphaMaps.getHeight(), binData.alphaMaps.getNumLayers(),
+		binData.detailMaps.getWidth(), binData.detailMaps.getHeight(), binData.alphaMaps.getNumLayers());
+		*/
+
+	//Actor spawn?
+
+
+	TArray<TArray<uint8>> alphaMasks;
+	alphaMasks.SetNum(terrainData->alphaMapRawPaths.Num());
+	for(int i = 0; i < terrainData->alphaMapRawPaths.Num(); i++){
+		auto curPath = terrainData->alphaMapRawPaths[i];
+		auto fullPath = FPaths::Combine(assetRootPath, curPath);
+		auto& curAlphaMask = alphaMasks[i];
+		UE_LOG(JsonLogTerrain, Log, TEXT("Loading alpha layer %d: %s"), i, *fullPath);
+		if (!FFileHelper::LoadFileToArray(curAlphaMask, *fullPath)){
+			UE_LOG(JsonLogTerrain, Error, TEXT("Could not load alpha mask %d (%s), aborting"), i, *fullPath);
+			return;
+		}
+		auto alphaSize = terrainData->alphaMapHeight * terrainData->alphaMapWidth;
+		if (alphaSize != curAlphaMask.Num()){
+			UE_LOG(JsonLogTerrain, Error, TEXT("Invalid alpha mask size %d instead of %d for layer %d (%s), aborting."), curAlphaMask.Num(), 
+				alphaSize, i, *fullPath);
+			return;
+		}
+	}
+
+	TArray<uint8> heightMap;
+	{
+		UE_LOG(JsonLogTerrain, Log, TEXT("Loading raw height map (%s)"), *terrainData->heightMapRawPath);
+
+		auto fullHeightPath = FPaths::Combine(assetRootPath, terrainData->heightMapRawPath);
+		if (!FFileHelper::LoadFileToArray(heightMap, *fullHeightPath)){
+			UE_LOG(JsonLogTerrain, Error, TEXT("Could not load heightmap \"%s\", aborting"), *fullHeightPath);
+			return;
+		}
+
+		auto expectedSize = sizeof(uint16) * terrainData->heightmapHeight * terrainData->heighmapWidth;
+		if (expectedSize != heightMap.Num()){
+			UE_LOG(JsonLogTerrain, Error, TEXT("Incorrect heightmap size in \"%s\", aborting. Got %d instead of expectd %d."), 
+				*fullHeightPath, heightMap.Num(), expectedSize);
+			return;
+		}
+	}
+	
+
+	FActorSpawnParameters spawnParams;
+	FTransform transform;
+	transform.SetFromMatrix(jsonGameObj.ueWorldMatrix);
+
+	//auto land = Cast<ALandscape>(workData.world->SpawnActor<ALandscapeProxy>(ALandscapeProxy::StaticClass(), transform, spawnParams));
+	auto land = workData.world->SpawnActor<ALandscape>(ALandscape::StaticClass(), transform, spawnParams);
+	//landscape->HasAllComponent
+
+	if (!land){
+		UE_LOG(JsonLogTerrain, Error, TEXT("Failed to spawn landscape"));
+		return;
+	}
+	ALandscapeProxy* landProxy = Cast<ALandscapeProxy>(land);
+
+	//landProxy->Import
+	
+	setParentAndFolder(land, parentActor, folderPath, workData);
+
+	//binData.load(
+	//auto proxy = 
 }

@@ -16,6 +16,10 @@ public:
 	int32 alphaMapHeight = 0;
 	int32 alphaMapLayers = 0;
 	int32 alphaMapResolution = 0;
+
+	FString heightMapRawPath;
+	TArray<FString> alphaMapRawPaths;
+	TArray<FString> detailMapRawPaths;
 		
 	int32 baseMapResolution = 0;
 	JsonBounds bounds;

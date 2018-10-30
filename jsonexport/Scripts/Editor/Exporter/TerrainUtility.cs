@@ -3,9 +3,103 @@ using UnityEditor;
 
 namespace SceneExport{
 	public static class TerrainUtility{
-		[System.Serializable]
-		class TerrainDataSaver{
-			
+		//pixels one after another. Data is [y, x]
+		static void writeFloat2dBin(string filename, int w, int h, float[,] data){
+			using(var writer = new System.IO.BinaryWriter(
+					System.IO.File.Open(filename, System.IO.FileMode.Create))){
+				writeFloat2dBin(writer, w, h, data);
+			}		
+		}
+		
+		static void writeFloat2dBin(System.IO.BinaryWriter writer, int w, int h, float[,] data){
+			for(var y = 0; y < h; y++){
+				for(var x = 0; x < w; x++){
+					writer.Write(data[y, x]);
+				}
+			}
+		}
+		
+		static void writeInt2dBin(string filename, int w, int h, int[,] data){
+			using(var writer = new System.IO.BinaryWriter(
+					System.IO.File.Open(filename, System.IO.FileMode.Create))){
+				writeInt2dBin(writer, w, h, data);
+			}		
+		}
+		
+		static void writeInt2dBin(System.IO.BinaryWriter writer, int w, int h, int[,] data){
+			for(var y = 0; y < h; y++){
+				for(var x = 0; x < w; x++){
+					writer.Write(data[y, x]);
+				}
+			}
+		}	
+		
+		//layers one after another. data is [y, x, layer]
+		static void writeFloat3dPackedBin(string filename, int w, int h, int numLayers, float[,,] data){
+			using(var writer = new System.IO.BinaryWriter(
+					System.IO.File.Open(filename, System.IO.FileMode.Create))){
+				writeFloat3dPackedBin(writer, w, h, numLayers, data);
+			}		
+		}
+		
+		//layers one after another. data is [y, x, layer]
+		static void writeFloat3dPackedBin(System.IO.BinaryWriter writer, int w, int h, int numLayers, float[,,] data){
+			for(var y = 0; y < h; y++){
+				for(var x = 0; x < w; x++){
+					for(var alpha = 0; alpha < numLayers; alpha++){
+						writer.Write(data[y, x, alpha]);
+					}
+				}
+			}
+		}
+		
+		//just one slice. data is [y, x, layer]
+		static void writeFloat3dSliceBin(string filename, int w, int h, int layer, float[,,] data){
+			using(var writer = new System.IO.BinaryWriter(
+					System.IO.File.Open(filename, System.IO.FileMode.Create))){
+				writeFloat3dSliceBin(writer, w, h, layer, data);
+			}		
+		}
+		
+		//just one slice. data is [y, x, layer]
+		static void writeFloat3dSliceBin(System.IO.BinaryWriter writer, int w, int h, int layer, float[,,] data){
+			for(var y = 0; y < h; y++){
+				for(var x = 0; x < w; x++){
+					writer.Write(data[y, x, layer]);
+				}
+			}
+		}
+		
+		static void saveFloat2dAsRawUint16(string filename, int w, int h, float[,] data){
+			using(var writer = new System.IO.BinaryWriter(
+					System.IO.File.Open(filename, System.IO.FileMode.Create))){
+				for(int y = 0; y < h; y++){
+					for(int x = 0; x < w; x++){
+						var src = data[y,x];
+						var f = Mathf.Clamp01(src);
+						//var i = Mathf.RoundToInt(f * (float)0xFFFF);
+						var i = Mathf.FloorToInt(f * (float)0xFFFF);
+						var outData = (System.UInt16)i;
+						writer.Write(outData);
+					}
+				}
+			}
+		}
+		
+		static void saveFloat3dSliceAsRawUint8(string filename, int w, int h, int level, float[,,] data){
+			using(var writer = new System.IO.BinaryWriter(
+					System.IO.File.Open(filename, System.IO.FileMode.Create))){
+				for(int y = 0; y < h; y++){
+					for(int x = 0; x < w; x++){
+						var src = data[y,x, level];
+						var f = Mathf.Clamp01(src);
+						//var i = Mathf.RoundToInt(f * (float)0xFFFF);
+						var i = Mathf.FloorToInt(f * (float)0xFF);
+						var outData = (System.Byte)i;
+						writer.Write(outData);
+					}
+				}
+			}
 		}
 		
 		public static void saveTerrain(JsonTerrainData curTerrain, string targetDir, string projectPath, bool savePngs, Logger logger = null){		
@@ -40,7 +134,7 @@ namespace SceneExport{
 			var numDetailLayers = detailPrototypes.Length;
 			//var numDetailLayers = terData.detailResolution;
 			
-			//binary map
+			//binary map - all stuff combined together.
 			using(var writer = new System.IO.BinaryWriter(
 					System.IO.File.Open(targetPath, System.IO.FileMode.Create))){
 				writer.Write(hMapW);
@@ -52,44 +146,25 @@ namespace SceneExport{
 				writer.Write(detailH);
 				writer.Write(numDetailLayers);
 				//heightmap
-				for(var y = 0; y < hMapH; y++){
-					for(var x = 0; x < hMapW; x++){
-						writer.Write(heightData[y, x]);
-					}
-				}
+				writeFloat2dBin(writer, hMapW, hMapH, heightData);
 				
 				//splats
-				for(var y = 0; y < alphaH; y++){
-					for(var x = 0; x < alphaW; x++){
-						for(var alpha = 0; alpha < numAlphas; alpha++){
-							writer.Write(alphaData[y, x, alpha]);
-						}
-					}
+				for(int alpha = 0; alpha < numAlphas; alpha++){
+					writeFloat3dSliceBin(writer, alphaW, alphaH, alpha, alphaData);
 				}
 				
 				//detail layers
 				for(var detLayer = 0; detLayer < numDetailLayers; detLayer++){
 					var detailData = terData.GetDetailLayer(0, 0, detailW, detailH, detLayer);
-					for(var y = 0; y < detailH; y++){
-						for(var x = 0; x < detailW; x++){
-							//those are ints? Apparently within 0..16 range? Sigh.
-							writer.Write(detailData[y, x]);
-						}
-					}
+					writeInt2dBin(writer, detailW, detailH, detailData);
 				}
 			}
 			
 			//only height
-			using(var writer = new System.IO.BinaryWriter(
-					System.IO.File.Open(heightPath, System.IO.FileMode.Create))){
-				//writer.Write(w);
-				//writer.Write(h);
-				for(var y = 0; y < hMapH; y++){
-					for(var x = 0; x < hMapW; x++){
-						writer.Write(heightData[y, x]);
-					}
-				}
-			}
+			writeFloat2dBin(heightPath, hMapW, hMapH, heightData);
+			saveFloat2dAsRawUint16(System.IO.Path.Combine(targetDir, 
+				curTerrain.heightMapRawPath), hMapW, hMapH, heightData
+			);
 			
 			/*
 			png height, debugging
@@ -106,19 +181,17 @@ namespace SceneExport{
 				var pngPath = heightPath + ".png";
 				TextureUtility.saveRawColorsToPng(pngPath, hMapW, hMapH, pixels, true);
 			}
-			
+
 			//split splatmaps
 			for(var alphaIndex = 0; alphaIndex < numAlphas; alphaIndex++){
 				var ext = string.Format(".alpha{0}", alphaIndex);
 				var curAlphaPath = System.IO.Path.ChangeExtension(targetPath, ext);
-				using(var writer = new System.IO.BinaryWriter(
-						System.IO.File.Open(curAlphaPath, System.IO.FileMode.Create))){
-					for(var y = 0; y < alphaH; y++){
-						for(var x = 0; x < alphaW; x++){
-							writer.Write(alphaData[y, x, alphaIndex]);
-						}
-					}
-				}
+				writeFloat3dSliceBin(curAlphaPath, alphaW, alphaH, alphaIndex, alphaData);
+				
+				saveFloat3dSliceAsRawUint8(System.IO.Path.Combine(
+						targetDir, curTerrain.alphaMapRawPaths[alphaIndex]
+					), alphaW, alphaH, alphaIndex, alphaData
+				);
 				
 				//png splat
 				if (savePngs){
@@ -134,22 +207,14 @@ namespace SceneExport{
 					TextureUtility.saveRawColorsToPng(pngPath, alphaW, alphaH, pixels, true);				
 				}
 			}
-			
 		
 			for(var detLayer = 0; detLayer < numDetailLayers; detLayer++){
 				var detailData = terData.GetDetailLayer(0, 0, detailW, detailH, detLayer);
 				var ext = string.Format(".detail{0}", detLayer);
 				var curDetailPath = System.IO.Path.ChangeExtension(targetPath, ext);
-				using(var writer = new System.IO.BinaryWriter(
-						System.IO.File.Open(curDetailPath, System.IO.FileMode.Create))){
-				
-					for(var y = 0; y < detailH; y++){
-						for(var x = 0; x < detailW; x++){
-							//those are ints? Apparently within 0..16 range? Sigh.
-							writer.Write(detailData[y, x]);
-						}
-					}
-				}
+				writeInt2dBin(curDetailPath, detailW, detailH, detailData);
+				writeInt2dBin(System.IO.Path.Combine(targetDir, curTerrain.detailMapRawPaths[detLayer]), 
+					detailW, detailH, detailData);
 				
 				if (savePngs){
 					var pngPath = curDetailPath + ".png";

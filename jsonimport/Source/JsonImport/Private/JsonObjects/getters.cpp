@@ -223,3 +223,54 @@ FColor JsonObjects::getRgbColor(JsonObjPtr data, const char *name, const FColor 
 void JsonObjects::getJsonValue(IntArray &outValue, JsonObjPtr data, const char* name){
 	outValue = getIntArray(data, name);
 }
+
+void JsonObjects::getJsonValue(StringArray &outValue, JsonObjPtr data, const char* name){
+	outValue = getStringArray(data, name);
+}
+
+StringArray JsonObjects::toStringArray(const JsonValPtrs& inData){
+	StringArray result;
+	for(auto cur: inData){
+		FString val;
+		if (cur.IsValid()){
+			cur->TryGetString(val);
+		}
+		result.Add(val);
+	}
+	return result;
+}
+
+FloatArray JsonObjects::toFloatArray(const JsonValPtrs* inData){
+	FloatArray result;
+	if (inData){
+		for(auto cur: *inData){
+			double val = 0.0;
+			if (cur.IsValid()){
+				cur->TryGetNumber(val);
+			}
+				//val = cur->AsNumber();
+			result.Add(val);
+		}
+	}
+	return result;
+}
+	
+IntArray JsonObjects::toIntArray(const JsonValPtrs &inData){
+	IntArray result;
+	for(auto cur: inData){
+		int32 val;
+		if (cur.IsValid()){
+			cur->TryGetNumber(val);
+		}
+		result.Add(val);
+	}
+	return result;
+}
+
+StringArray JsonObjects::getStringArray(JsonObjPtr jsonObj, const char *name){
+	const JsonValPtrs* arrValues = 0;
+	loadArray(jsonObj, arrValues, name);
+	if (arrValues)
+		return toStringArray(*arrValues);
+	return StringArray();
+}

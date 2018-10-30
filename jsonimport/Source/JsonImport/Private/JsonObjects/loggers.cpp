@@ -10,6 +10,10 @@ void JsonObjects::logValue(const FString &msg, const FloatArray &arr){
 	UE_LOG(JsonLog, Log, TEXT("%s: FloatArray[%d]{...}"), *msg, arr.Num());
 }
 
+void JsonObjects::logValue(const FString &msg, const StringArray &arr){
+	UE_LOG(JsonLog, Log, TEXT("%s: StringArray[%d]{...}"), *msg, arr.Num());
+}
+	
 void JsonObjects::logValue(const FString &msg, const bool val){
 	FString str = val ? TEXT("true"): TEXT("false");
 	//const char *str = val ? "true": "false";

@@ -18,3 +18,8 @@
 # * Metallic texture still nto connected
 * + Specular node setup from homam data
 * # Parallax
+
+
+* Roughness values sometimes are not translated correctly. (simple metallic tex 22 in debug scene)
+* UV offset need correction as Unity and UE4 has different coordinate system.
+* Regarding PNG textures (i.e. the checkerboard). UE4 is similar to photoshop in the sense that the PNG transparency is pre-multiplied by alpha

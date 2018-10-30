@@ -50,6 +50,7 @@ namespace JsonObjects{
 	JsonObjPtr getObject(JsonObjPtr data, const char* name);
 
 	IntArray getIntArray(JsonObjPtr, const char *name);
+	StringArray getStringArray(JsonObjPtr, const char *name);
 
 	TArray<float> toFloatArray(const JsonValPtrs &inData){
 		TArray<float> result;
@@ -64,32 +65,9 @@ namespace JsonObjects{
 		return result;
 	}
 	
-	TArray<float> toFloatArray(const JsonValPtrs* inData){
-		TArray<float> result;
-		if (inData){
-			for(auto cur: *inData){
-				double val = 0.0;
-				if (cur.IsValid()){
-					cur->TryGetNumber(val);
-				}
-					//val = cur->AsNumber();
-				result.Add(val);
-			}
-		}
-		return result;
-	}
-	
-	TArray<int32> toIntArray(const JsonValPtrs &inData){
-		TArray<int32> result;
-		for(auto cur: inData){
-			int32 val;
-			if (cur.IsValid()){
-				cur->TryGetNumber(val);
-			}
-			result.Add(val);
-		}
-		return result;
-	}
+	FloatArray toFloatArray(const JsonValPtrs* inData);
+	IntArray toIntArray(const JsonValPtrs &inData);
+	StringArray toStringArray(const JsonValPtrs &inData);
 	
 	void getJsonValue(FLinearColor& outValue, JsonObjPtr data, const char*name);
 	void getJsonValue(FMatrix& outValue, JsonObjPtr data, const char *name);
@@ -105,6 +83,7 @@ namespace JsonObjects{
 	void getJsonValue(FString &outValue, JsonObjPtr data, const char* name);
 	//JsonObjPtr getObject(JsonObjPtr data, const char* name);
 	void getJsonValue(IntArray &outValue, JsonObjPtr data, const char* name);
+	void getJsonValue(StringArray &outValue, JsonObjPtr data, const char* name);
 
 	void getJsonValue(FColor& outValue, JsonObjPtr data, const char *name);
 	FColor getRgbColor(JsonObjPtr data, const char *name, const FColor &defaultVal = FColor());

@@ -17,6 +17,10 @@ namespace SceneExport{
 		//public List<int> alphaMapTextureIds = new List<int>();
 		public JsonBounds bounds = new JsonBounds();
 		
+		public string heightMapRawPath;
+		public List<string> alphaMapRawPaths = new List<string>();
+		public List<string> detailMapRawPaths = new List<string>();
+		
 		public List<JsonTerrainDetailPrototype> detailPrototypes = new List<JsonTerrainDetailPrototype>();
 		public List<JsonTreeInstance> treeInstances = new List<JsonTreeInstance>();
 		public List<JsonTreePrototype> treePrototypes = new List<JsonTreePrototype>();
@@ -28,6 +32,10 @@ namespace SceneExport{
 			writer.writeKeyVal("name", name);
 			writer.writeKeyVal("path", path);
 			writer.writeKeyVal("exportPath", exportPath);
+			
+			writer.writeKeyVal("heightMapRawPath", heightMapRawPath);
+			writer.writeKeyVal("alphaMapRawPaths", alphaMapRawPaths);
+			writer.writeKeyVal("detailMapRawPaths", detailMapRawPaths);
 			
 			writer.writeKeyVal("alphaMapWidth", terrainData.alphamapWidth);
 			writer.writeKeyVal("alphaMapHeight", terrainData.alphamapHeight);
@@ -74,17 +82,15 @@ namespace SceneExport{
 			path = AssetDatabase.GetAssetPath(terrainData);
 			exportPath = string.Format("{0}/{1}", terrainAssetExportFolder, path);//System.IO.Path.Combine(terrainAssetExportFolder, path);
 			exportPath = System.IO.Path.ChangeExtension(exportPath, ".bin");
+			
+			heightMapRawPath = System.IO.Path.ChangeExtension(exportPath, ".height.raw");
+			detailMapRawPaths.Clear();
+			alphaMapRawPaths.Clear();
 				
-			/*
-			var tex2ds = terrainData.alphamapTextures;
-			alphaMapTextureIds.Clear();
-			foreach(var cur in tex2ds){
-				var curId = resMap.getTextureId(cur);
-				alphaMapTextureIds.Add(curId);
+			for(int i = 0; i < terrainData.alphamapLayers; i++){
+				var rawExt = string.Format(".alpha{0}.raw", i);
+				alphaMapRawPaths.Add(System.IO.Path.ChangeExtension(exportPath, rawExt));
 			}
-			*/
-				
-			//writer.writeKeyVal("alphaMapTextureIds", alphaMapTextureIds);			
 			
 			bounds = new JsonBounds(terrainData.bounds);
 			
@@ -92,6 +98,11 @@ namespace SceneExport{
 			var srcDetailPrototypes = terrainData.detailPrototypes;
 			foreach(var cur in srcDetailPrototypes){
 				detailPrototypes.Add(new JsonTerrainDetailPrototype(cur, resMap));
+			}
+			
+			for(int i = 0; i < detailPrototypes.Count; i++){
+				var rawExt = string.Format(".detail{0}.raw", i);
+				detailMapRawPaths.Add(System.IO.Path.ChangeExtension(exportPath, rawExt));
 			}
 			
 			var srcTreePrototypes = terrainData.treePrototypes;
@@ -112,6 +123,7 @@ namespace SceneExport{
 			foreach(var cur in splats){
 				splatPrototypes.Add(new JsonSplatPrototype(cur, resMap));
 			}
+			
 			
 			//TODO: detail layer?
 		}
