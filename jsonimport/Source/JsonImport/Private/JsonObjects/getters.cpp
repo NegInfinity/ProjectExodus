@@ -201,3 +201,25 @@ void JsonObjects::getJsonValue(float &outValue, JsonObjPtr data, const char* nam
 void JsonObjects::getJsonValue(FString &outValue, JsonObjPtr data, const char* name){
 	outValue = getString(data, name);
 }
+
+void JsonObjects::getJsonValue(FColor& outValue, JsonObjPtr data, const char *name){
+	outValue = getRgbColor(data, name);
+}
+
+FColor JsonObjects::getRgbColor(JsonObjPtr data, const char *name, const FColor &defaultVal){
+	FColor result = defaultVal;
+
+	auto colorObj = getObject(data, name);
+	if (!colorObj.IsValid())
+			return result;
+	result.A = getInt(colorObj, "a");
+	result.R = getInt(colorObj, "r");
+	result.G = getInt(colorObj, "g");
+	result.B = getInt(colorObj, "b");
+
+	return result;
+}
+
+void JsonObjects::getJsonValue(IntArray &outValue, JsonObjPtr data, const char* name){
+	outValue = getIntArray(data, name);
+}

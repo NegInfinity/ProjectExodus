@@ -21,6 +21,9 @@ protected:
 	IdNameMap meshIdMap;
 	IdNameMap texIdMap;
 	IdNameMap matIdMap;
+
+	TMap<JsonId, JsonTerrain> terrainIdMap;
+
 	//This data should be reset between scenes. Otherwise thingsb ecome bad.
 	//IdNameMap objectFolderPaths;
 	//IdActorMap objectActors;
@@ -39,6 +42,9 @@ protected:
 
 	void importPrefabs(const JsonValPtrs *prefabs);
 	void importPrefab(const JsonPrefabData& prefab);
+
+	void importTerrainData(JsonObjPtr jsonData, const FString &rootPath);
+	void loadTerrains(const JsonValPtrs* terrains);
 public:
 	void registerMaterialPath(int32 id, FString path);
 	void registerEmissiveMaterial(int32 id);

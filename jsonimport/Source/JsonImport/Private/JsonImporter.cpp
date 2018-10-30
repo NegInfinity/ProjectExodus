@@ -41,6 +41,27 @@ using namespace JsonObjects;
 using namespace UnrealUtilities;
 //using namespace MaterialTools;
 
+void JsonImporter::importTerrainData(JsonObjPtr jsonData, const FString &rootPath){
+	//
+}
+
+void JsonImporter::loadTerrains(const JsonValPtrs* terrains){
+	if (!terrains)
+		return;
+
+	FScopedSlowTask terProgress(terrains->Num(), LOCTEXT("Importing terrains", "Importing terrains"));
+	terProgress.MakeDialog();
+	for(auto cur: *terrains){
+		auto obj = cur->AsObject();
+		if (!obj.IsValid())
+			continue;
+
+		importTerrainData(obj, assetRootPath);
+		terProgress.EnterProgressFrame(1.0f);
+	}
+
+}
+
 void JsonImporter::loadTextures(const JsonValPtrs* textures){
 	if (!textures)
 		return;

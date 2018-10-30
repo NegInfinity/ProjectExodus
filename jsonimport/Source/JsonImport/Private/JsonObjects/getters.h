@@ -25,6 +25,21 @@ namespace JsonObjects{
 		}
 	}
 
+	template<typename T> void getJsonObj(JsonObjPtr jsonData, T& result, const char* name){
+		if (!jsonData || !jsonData->HasField(name))
+			return;
+		auto obj = jsonData->GetObjectField(name);
+		result = T(obj);
+	}
+
+	template<typename T> T getJsonObj(JsonObjPtr jsonData, const char* name){
+		if (!jsonData || !jsonData->HasField(name))
+			return T();
+		
+		auto obj = jsonData->GetObjectField(name);
+		return T(obj);
+	}
+
 	void loadArray(JsonObjPtr data, const JsonValPtrs *&valPtrs, const FString &name, const FString &warnName);
 	void loadArray(JsonObjPtr data, const JsonValPtrs *&valPtrs, const FString &name);
 
@@ -83,11 +98,16 @@ namespace JsonObjects{
 	void getJsonValue(FVector4& outValue, JsonObjPtr data, const char *name);
 	void getJsonValue(FQuat& outValue, JsonObjPtr data, const char *name);
 
+
 	void getJsonValue(int& outValue, JsonObjPtr data, const char* name);
 	void getJsonValue(bool& outValue, JsonObjPtr data, const char* name);
 	void getJsonValue(float &outValue, JsonObjPtr data, const char* name);
 	void getJsonValue(FString &outValue, JsonObjPtr data, const char* name);
 	//JsonObjPtr getObject(JsonObjPtr data, const char* name);
+	void getJsonValue(IntArray &outValue, JsonObjPtr data, const char* name);
+
+	void getJsonValue(FColor& outValue, JsonObjPtr data, const char *name);
+	FColor getRgbColor(JsonObjPtr data, const char *name, const FColor &defaultVal = FColor());
 
 	FLinearColor getLinearColor(JsonObjPtr data, const char* name, const FLinearColor &defaultVal = FLinearColor());
 	FMatrix getMatrix(JsonObjPtr data, const char* name, const FMatrix &defaultVal = FMatrix::Identity);

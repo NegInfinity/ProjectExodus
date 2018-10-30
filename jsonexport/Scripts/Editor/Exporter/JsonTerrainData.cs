@@ -27,6 +27,7 @@ namespace SceneExport{
 			
 			writer.writeKeyVal("name", name);
 			writer.writeKeyVal("path", path);
+			writer.writeKeyVal("exportPath", exportPath);
 			
 			writer.writeKeyVal("alphaMapWidth", terrainData.alphamapWidth);
 			writer.writeKeyVal("alphaMapHeight", terrainData.alphamapHeight);
@@ -39,7 +40,7 @@ namespace SceneExport{
 		
 			writer.writeKeyVal("detailWidth", terrainData.detailWidth);
 			writer.writeKeyVal("detailHeight", terrainData.detailHeight);
-			writer.writeKeyVal("terrainDetails", detailPrototypes);
+			writer.writeKeyVal("detailPrototypes", detailPrototypes);
 			writer.writeKeyVal("detailResolution", terrainData.detailResolution);
 		
 			writer.writeKeyVal("heighmapWidth", terrainData.heightmapWidth);
@@ -52,8 +53,8 @@ namespace SceneExport{
 			writer.writeKeyVal("treeInstanceCount", terrainData.treeInstanceCount);
 
 			writer.writeKeyVal("splatPrototypes", splatPrototypes);		
-			writer.writeKeyVal("treeInstances", treeInstances);
 			writer.writeKeyVal("treePrototypes", treePrototypes);
+			writer.writeKeyVal("treeInstances", treeInstances);
 		
 			writer.writeKeyVal("wavingGrassAmount", terrainData.wavingGrassAmount);
 			writer.writeKeyVal("wavingGrassSpeed", terrainData.wavingGrassSpeed);
@@ -65,13 +66,13 @@ namespace SceneExport{
 		
 		public JsonTerrainData(TerrainData terrainData_, ResourceMapper resMap){
 			if (!terrainData_)
-				throw new System.ArgumentNullException("terrainData");
+				throw new System.ArgumentNullException("terrainData_");
 				
 			terrainData = terrainData_;
 			
 			name = terrainData.name;
 			path = AssetDatabase.GetAssetPath(terrainData);
-			exportPath = System.IO.Path.Combine(terrainAssetExportFolder, path);
+			exportPath = string.Format("{0}/{1}", terrainAssetExportFolder, path);//System.IO.Path.Combine(terrainAssetExportFolder, path);
 			exportPath = System.IO.Path.ChangeExtension(exportPath, ".bin");
 				
 			/*

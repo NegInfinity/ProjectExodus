@@ -22,4 +22,3 @@ public:
 	JsonTerrainDetailPrototype(JsonObjPtr data);
 	void load(JsonObjPtr data);
 };
-

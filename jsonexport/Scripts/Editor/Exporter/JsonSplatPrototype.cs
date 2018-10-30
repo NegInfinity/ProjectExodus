@@ -9,7 +9,7 @@ namespace SceneExport{
 		public int textureId = -1;
 		public void writeRawJsonValue(FastJsonWriter writer){
 			writer.beginRawObject();
-			writer.writeKeyVal("texutreId", textureId);
+			writer.writeKeyVal("textureId", textureId);
 			writer.writeKeyVal("normalMapId", normalMapId);
 			
 			writer.writeKeyVal("metallic", data.metallic);
