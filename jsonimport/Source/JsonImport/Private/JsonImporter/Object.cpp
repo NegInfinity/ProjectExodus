@@ -505,7 +505,7 @@ void JsonImporter::processTerrain(ImportWorkData &workData, const JsonGameObject
 	}
 	ALandscapeProxy* landProxy = Cast<ALandscapeProxy>(land);
 
-	//landProxy->Import
+	//landProxy->Import(
 	
 	setParentAndFolder(land, parentActor, folderPath, workData);
 
