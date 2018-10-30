@@ -9,6 +9,7 @@ class UMaterialExpressionScalarParameter;
 class UMaterialExpressionConstant;
 class UMaterialExpressionTextureSample;
 class UMaterialExpressionComponentMask;
+class UMaterialExpressionAppendVector;
 class UTexture;
 class UMaterial;
 
@@ -45,6 +46,7 @@ namespace MaterialTools{
 	//normal.xy *= bumpScale;
 	//normal.z = sqrt(1.0 - saturate(dot(normal.xy, normal.xy)));
 	UMaterialExpression* makeNormalMapScaler(UMaterial* material, UMaterialExpression *normalTex, UMaterialExpression* scaleFactor);
+	UMaterialExpressionAppendVector* createAppendVectorExpression(UMaterial* material, UMaterialExpression *argA = 0, UMaterialExpression *argB = 0, const TCHAR* name = 0);
 
 	template<typename Exp> Exp* createExpression(UMaterial *material, const TCHAR* name = 0){
 		Exp* result = NewObject<Exp>(material);

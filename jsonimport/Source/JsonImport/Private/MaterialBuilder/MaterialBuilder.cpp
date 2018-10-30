@@ -264,6 +264,57 @@ UMaterialExpression* makeTextureTransformNodes(UMaterial* material,
 	const TCHAR* coordNodeName = 0, const TCHAR* coordScaleParamName = 0, const TCHAR* coordOffsetParamName = 0, 
 	bool coordNodeOnly = false){
 
+/*
+	result.xy = src.xy * scale.xy + offset.xy.... however, due to .y coordinate it turns into
+
+	(src.x * scale.x + offset.x, 1.0 - ((1.0 - src.y) * scale.y + offset.y)) -->
+	(src.x * scale.x + offset.x, 1.0 - (scale.y - src.y * scale.y + offset.y)) -->
+	(src.x * scale.x + offset.x, 1.0 - scale.y + src.y * scale.y - offset.y) -->
+	(src.x * scale.x + offset.x, src.y * scale.y + 1.0 - scale.y - offset.y) -->
+	(src.x * scale.x, src.y * scale.y) + (offset.x, 1.0 - scale.y - offset.y)
+*/
+
+	auto texCoord = createExpression<UMaterialExpressionTextureCoordinate>(material, coordNodeName);
+	texCoord->CoordinateIndex = coordIndex;
+
+	if (coordNodeOnly)
+		return texCoord;
+
+	auto uvScale = createVectorParameterExpression(material, scaleVec, coordScaleParamName);
+	auto uvOffset = createVectorParameterExpression(material, offsetVec, coordOffsetParamName);
+
+	auto uvScaleVec2 = createExpression<UMaterialExpressionAppendVector>(material);//(scale.x, scale.y)
+	uvScale->ConnectExpression(&uvScaleVec2->A, 1);
+	uvScale->ConnectExpression(&uvScaleVec2->B, 2);
+
+	// (src.x * scale.x, src.y * scale.y)
+	auto mul = createMulExpression(material, texCoord, uvScaleVec2, TEXT("(src.x * scale.x, src.y * scale.y)"));//
+
+	//1.0 - scale.y
+	auto subY = createExpression<UMaterialExpressionOneMinus>(material, TEXT("1.0 - scale.y"));
+	uvScale->ConnectExpression(&subY->Input, 2);
+
+	//1.0 - scale.y - offset.y
+	auto subY2 = createExpression<UMaterialExpressionSubtract>(material, TEXT("1.0 - scale.y - offset.y"));
+	subY2->A.Expression = subY;
+	uvOffset->ConnectExpression(&subY2->B, 2);
+
+	//(offset.x, 1.0 - scale.y - offset.y)
+	auto offset2 = createAppendVectorExpression(material, 0, subY2, TEXT("(offset.x, 1.0 - scale.y - offset.y)"));
+	uvOffset->ConnectExpression(&offset2->A, 1);
+
+	//(src.x * scale.x, src.y * scale.y) + (offset.x, 1.0 - scale.y - offset.y)
+	auto add = createAddExpression(material, mul, offset2, TEXT("(src.x * scale.x, src.y * scale.y) + (offset.x, 1.0 - scale.y - offset.y)"));
+
+	return add;
+}
+
+/*
+UMaterialExpression* makeTextureTransformNodes(UMaterial* material, 
+	const FVector2D &scaleVec, const FVector2D& offsetVec, int coordIndex = 0, 
+	const TCHAR* coordNodeName = 0, const TCHAR* coordScaleParamName = 0, const TCHAR* coordOffsetParamName = 0, 
+	bool coordNodeOnly = false){
+
 	auto texCoord = createExpression<UMaterialExpressionTextureCoordinate>(material, coordNodeName);
 	texCoord->CoordinateIndex = coordIndex;
 
@@ -292,6 +343,7 @@ UMaterialExpression* makeTextureTransformNodes(UMaterial* material,
 
 	return add;
 }
+*/
 
 
 void MaterialBuilder::processMainUv(UMaterial* material, const JsonMaterial &jsonMat, 

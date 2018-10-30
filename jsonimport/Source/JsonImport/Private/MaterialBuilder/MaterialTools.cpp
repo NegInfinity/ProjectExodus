@@ -301,3 +301,14 @@ UMaterialExpression* MaterialTools::createMaterialInput(UMaterial *unrealMateria
 	return nullptr;
 }
 
+UMaterialExpressionAppendVector* MaterialTools::createAppendVectorExpression(UMaterial* material, UMaterialExpression *argA, UMaterialExpression *argB, const TCHAR* name){
+	auto* result = createExpression<UMaterialExpressionAppendVector>(material, name);
+	if (argA){
+		result->A.Expression = argA;
+	}
+	if (argB){
+		result->B.Expression = argB;
+	}
+	return result;
+}
+
