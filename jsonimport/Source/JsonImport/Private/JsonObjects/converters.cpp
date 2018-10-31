@@ -5,6 +5,18 @@ FVector JsonObjects::unityToUe(const FVector& arg){
 	return FVector(arg.Z, arg.X, arg.Y);
 }
 
+FVector JsonObjects::unityVecToUe(const FVector& arg){
+	return FVector(arg.Z, arg.X, arg.Y);
+}
+
+FVector JsonObjects::unityPosToUe(const FVector& arg){
+	return unityVecToUe(arg) * 100.0f;
+}
+
+FVector JsonObjects::unitySizeToUe(const FVector& arg){
+	return unityVecToUe(arg) * 100.0f;
+}
+
 FMatrix JsonObjects::unityWorldToUe(const FMatrix &unityWorld){
 	FVector xAxis, yAxis, zAxis;
 	unityWorld.GetScaledAxes(xAxis, yAxis, zAxis);

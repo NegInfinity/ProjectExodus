@@ -44,11 +44,15 @@
 
 #include "JsonObjects/DataPlane2D.h"
 #include "JsonObjects/DataPlane3D.h"
+#include "JsonObjects/utilities.h"
+#include "JsonObjects/converters.h"
 #include "ImportWorkData.h"
 
 //#include "LandscapeEditor/Private/ActorFactoryLandscape.h"
 //#include "LandscapeEditor/Public/LandscapeEditorUtils.h"
 //#include "LandscapeEditor/Public/LandscapeEditorModule.h"
+
+using namespace JsonObjects;
 
 static void setParentAndFolder(AActor *actor, AActor *parentActor, const FString& folderPath, ImportWorkData &workData){
 	if (!actor)
@@ -505,11 +509,6 @@ ALandscape* JsonImporter::createDefaultLandscape(UWorld *world){
 void JsonImporter::processTerrain(ImportWorkData &workData, const JsonGameObject &jsonGameObj, const JsonTerrain &jsonTerrain, 
 		AActor *parentActor, const FString& folderPath){
 	
-	//auto landscape = createDefaultLandscape(workData, jsonGameObj);
-	auto landscape = createDefaultLandscape(workData.world);
-	//setParentAndFolder(landscape, parentActor, folderPath, workData);
-	return;
-
 	auto dataId = jsonTerrain.terrainDataId;
 	UE_LOG(JsonLogTerrain, Log, TEXT("Terrain data id found: %d"), dataId);
 
@@ -529,31 +528,7 @@ void JsonImporter::processTerrain(ImportWorkData &workData, const JsonGameObject
 
 	UE_LOG(JsonLogTerrain, Log, TEXT("Located export path %s for terrain %d"), *terrainData->exportPath, dataId);
 
-	/*
-	auto fullBinPath = FPaths::Combine(assetRootPath, terrainData->exportPath);
-	UE_LOG(JsonLogTerrain, Log, TEXT("Full bin path: %s"), *fullBinPath);
 
-	if (!FPaths::FileExists(fullBinPath)){
-		UE_LOG(JsonLogTerrain, Error, TEXT("Binary terain file \"%s\" not found for id %d"), *fullBinPath, dataId);
-		return;
-	}
-
-	JsonBinaryTerrain binData;
-	if (!binData.load(fullBinPath)){
-		UE_LOG(JsonLogTerrain, Error, TEXT("Load filed for terrain data %d \"%s\""), dataId, *fullBinPath);
-		return;
-	}
-
-
-	UE_LOG(JsonLogTerrain, Log, TEXT("Terrain loaded. HMap: %d x %d; Alpha Maps: %d x %d, %d layers; Detail: %d x %d, %d layers"),
-		binData.heightMap.getWidth(), binData.heightMap.getHeight(),
-		binData.alphaMaps.getWidth(), binData.alphaMaps.getHeight(), binData.alphaMaps.getNumLayers(),
-		binData.detailMaps.getWidth(), binData.detailMaps.getHeight(), binData.alphaMaps.getNumLayers());
-		*/
-
-	//Actor spawn?
-
-	//TArray<uint8> heightMap;
 	DataPlane2D<uint16> heightMapData;
 	auto fullHeightPath = FPaths::Combine(assetRootPath, terrainData->heightMapRawPath);
 	if (!heightMapData.loadFromRaw(fullHeightPath, terrainData->heightmapWidth, terrainData->heightmapHeight)){
@@ -561,96 +536,74 @@ void JsonImporter::processTerrain(ImportWorkData &workData, const JsonGameObject
 		return;
 	}	
 
-	FActorSpawnParameters spawnParams;
-	FTransform transform;
-	transform.SetFromMatrix(jsonGameObj.ueWorldMatrix);
+	ALandscape * result = nullptr;
+	const int32 xComps = 1;
+	const int32 yComps = 1;
+	const int32 quadsPerSection = 63;
+	const int32 sectionsPerComp = 1;
+	const int32 quadsPerComp = quadsPerSection * sectionsPerComp;
+	int32 xSize = xComps * quadsPerComp + 1;
+	int32 ySize = yComps * quadsPerComp + 1;
 
-	auto land = workData.world->SpawnActor<ALandscape>(ALandscape::StaticClass(), transform, spawnParams);
-	if (!land){
-		UE_LOG(JsonLogTerrain, Error, TEXT("Failed to spawn landscape"));
-		return;
-	}
+	xSize = heightMapData.getWidth();
+	ySize = heightMapData.getHeight();
 
-	ALandscapeProxy* landProxy = Cast<ALandscapeProxy>(land);
-	TArray<FLandscapeImportLayerInfo> importLayerInfos;
-	//importLayerInfos.SetNum(terrainData->alphaMapRawPaths.Num());
+	TArray<FLandscapeImportLayerInfo> importLayers;
 
-	for(int i = 0; i < terrainData->alphaMapRawPaths.Num(); i++){
-		break;
-		auto layerInfo = importLayerInfos.AddDefaulted_GetRef();
-		auto layerName = FString::Printf(TEXT("Layer%d"), i);
-		layerInfo.LayerName = *layerName;
-		auto curPath = terrainData->alphaMapRawPaths[i];
-		auto fullPath = FPaths::Combine(assetRootPath, curPath);
+	FTransform terrainTransform;
+	FMatrix terrainMatrix = jsonGameObj.ueWorldMatrix;
 
-		layerInfo.SourceFilePath = fullPath;
-		layerInfo.LayerInfo = landProxy->CreateLayerInfo(*layerName);
-		auto *infoObj = layerInfo.LayerInfo;
+	auto ueWorldSize = unitySizeToUe(terrainData->worldSize);
+	UE_LOG(JsonLogTerrain, Log, TEXT("Terrain size: %f %f %f"), ueWorldSize.X, ueWorldSize.Y, ueWorldSize.Z);
+	auto halfWorldSize = ueWorldSize * 0.5f;
 
-		auto& curInfo = importLayerInfos[i];
-		DataPlane2D<uint8> uintData;
-		if (!uintData.loadFromRaw(fullPath, terrainData->alphaMapWidth, terrainData->alphaMapHeight)){
-			UE_LOG(JsonLogTerrain, Error, TEXT("Could not load alpha mask %d (%s), aborting"), i, *fullPath);
-			return;
-		}
-		layerInfo.LayerData = uintData.getArrayCopy();
-		//alphaMasks[i] = uintData.getArrayCopy();
-		break;
-	}
-
-	/*
-	if (importLayerInfos.Num() == 0){
-		break;
-		auto& layer = importLayerInfos.AddDefaulted_GetRef();
-		layer.LayerName = TEXT("TestLayer");
-		DataPlane2D<uint8> dataPlane;
-		dataPlane.resize(256, 256);
-		layer.LayerData = dataPlane.getArray();
-
-		//layer.LayerInfo .. //?
-	}
+	FVector vTerX, vTerY, vTerZ, vTerPos;
+	/* 
+		Oh, this is interesting. 
+		Terrain in unity is permanently axis aligned and can be neither rotated nor scald. 
 	*/
+	terrainMatrix.GetScaledAxes(vTerX, vTerY, vTerZ);
+	vTerX = FVector(1.0f, 0.0f, 0.0f);
+	vTerY = FVector(0.0f, 1.0f, 0.0f);
+	vTerZ = FVector(0.0f, 0.0f, 1.0f);
+	vTerPos = terrainMatrix.GetOrigin();
 
-	int32 xSize = terrainData->heightmapWidth;
-	int32 ySize = terrainData->heightmapHeight;
-	int32 xStrips = xSize - 1;
-	int32 yStrips = ySize - 1;
+	auto terrainScale = halfWorldSize * 0.001f;
+	FVector terrainOffset = FVector::ZeroVector;
 
-	int32 compSize = 1;
-	while(true){
-		auto nextSize = compSize << 2;
-		if ((nextSize > xSize) || (nextSize > ySize))
-			break;
+	vTerX *= terrainScale.X;
+	vTerY *= terrainScale.Y;
+	vTerZ *= terrainScale.Z;
 
-		if ((xStrips % nextSize) != 0)
-			break;
-		if ((yStrips % nextSize) != 0)
-			break;
-		compSize = nextSize;
-	}
+	vTerPos += terrainOffset;
 
-	int32 quadsPerSection = 1;//Change it later?
-	int32 sectionsPerComponent = compSize; // this is actually width/height of section in quads. 
+	logValue(TEXT("terrainX: "), vTerX);
+	logValue(TEXT("terrainY: "), vTerY);
+	logValue(TEXT("terrainZ: "), vTerZ);
+	logValue(TEXT("terrainPos: "), vTerPos);
 
-	int32 xComps = xStrips;
-	int32 yComps = yStrips;
-	if (compSize > 1){
-		xComps /= compSize;
-		yComps /= compSize;
-	}
+	terrainMatrix.SetAxes(&vTerX, &vTerY, &vTerZ, &vTerPos);
 
-	UE_LOG(JsonLogTerrain, Log, TEXT("Landscape data: \"%s\""), *fullHeightPath);
-	UE_LOG(JsonLogTerrain, Log, TEXT("xComps: %d, yComps: %d, compSize: %d, xSize: %d, ySize: %d"), xComps, yComps, compSize, xSize, ySize);
+	terrainTransform.SetFromMatrix(terrainMatrix);
 
-	auto landscapeGuid = FGuid::NewGuid();
-	landProxy->SetLandscapeGuid(landscapeGuid);
+	result = workData.world->SpawnActor<ALandscape>(ALandscape::StaticClass());
+	result->StaticLightingLOD = FMath::DivideAndRoundUp(FMath::CeilLogTwo((xSize * ySize) / (2048 * 2048) + 1), (uint32)2);//?
 
-	landProxy->Import(landscapeGuid,
-		0, 0, xSize - 1, ySize - 1, sectionsPerComponent, quadsPerSection, heightMapData.getData(), 
-		*fullHeightPath, importLayerInfos, ELandscapeImportAlphamapType::Additive);
+	auto guid = FGuid::NewGuid();
+	auto *landProxy = Cast<ALandscapeProxy>(result);
+	landProxy->SetLandscapeGuid(guid);
 
-	setParentAndFolder(land, parentActor, folderPath, workData);
 
-	//binData.load(
-	//auto proxy = 
+	landProxy->Import(FGuid::NewGuid(),
+		0, 0, xSize - 1, ySize - 1, sectionsPerComp, quadsPerSection, heightMapData.getData(), 
+		TEXT(""), importLayers, ELandscapeImportAlphamapType::Additive);
+
+	ULandscapeInfo *landscapeInfo  = result->CreateLandscapeInfo();
+	landscapeInfo->UpdateLayerInfoMap(result);
+
+	result->SetActorTransform(terrainTransform);
+
+	setParentAndFolder(result, parentActor, folderPath, workData);
+
+	//return result;
 }
