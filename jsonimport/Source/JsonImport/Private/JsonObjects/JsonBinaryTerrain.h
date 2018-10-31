@@ -1,14 +1,17 @@
 #pragma once
 
 #include "JsonTypes.h"
-#include "FloatMap2D.h"
-#include "FloatMap3D.h"
+#include "DataPlane2D.h"
+#include "DataPlane3D.h"
+
+using FloatPlane2D = DataPlane2D<float>;
+using FloatPlane3D = DataPlane3D<float>;
 
 class JsonBinaryTerrain{
 public:
-	FloatMap2D heightMap;
-	FloatMap3D alphaMaps;
-	FloatMap3D detailMaps;
+	FloatPlane2D heightMap;
+	FloatPlane3D alphaMaps;
+	FloatPlane3D detailMaps;
 
 	void clear();
 	bool load(const FString &filename);

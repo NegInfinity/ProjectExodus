@@ -13,6 +13,7 @@ class UMaterialExpressionConstant;
 class UMaterialExpressionTextureSample;
 class UTexture;
 class UMaterial;
+class ALandscape;
 
 class JsonImporter{
 protected:
@@ -30,6 +31,10 @@ protected:
 	//IdActorMap objectActors;
 	IdSet emissiveMaterials;
 	MaterialBuilder materialBuilder;
+
+	ALandscape* createDefaultLandscape(ImportWorkData &workData, const JsonGameObject &jsonGameObj);
+	ALandscape* createDefaultLandscape(UWorld *world);
+
 
 	bool saveSceneObjectsAsWorld(const JsonValPtrs *sceneObjects, const FString &sceneName, const FString &scenePath);
 	void processReflectionProbes(ImportWorkData &workData, const JsonGameObject &gameObj, int32 objId, AActor *parentActor, const FString &folderPath);

@@ -51,7 +51,7 @@ namespace SceneExport{
 			writer.writeKeyVal("detailPrototypes", detailPrototypes);
 			writer.writeKeyVal("detailResolution", terrainData.detailResolution);
 		
-			writer.writeKeyVal("heighmapWidth", terrainData.heightmapWidth);
+			writer.writeKeyVal("heightmapWidth", terrainData.heightmapWidth);
 			writer.writeKeyVal("heightmapHeight", terrainData.heightmapHeight);
 			writer.writeKeyVal("heightmapResolution", terrainData.heightmapResolution);
 			writer.writeKeyVal("heightmapScale", terrainData.heightmapScale);

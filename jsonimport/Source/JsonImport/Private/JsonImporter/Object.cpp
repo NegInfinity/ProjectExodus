@@ -37,7 +37,18 @@
 #include "DesktopPlatformModule.h"
 
 #include "JsonObjects/JsonBinaryTerrain.h"
+
 #include "Landscape.h"
+#include "LandscapeInfo.h"
+#include "LandscapeLayerInfoObject.h"
+
+#include "JsonObjects/DataPlane2D.h"
+#include "JsonObjects/DataPlane3D.h"
+#include "ImportWorkData.h"
+
+//#include "LandscapeEditor/Private/ActorFactoryLandscape.h"
+//#include "LandscapeEditor/Public/LandscapeEditorUtils.h"
+//#include "LandscapeEditor/Public/LandscapeEditorModule.h"
 
 static void setParentAndFolder(AActor *actor, AActor *parentActor, const FString& folderPath, ImportWorkData &workData){
 	if (!actor)
@@ -406,9 +417,99 @@ void JsonImporter::processTerrains(ImportWorkData &workData, const JsonGameObjec
 	}
 }
 
+ALandscape* JsonImporter::createDefaultLandscape(ImportWorkData &workData, const JsonGameObject &jsonGameObj){
+	ALandscape * result = nullptr;
+	const int32 xComps = 1;
+	const int32 yComps = 1;
+	const int32 quadsPerSection = 63;
+	const int32 sectionsPerComp = 1;
+	const int32 quadsPerComp = quadsPerSection * sectionsPerComp;
+	int32 xSize = xComps * quadsPerComp + 1;
+	int32 ySize = yComps * quadsPerComp + 1;
+
+	DataPlane2D<uint16> hMap;
+	hMap.resize(xSize, ySize);	
+	auto* dstPtr = hMap.getData();
+	for(int i = 0; i < hMap.getNumElements(); i++){
+		dstPtr[i] = 32767;
+	}
+	
+
+	TArray<FLandscapeImportLayerInfo> importLayers;
+
+	FTransform transform; 
+	FActorSpawnParameters spawnParams;
+	transform.SetFromMatrix(FMatrix::Identity);
+
+	result = workData.world->SpawnActor<ALandscape>(ALandscape::StaticClass());
+	if (!result){
+		UE_LOG(JsonLogTerrain, Error, TEXT("Failed to spawn landscape"));
+		return result; 
+	}
+	result->SetActorRelativeScale3D(FVector::OneVector);
+		
+	result->StaticLightingLOD = FMath::DivideAndRoundUp(FMath::CeilLogTwo((xSize * ySize) / (2048 * 2048) + 1), (uint32)2);//?
+
+	auto guid = FGuid::NewGuid();
+	auto *landProxy = Cast<ALandscapeProxy>(result);
+	landProxy->SetLandscapeGuid(guid);
+
+	landProxy->Import(FGuid::NewGuid(),
+		0, 0, xSize - 1, ySize - 1, sectionsPerComp, quadsPerSection, hMap.getData(), 
+		TEXT(""), importLayers, ELandscapeImportAlphamapType::Additive);
+
+	ULandscapeInfo *landscapeInfo  = result->CreateLandscapeInfo();
+	landscapeInfo->UpdateLayerInfoMap(result);
+
+	result->MarkComponentsRenderStateDirty();
+	result->PostLoad();
+
+	return result;
+}
+
+ALandscape* JsonImporter::createDefaultLandscape(UWorld *world){
+	ALandscape * result = nullptr;
+	const int32 xComps = 1;
+	const int32 yComps = 1;
+	const int32 quadsPerSection = 63;
+	const int32 sectionsPerComp = 1;
+	const int32 quadsPerComp = quadsPerSection * sectionsPerComp;
+	int32 xSize = xComps * quadsPerComp + 1;
+	int32 ySize = yComps * quadsPerComp + 1;
+
+	TArray<uint16> hMap;
+	hMap.SetNumUninitialized(xSize * ySize);
+	for(int i = 0; i < hMap.Num(); i++){
+		hMap[i] = 32768;
+	}
+	
+	TArray<FLandscapeImportLayerInfo> importLayers;
+
+	result = world->SpawnActor<ALandscape>(ALandscape::StaticClass());
+	result->StaticLightingLOD = FMath::DivideAndRoundUp(FMath::CeilLogTwo((xSize * ySize) / (2048 * 2048) + 1), (uint32)2);//?
+
+	auto guid = FGuid::NewGuid();
+	auto *landProxy = Cast<ALandscapeProxy>(result);
+	landProxy->SetLandscapeGuid(guid);
+
+	landProxy->Import(FGuid::NewGuid(),
+		0, 0, xSize - 1, ySize - 1, sectionsPerComp, quadsPerSection, hMap.GetData(), 
+		TEXT(""), importLayers, ELandscapeImportAlphamapType::Additive);
+
+	ULandscapeInfo *landscapeInfo  = result->CreateLandscapeInfo();
+	landscapeInfo->UpdateLayerInfoMap(result);
+
+	return result;
+}
+
 void JsonImporter::processTerrain(ImportWorkData &workData, const JsonGameObject &jsonGameObj, const JsonTerrain &jsonTerrain, 
 		AActor *parentActor, const FString& folderPath){
 	
+	//auto landscape = createDefaultLandscape(workData, jsonGameObj);
+	auto landscape = createDefaultLandscape(workData.world);
+	//setParentAndFolder(landscape, parentActor, folderPath, workData);
+	return;
+
 	auto dataId = jsonTerrain.terrainDataId;
 	UE_LOG(JsonLogTerrain, Log, TEXT("Terrain data id found: %d"), dataId);
 
@@ -452,61 +553,102 @@ void JsonImporter::processTerrain(ImportWorkData &workData, const JsonGameObject
 
 	//Actor spawn?
 
-
-	TArray<TArray<uint8>> alphaMasks;
-	alphaMasks.SetNum(terrainData->alphaMapRawPaths.Num());
-	for(int i = 0; i < terrainData->alphaMapRawPaths.Num(); i++){
-		auto curPath = terrainData->alphaMapRawPaths[i];
-		auto fullPath = FPaths::Combine(assetRootPath, curPath);
-		auto& curAlphaMask = alphaMasks[i];
-		UE_LOG(JsonLogTerrain, Log, TEXT("Loading alpha layer %d: %s"), i, *fullPath);
-		if (!FFileHelper::LoadFileToArray(curAlphaMask, *fullPath)){
-			UE_LOG(JsonLogTerrain, Error, TEXT("Could not load alpha mask %d (%s), aborting"), i, *fullPath);
-			return;
-		}
-		auto alphaSize = terrainData->alphaMapHeight * terrainData->alphaMapWidth;
-		if (alphaSize != curAlphaMask.Num()){
-			UE_LOG(JsonLogTerrain, Error, TEXT("Invalid alpha mask size %d instead of %d for layer %d (%s), aborting."), curAlphaMask.Num(), 
-				alphaSize, i, *fullPath);
-			return;
-		}
-	}
-
-	TArray<uint8> heightMap;
-	{
-		UE_LOG(JsonLogTerrain, Log, TEXT("Loading raw height map (%s)"), *terrainData->heightMapRawPath);
-
-		auto fullHeightPath = FPaths::Combine(assetRootPath, terrainData->heightMapRawPath);
-		if (!FFileHelper::LoadFileToArray(heightMap, *fullHeightPath)){
-			UE_LOG(JsonLogTerrain, Error, TEXT("Could not load heightmap \"%s\", aborting"), *fullHeightPath);
-			return;
-		}
-
-		auto expectedSize = sizeof(uint16) * terrainData->heightmapHeight * terrainData->heighmapWidth;
-		if (expectedSize != heightMap.Num()){
-			UE_LOG(JsonLogTerrain, Error, TEXT("Incorrect heightmap size in \"%s\", aborting. Got %d instead of expectd %d."), 
-				*fullHeightPath, heightMap.Num(), expectedSize);
-			return;
-		}
-	}
-	
+	//TArray<uint8> heightMap;
+	DataPlane2D<uint16> heightMapData;
+	auto fullHeightPath = FPaths::Combine(assetRootPath, terrainData->heightMapRawPath);
+	if (!heightMapData.loadFromRaw(fullHeightPath, terrainData->heightmapWidth, terrainData->heightmapHeight)){
+		UE_LOG(JsonLogTerrain, Error, TEXT("Could not load heightmap \"%s\", aborting"), *fullHeightPath);
+		return;
+	}	
 
 	FActorSpawnParameters spawnParams;
 	FTransform transform;
 	transform.SetFromMatrix(jsonGameObj.ueWorldMatrix);
 
-	//auto land = Cast<ALandscape>(workData.world->SpawnActor<ALandscapeProxy>(ALandscapeProxy::StaticClass(), transform, spawnParams));
 	auto land = workData.world->SpawnActor<ALandscape>(ALandscape::StaticClass(), transform, spawnParams);
-	//landscape->HasAllComponent
-
 	if (!land){
 		UE_LOG(JsonLogTerrain, Error, TEXT("Failed to spawn landscape"));
 		return;
 	}
-	ALandscapeProxy* landProxy = Cast<ALandscapeProxy>(land);
 
-	//landProxy->Import(
-	
+	ALandscapeProxy* landProxy = Cast<ALandscapeProxy>(land);
+	TArray<FLandscapeImportLayerInfo> importLayerInfos;
+	//importLayerInfos.SetNum(terrainData->alphaMapRawPaths.Num());
+
+	for(int i = 0; i < terrainData->alphaMapRawPaths.Num(); i++){
+		break;
+		auto layerInfo = importLayerInfos.AddDefaulted_GetRef();
+		auto layerName = FString::Printf(TEXT("Layer%d"), i);
+		layerInfo.LayerName = *layerName;
+		auto curPath = terrainData->alphaMapRawPaths[i];
+		auto fullPath = FPaths::Combine(assetRootPath, curPath);
+
+		layerInfo.SourceFilePath = fullPath;
+		layerInfo.LayerInfo = landProxy->CreateLayerInfo(*layerName);
+		auto *infoObj = layerInfo.LayerInfo;
+
+		auto& curInfo = importLayerInfos[i];
+		DataPlane2D<uint8> uintData;
+		if (!uintData.loadFromRaw(fullPath, terrainData->alphaMapWidth, terrainData->alphaMapHeight)){
+			UE_LOG(JsonLogTerrain, Error, TEXT("Could not load alpha mask %d (%s), aborting"), i, *fullPath);
+			return;
+		}
+		layerInfo.LayerData = uintData.getArrayCopy();
+		//alphaMasks[i] = uintData.getArrayCopy();
+		break;
+	}
+
+	/*
+	if (importLayerInfos.Num() == 0){
+		break;
+		auto& layer = importLayerInfos.AddDefaulted_GetRef();
+		layer.LayerName = TEXT("TestLayer");
+		DataPlane2D<uint8> dataPlane;
+		dataPlane.resize(256, 256);
+		layer.LayerData = dataPlane.getArray();
+
+		//layer.LayerInfo .. //?
+	}
+	*/
+
+	int32 xSize = terrainData->heightmapWidth;
+	int32 ySize = terrainData->heightmapHeight;
+	int32 xStrips = xSize - 1;
+	int32 yStrips = ySize - 1;
+
+	int32 compSize = 1;
+	while(true){
+		auto nextSize = compSize << 2;
+		if ((nextSize > xSize) || (nextSize > ySize))
+			break;
+
+		if ((xStrips % nextSize) != 0)
+			break;
+		if ((yStrips % nextSize) != 0)
+			break;
+		compSize = nextSize;
+	}
+
+	int32 quadsPerSection = 1;//Change it later?
+	int32 sectionsPerComponent = compSize; // this is actually width/height of section in quads. 
+
+	int32 xComps = xStrips;
+	int32 yComps = yStrips;
+	if (compSize > 1){
+		xComps /= compSize;
+		yComps /= compSize;
+	}
+
+	UE_LOG(JsonLogTerrain, Log, TEXT("Landscape data: \"%s\""), *fullHeightPath);
+	UE_LOG(JsonLogTerrain, Log, TEXT("xComps: %d, yComps: %d, compSize: %d, xSize: %d, ySize: %d"), xComps, yComps, compSize, xSize, ySize);
+
+	auto landscapeGuid = FGuid::NewGuid();
+	landProxy->SetLandscapeGuid(landscapeGuid);
+
+	landProxy->Import(landscapeGuid,
+		0, 0, xSize - 1, ySize - 1, sectionsPerComponent, quadsPerSection, heightMapData.getData(), 
+		*fullHeightPath, importLayerInfos, ELandscapeImportAlphamapType::Additive);
+
 	setParentAndFolder(land, parentActor, folderPath, workData);
 
 	//binData.load(

@@ -34,7 +34,7 @@ void JsonTerrainData::load(JsonObjPtr data){
 	getJsonObjArray(data, detailPrototypes, "detailPrototypes");
 	JSON_GET_VAR(data, detailResolution);
 
-	JSON_GET_VAR(data, heighmapWidth);
+	JSON_GET_VAR(data, heightmapWidth);
 	JSON_GET_VAR(data, heightmapHeight);
 	JSON_GET_VAR(data, heightmapResolution);
 	JSON_GET_VAR(data, heightmapScale);

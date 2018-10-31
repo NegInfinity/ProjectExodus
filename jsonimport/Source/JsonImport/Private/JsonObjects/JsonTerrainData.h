@@ -31,7 +31,7 @@ public:
 	TArray<JsonTerrainDetailPrototype> detailPrototypes;//terrainDetails --> detailPrototypes
 	int32 detailResolution = 0;
 
-	int32 heighmapWidth = 0;
+	int32 heightmapWidth = 0;
 	int32 heightmapHeight = 0;
 	int32 heightmapResolution = 0;
 	FVector heightmapScale;

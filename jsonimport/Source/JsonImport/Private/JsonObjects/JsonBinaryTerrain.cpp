@@ -68,10 +68,9 @@ bool JsonBinaryTerrain::load(const FString &filename){
 	alphaMaps.resize(alphaMapW, alphaMapH, numAlphaMaps);
 	detailMaps.resize(detailMapW, detailMapH, numDetailMaps);
 
-	readPtrElements(heightMap.getData(), heightMap.getFloatSize(), curPtr);
-	readPtrElements(alphaMaps.getData(), alphaMaps.getFloatSize(), curPtr);
-	readPtrElements(detailMaps.getData(), detailMaps.getFloatSize(), curPtr);
+	readPtrElements(heightMap.getData(), heightMap.getNumElements(), curPtr);
+	readPtrElements(alphaMaps.getData(), alphaMaps.getNumElements(), curPtr);
+	readPtrElements(detailMaps.getData(), detailMaps.getNumElements(), curPtr);
 
 	return true;
 }
-
