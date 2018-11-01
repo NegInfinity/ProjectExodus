@@ -2,6 +2,7 @@
 
 #include "JsonTypes.h"
 #include "DataPlane2D.h"
+#include "DataPlaneUtility.h"
 
 template<typename T> class DataPlane3D{
 protected:
@@ -29,6 +30,24 @@ public:
 
 		numLayerEls = width * height;
 		numTotalEls = numLayerEls * layers;
+	}
+
+	void transpose(){
+		auto oldData = data;
+		auto srcWidth = getWidth();
+		auto srcHeight = getHeight();
+		auto srcDepth = getNumLayers();
+		resize(srcHeight, srcWidth, srcDepth);
+		DataPlaneUtility::transpose3dDataWidthHeight(getData(), oldData.GetData(), srcWidth, srcHeight, srcDepth);
+	}
+
+	DataPlane3D<T> getTransposed() const{
+		auto srcWidth = getWidth();
+		auto srcHeight = getHeight();
+		auto srcDepth = getNumLayers();
+		DataPlane3D<T> result(srcHeight, srcWidth, srcDepth);
+		DataPlaneUtility::transpose3dDataWidthHeight(result.getData(), getData(), srcWidth, srcHeight, srcDepth);
+		return result;
 	}
 
 	void clear(){

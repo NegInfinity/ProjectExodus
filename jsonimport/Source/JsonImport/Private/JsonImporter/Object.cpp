@@ -517,6 +517,8 @@ void JsonImporter::processTerrain(ImportWorkData &workData, const JsonGameObject
 		UE_LOG(JsonLogTerrain, Warning, TEXT("Terrain data could not be found for id: %d"), dataId);
 		return;
 	}
+	UE_LOG(JsonLogTerrain, Log, TEXT("Export path: \"%s\""), *(terrainData->exportPath));
+	/*
 	UE_LOG(JsonLogTerrain, Log, TEXT("Height map raw path: \"%s\""), *(terrainData->heightMapRawPath));
 	UE_LOG(JsonLogTerrain, Log, TEXT("Num alpha maps; %d, num detailMaps: %d"), terrainData->alphaMapRawPaths.Num(), terrainData->detailMapRawPaths.Num());
 
@@ -527,14 +529,25 @@ void JsonImporter::processTerrain(ImportWorkData &workData, const JsonGameObject
 		UE_LOG(JsonLogTerrain, Log, TEXT("Detail map raw path: \"%s\""), *cur);
 
 	UE_LOG(JsonLogTerrain, Log, TEXT("Located export path %s for terrain %d"), *terrainData->exportPath, dataId);
+	*/
 
+	JsonBinaryTerrain binaryTerrain;
+	auto fullExportPath = FPaths::Combine(assetRootPath, terrainData->exportPath);
+	if (!binaryTerrain.load(fullExportPath)){
+		UE_LOG(JsonLogTerrain, Error, TEXT("Could not load binary terrain \"%s\", aborting"), *fullExportPath);
+	}
+	JsonConvertedTerrain convertedTerrain;
+	convertedTerrain.assignFrom(binaryTerrain);
 
+	/*
 	DataPlane2D<uint16> heightMapData;
 	auto fullHeightPath = FPaths::Combine(assetRootPath, terrainData->heightMapRawPath);
 	if (!heightMapData.loadFromRaw(fullHeightPath, terrainData->heightmapWidth, terrainData->heightmapHeight)){
 		UE_LOG(JsonLogTerrain, Error, TEXT("Could not load heightmap \"%s\", aborting"), *fullHeightPath);
 		return;
-	}	
+	}
+	*/
+	const auto& heightMapData = convertedTerrain.heightMap;
 
 	ALandscape * result = nullptr;
 	const int32 xComps = 1;
@@ -568,8 +581,21 @@ void JsonImporter::processTerrain(ImportWorkData &workData, const JsonGameObject
 	vTerZ = FVector(0.0f, 0.0f, 1.0f);
 	vTerPos = terrainMatrix.GetOrigin();
 
-	auto terrainScale = halfWorldSize * 0.001f;
+	/*
+	Default wiki says that landscape scale at 100 is 1 meter per unit and -256+256 range. Sooo....
+	*/
+	auto terrainScale = FVector::ZeroVector;//halfWorldSize * 0.001f;
+	logValue(TEXT("Terrain ueWorldSize: "), ueWorldSize);
+	UE_LOG(JsonLogTerrain, Log, TEXT("Terrain xSize: %d; ySize: %d"), xSize, ySize);
+	UE_LOG(JsonLogTerrain, Log, TEXT("Terrain hMap width: %d; height: %d"), heightMapData.getWidth(), heightMapData.getHeight());
+	auto sizeDefault = FVector(100.0f * (float)(xSize - 1), 100.0f * (float)(ySize - 1), 25600.0f * 2.0f);
+	terrainScale = 100.0f * ueWorldSize / sizeDefault;
+	//terrainScale.X = 100.0f * (ueWorldSize.X / 100.0f);
 	FVector terrainOffset = FVector::ZeroVector;
+
+	logValue(TEXT("Terrain offset: "), terrainOffset);
+	terrainOffset += vTerZ * ueWorldSize.Z * 0.5f;// / 100.0f;
+	logValue(TEXT("Terrain offset: "), terrainOffset);
 
 	vTerX *= terrainScale.X;
 	vTerY *= terrainScale.Y;
@@ -592,7 +618,6 @@ void JsonImporter::processTerrain(ImportWorkData &workData, const JsonGameObject
 	auto guid = FGuid::NewGuid();
 	auto *landProxy = Cast<ALandscapeProxy>(result);
 	landProxy->SetLandscapeGuid(guid);
-
 
 	landProxy->Import(FGuid::NewGuid(),
 		0, 0, xSize - 1, ySize - 1, sectionsPerComp, quadsPerSection, heightMapData.getData(), 

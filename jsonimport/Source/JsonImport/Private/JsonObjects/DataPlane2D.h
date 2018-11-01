@@ -1,6 +1,7 @@
 #pragma once
 
 #include "JsonTypes.h"
+#include "DataPlaneUtility.h"
 
 template<typename T> class DataPlane2D{
 protected:
@@ -10,13 +11,29 @@ protected:
 	DataArray data;
 	int32 numTotalEls = 0;
 public:
-	int32 getWidth(){return width;}
-	int32 getHeight(){return height;}
+	int32 getWidth() const{return width;}
+	int32 getHeight() const{return height;}
 	int getNumRowElements() const{return width;}
 	int32 getNumElements() const{return numTotalEls;}
 
 	bool isEmpty() const{
 		return (width == 0) || (height == 0);
+	}
+
+	void transpose(){
+		auto oldData = data;
+		auto srcWidth = getWidth();
+		auto srcHeight = getHeight();
+		resize(srcHeight, srcWidth);
+		DataPlaneUtility::transpose2dData(getData(), oldData.GetData(), srcWidth, srcHeight);
+	}
+
+	DataPlane2D<T> getTransposed() const{
+		auto srcWidth = getWidth();
+		auto srcHeight = getHeight();
+		DataPlane2D<T> result(srcHeight, srcWidth);
+		DataPlaneUtility::transpose2dData(result.getData(), getData(), srcWidth, srcHeight);
+		return result;
 	}
 
 	void resize(int32 width_, int32 height_){
@@ -47,11 +64,11 @@ public:
 	}
 
 	const T* getRow(int y) const{
-		return &data[y * getRowElementSize()];
+		return &data[y * getNumRowElements()];
 	}
 
 	T getValue(int x, int y) const{
-		return data[x + y * getRowElementSize()];
+		return data[x + y * getNumRowElements()];
 	}
 
 	const DataArray& getArray() const{

@@ -70,33 +70,61 @@ namespace SceneExport{
 			}
 		}
 		
-		static void saveFloat2dAsRawUint16(string filename, int w, int h, float[,] data){
+		static void saveFloat2dAsRawUint16(string filename, int w, int h, float[,] data, bool transpose){
 			using(var writer = new System.IO.BinaryWriter(
 					System.IO.File.Open(filename, System.IO.FileMode.Create))){
-				for(int y = 0; y < h; y++){
+				if (!transpose){
+					for(int y = 0; y < h; y++){
+						for(int x = 0; x < w; x++){
+							var src = data[y,x];
+							var f = Mathf.Clamp01(src);
+							//var i = Mathf.RoundToInt(f * (float)0xFFFF);
+							var i = Mathf.FloorToInt(f * (float)0xFFFF);
+							var outData = (System.UInt16)i;
+							writer.Write(outData);
+						}
+					}
+				}
+				else{
 					for(int x = 0; x < w; x++){
-						var src = data[y,x];
-						var f = Mathf.Clamp01(src);
-						//var i = Mathf.RoundToInt(f * (float)0xFFFF);
-						var i = Mathf.FloorToInt(f * (float)0xFFFF);
-						var outData = (System.UInt16)i;
-						writer.Write(outData);
+						for(int y = 0; y < h; y++){
+							var src = data[y,x];
+							var f = Mathf.Clamp01(src);
+							//var i = Mathf.RoundToInt(f * (float)0xFFFF);
+							var i = Mathf.FloorToInt(f * (float)0xFFFF);
+							var outData = (System.UInt16)i;
+							writer.Write(outData);
+						}
 					}
 				}
 			}
 		}
 		
-		static void saveFloat3dSliceAsRawUint8(string filename, int w, int h, int level, float[,,] data){
+		static void saveFloat3dSliceAsRawUint8(string filename, int w, int h, int level, float[,,] data, bool transpose){
 			using(var writer = new System.IO.BinaryWriter(
 					System.IO.File.Open(filename, System.IO.FileMode.Create))){
-				for(int y = 0; y < h; y++){
+				if (!transpose){
+					for(int y = 0; y < h; y++){
+						for(int x = 0; x < w; x++){
+							var src = data[y,x, level];
+							var f = Mathf.Clamp01(src);
+							//var i = Mathf.RoundToInt(f * (float)0xFFFF);
+							var i = Mathf.FloorToInt(f * (float)0xFF);
+							var outData = (System.Byte)i;
+							writer.Write(outData);
+						}
+					}
+				}
+				else{
 					for(int x = 0; x < w; x++){
-						var src = data[y,x, level];
-						var f = Mathf.Clamp01(src);
-						//var i = Mathf.RoundToInt(f * (float)0xFFFF);
-						var i = Mathf.FloorToInt(f * (float)0xFF);
-						var outData = (System.Byte)i;
-						writer.Write(outData);
+						for(int y = 0; y < h; y++){
+							var src = data[y,x, level];
+							var f = Mathf.Clamp01(src);
+							//var i = Mathf.RoundToInt(f * (float)0xFFFF);
+							var i = Mathf.FloorToInt(f * (float)0xFF);
+							var outData = (System.Byte)i;
+							writer.Write(outData);
+						}
 					}
 				}
 			}
@@ -163,7 +191,7 @@ namespace SceneExport{
 			//only height
 			writeFloat2dBin(heightPath, hMapW, hMapH, heightData);
 			saveFloat2dAsRawUint16(System.IO.Path.Combine(targetDir, 
-				curTerrain.heightMapRawPath), hMapW, hMapH, heightData
+				curTerrain.heightMapRawPath), hMapW, hMapH, heightData, true
 			);
 			
 			/*
@@ -190,7 +218,7 @@ namespace SceneExport{
 				
 				saveFloat3dSliceAsRawUint8(System.IO.Path.Combine(
 						targetDir, curTerrain.alphaMapRawPaths[alphaIndex]
-					), alphaW, alphaH, alphaIndex, alphaData
+					), alphaW, alphaH, alphaIndex, alphaData, true
 				);
 				
 				//png splat

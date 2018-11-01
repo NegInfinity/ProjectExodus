@@ -74,3 +74,19 @@ bool JsonBinaryTerrain::load(const FString &filename){
 
 	return true;
 }
+
+void JsonConvertedTerrain::clear(){
+	heightMap.clear();
+	alphaMaps.clear();
+}
+
+void JsonConvertedTerrain::assignFrom(const JsonBinaryTerrain& src){
+	auto tmpHeight  = src.heightMap.getTransposed();
+
+	tmpHeight.convertTo(
+		heightMap, 
+		[](float arg) ->uint16{
+			return FMath::FloorToInt(arg * (float)0xFFFF);
+		}
+	);
+}
