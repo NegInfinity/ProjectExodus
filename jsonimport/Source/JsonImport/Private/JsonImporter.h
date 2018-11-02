@@ -14,6 +14,7 @@ class UMaterialExpressionTextureSample;
 class UTexture;
 class UMaterial;
 class ALandscape;
+class ULandscapeLayerInfoObject;
 
 class JsonImporter{
 protected:
@@ -35,7 +36,6 @@ protected:
 	ALandscape* createDefaultLandscape(ImportWorkData &workData, const JsonGameObject &jsonGameObj);
 	ALandscape* createDefaultLandscape(UWorld *world);
 
-
 	bool saveSceneObjectsAsWorld(const JsonValPtrs *sceneObjects, const FString &sceneName, const FString &scenePath);
 	void processReflectionProbes(ImportWorkData &workData, const JsonGameObject &gameObj, int32 objId, AActor *parentActor, const FString &folderPath);
 	void processLight(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonLight &light, AActor *parentActor, const FString& folderPath);
@@ -45,6 +45,9 @@ protected:
 	void processTerrain(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonTerrain &jsonTerrain, AActor *parentActor, const FString& folderPath);
 	void processTerrains(ImportWorkData &workData, const JsonGameObject &gameObj, AActor *parentActor, const FString& folderPath);
 
+	ULandscapeLayerInfoObject* createTerrainLayerInfo(ImportWorkData &workData, const JsonGameObject &jsonGameObj, const JsonTerrainData &terrData, int layerIndex);
+
+	//UMaterial *createTerrainMaterial(ImportWorkData &workData, const JsonGameObject &jsonGameObj, const JsonTerrainData &terrData, const JsonConvertedTerrain &convTerrain);
 	UWorld *createWorldForScene(const FString &sceneName, const FString &scenePath);
 	bool saveLoadedWorld(UWorld *world, const FString &sceneName, const FString &sceneAssetPath);
 	void importScene(JsonObjPtr sceneData, bool createWorld);
@@ -59,6 +62,9 @@ public:
 	void registerEmissiveMaterial(int32 id);
 	const FString& getAssetRootPath() const{
 		return assetRootPath;
+	}
+	const FString& getAssetCommonPath() const{
+		return assetCommonPath;
 	}
 
 	UTexture *getTexture(int32 id);
@@ -84,10 +90,9 @@ public:
 	void importObject(JsonObjPtr obj, int32 objId, ImportWorkData &importData);
 	void importObject(const JsonGameObject &jsonGameObj , int32 objId, ImportWorkData &importData);
 
-
-
 	static int findMatchingLength(const FString& arg1, const FString& arg2);
 	FString findCommonPath(const JsonValPtrs* resources);
+	FString getProjectImportPath() const;
 
 	template<typename T> UPackage* createPackage(const FString &name, 
 			const FString &filePath, const FString &rootPath, 

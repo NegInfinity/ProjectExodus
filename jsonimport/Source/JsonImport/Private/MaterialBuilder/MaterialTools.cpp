@@ -13,6 +13,14 @@
 #include "Materials/MaterialExpressionConstant.h"
 #include "Materials/MaterialExpressionComponentMask.h"
 
+#include "Materials/MaterialExpressionLandscapeLayerBlend.h"
+#include "Materials/MaterialExpressionLandscapeLayerCoords.h"
+#include "Materials/MaterialExpressionLandscapeLayerSample.h"
+#include "Materials/MaterialExpressionLandscapeLayerSwitch.h"
+#include "Materials/MaterialExpressionLandscapeLayerWeight.h"
+#include "Materials/MaterialExpressionLandscapeVisibilityMask.h"
+#include "Materials/MaterialExpressionLandscapeGrassOutput.h"
+
 using namespace MaterialTools;
 
 //normal.xy *= bumpScale;

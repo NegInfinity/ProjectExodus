@@ -25,7 +25,16 @@
 #include "Materials/MaterialExpressionClamp.h"
 #include "Materials/MaterialExpressionMax.h"
 
+#include "Materials/MaterialExpressionLandscapeLayerBlend.h"
+#include "Materials/MaterialExpressionLandscapeLayerCoords.h"
+#include "Materials/MaterialExpressionLandscapeLayerSample.h"
+#include "Materials/MaterialExpressionLandscapeLayerSwitch.h"
+#include "Materials/MaterialExpressionLandscapeLayerWeight.h"
+#include "Materials/MaterialExpressionLandscapeVisibilityMask.h"
+#include "Materials/MaterialExpressionLandscapeGrassOutput.h"
+
 #include "MaterialTools.h"
+#include "JsonObjects/utilities.h"
 
 DEFINE_LOG_CATEGORY(JsonLogMatNodeSort);
 
@@ -55,7 +64,7 @@ void MaterialBuilder::arrangeNodesGrid(UMaterial* material, const JsonMaterial &
 	}
 }
 
-void MaterialBuilder::arrangeNodesTree(UMaterial* material, const JsonMaterial &jsonMat, const MaterialFingerprint &fingerprint, MaterialBuildData &buildData){
+void MaterialBuilder::arrangeNodesTree(UMaterial* material /*, const JsonMaterial &jsonMat, const MaterialFingerprint &fingerprint, MaterialBuildData &buildData*/){
 	TMap<UMaterialExpression*, TSet<UMaterialExpression*>> srcToDst, dstToSrc;
 	auto registerConnection = [&](UMaterialExpression* src, UMaterialExpression* dst){
 		if (!src || !dst)
@@ -695,8 +704,9 @@ void MaterialBuilder::buildMaterial(UMaterial* material, const JsonMaterial &jso
 	//opacity
 	processOpacity(material, jsonMat, fingerprint, buildData);
 	//sort this as a grid.
+
 	//arrangeNodesGrid(material, jsonMat, fingerprint, buildData);
-	arrangeNodesTree(material, jsonMat, fingerprint, buildData);
+	arrangeNodesTree(material);//, jsonMat, fingerprint, buildData);
 }
 
 #endif
@@ -808,133 +818,253 @@ UMaterial* MaterialBuilder::importMaterial(JsonObjPtr obj, JsonImporter *importe
 	return importMaterial(jsonMat, importer, matId);
 }
 
-#ifdef MATBUILDER_OLDGEN
-void MaterialBuilder::buildMaterial(UMaterial* material, const JsonMaterial &jsonMat, 
-		const MaterialFingerprint &fingerprint, JsonImporter *importer, MaterialBuildData &buildData){
+UMaterialExpressionLandscapeLayerCoords* createLayerCoords(UMaterial *material, const JsonTerrain &terr, const JsonTerrainData &terrData
+	, const FVector2D& size, const FVector2D& offset, const TCHAR* text = 0){
+	auto result = createExpression<UMaterialExpressionLandscapeLayerCoords>(material, text);
 
-	logValue("Transparent queue", jsonMat.isTransparentQueue());
-	logValue("Alpha test queue", jsonMat.isAlphaTestQueue());
-	logValue("Geom queue", jsonMat.isGeomQueue());
+	//we'll need another mapping rotate/scale module here, most likely
+	//Let's postpone for now.
+	result->MappingScale = 100.0f;
+	result->MappingPanU = offset.X;
+	result->MappingPanV = offset.Y;
 
-	//albedo
-	UE_LOG(JsonLog, Log, TEXT("Creating albedo"));
-	UMaterialExpressionTextureSample *albedoTexExpression = 0;
-	UMaterialExpressionVectorParameter *albedoColorExpression = 0;
+	return result;
+}
 
-	UTexture *mainTexture = importer->getTexture(jsonMat.mainTexture);
-	auto albedoSource = createMaterialInputMultiply(material, mainTexture, &jsonMat.colorGammaCorrected, material->BaseColor, 
-		TEXT("Albedo(Texture)"), TEXT("Albedo(Color)"), &albedoTexExpression, &albedoColorExpression);
-
-	if (jsonMat.useNormalMap){
-		UE_LOG(JsonLog, Log, TEXT("Creating normal map"));
-
-		auto normalMapTex = importer->getTexture(jsonMat.normalMapTex);
-		createMaterialInput(material, normalMapTex, nullptr, material->Normal, true, TEXT("Normal"));
+UMaterialExpression* createLayerBlending(UMaterial* material, bool needSeparateBlend, const JsonTerrainData &terrData
+	, std::function<UMaterialExpression*(UMaterial* material, int index, const JsonSplatPrototype &splat)> channelFunc
+	, const TCHAR* blendName = 0){
+	if (!channelFunc){
+		UE_LOG(JsonLogTerrain, Error, TEXT("Null channel func while generating material for terrain \"%s\", cannot proceed"), *terrData.name);
+		return nullptr;
 	}
 
-	UE_LOG(JsonLog, Log, TEXT("Creating specular"));//TODO: connect specular alpha to smoothness
-
-	UMaterialExpressionTextureSample *specTexExpression = 0;
-
-	if (jsonMat.hasSpecular){
-		auto specularTex = importer->getTexture(jsonMat.specularTex);
-		createMaterialInput(material, specularTex, &jsonMat.specularColorGammaCorrected, material->Specular, false, 
-			TEXT("Specular Color"), &specTexExpression);
-	}
-	else{
-		// ?? Not sure if this is correct
-		//material->Specular.Expression = albedoSource;
-		//Nope, this is not correct. 
+	if (terrData.splatPrototypes.Num() <= 0){
+		UE_LOG(JsonLogTerrain, Error, TEXT("No splats on terrain \"%s\", material generation won't proceed far"), *terrData.name);
+		return nullptr;
 	}
 
-	auto occlusionTex = importer->getTexture(jsonMat.occlusionTex);
-	createMaterialInput(material, occlusionTex, nullptr, material->AmbientOcclusion, false, TEXT("Ambient Occlusion"));
-
-	if (jsonMat.hasEmission){
-		UE_LOG(JsonLog, Log, TEXT("Creating emissive"));
-
-		UMaterialExpressionTextureSample *emissiveTexExp = 0;
-
-		auto emissionTex = importer->getTexture(jsonMat.emissionTex);
-
-		createMaterialInputMultiply(material, emissionTex, jsonMat.hasEmissionColor ? &jsonMat.emissionColor: 0, material->EmissiveColor, 
-			TEXT("Emission Texture"), TEXT("Emission Color"));
-		material->bUseEmissiveForDynamicAreaLighting = true;
-		importer->registerEmissiveMaterial(buildData.matId);
+	if (!needSeparateBlend){
+		return channelFunc(material, 0, terrData.splatPrototypes[0]);
 	}
 
-	//if (useMetallic){
-	if (jsonMat.hasMetallic){
-		UE_LOG(JsonLog, Log, TEXT("Creating metallic value"));
-		createMaterialSingleInput(material, jsonMat.metallic, material->Metallic, TEXT("Metallic"));
+	auto blendExpr = createExpression<UMaterialExpressionLandscapeLayerBlend>(material, blendName);
+	for(int layerIndex = 0; layerIndex < terrData.splatPrototypes.Num(); layerIndex++){
+		const auto &srcSplat = terrData.splatPrototypes[layerIndex];
+		auto layerName = terrData.getLayerName(layerIndex);
+
+		auto &dst = blendExpr->Layers.AddDefaulted_GetRef();
+		dst.PreviewWeight = 1.0f;
+		dst.LayerName = *layerName;
+		dst.BlendType = LB_WeightBlend;
+
+		auto* expr =channelFunc(material, layerIndex, srcSplat);
+
+		dst.LayerInput.Expression = expr;
 	}
 
-	UE_LOG(JsonLog, Log, TEXT("hasMetallic: %d; hasSpecular: %d"), (int)(jsonMat.hasSpecular), (int)jsonMat.hasMetallic);
-	UE_LOG(JsonLog, Log, TEXT("specularMode:%d"), (int)(jsonMat.useSpecular));
-	UE_LOG(JsonLog, Log, TEXT("specTex exiss:%d"), (int)(specTexExpression != nullptr));
-	if (specTexExpression)
-		UE_LOG(JsonLog, Log, TEXT("num outputs: %d"), specTexExpression->Outputs.Num());
+	return blendExpr;
+}
 
-	//if (useSpecular && (specTexExpression != nullptr) && (specTexExpression->Outputs.Num() == 5)){
-	//useSpecular is false? the heck..
-	//if ((specTexExpression != nullptr) && (specTexExpression->Outputs.Num() == 5)){
-	if (jsonMat.hasSpecular && (specTexExpression != nullptr) && (specTexExpression->Outputs.Num() == 5)){
-		auto mulNode = NewObject<UMaterialExpressionMultiply>(material);
-		material->Expressions.Add(mulNode);
-		auto addNode = NewObject<UMaterialExpressionAdd>(material);
-		material->Expressions.Add(addNode);
-		addNode->ConstA = 1.0f;
-		addNode->B.Expression = mulNode;
-		mulNode->ConstA = -1.0f;
+void MaterialBuilder::buildTerrainMaterial(UMaterial *material, const JsonGameObject &gameObj, 
+		const JsonTerrain &terr, const JsonTerrainData &terrData, JsonImporter *importer){
 
-		specTexExpression->ConnectExpression(&mulNode->B, 4);
-		material->Roughness.Expression = addNode;
-	}
-	else{
-		createMaterialSingleInput(material, 1.0f - jsonMat.smoothness, material->Roughness, TEXT("Roughness"));
-	}
+	bool needColorBlend = false;
+	bool needNormalBlend = false;
+	bool needMetallicBlend = false;
+	bool needSpecularBlend = false;
+	bool needSmoothnessBlend = false;
+	bool needUvScales = false;
 
-	if (jsonMat.isTransparentQueue())
-		material->BlendMode = BLEND_Translucent;
-	if (jsonMat.isAlphaTestQueue())
-		material->BlendMode = BLEND_Masked;
-	if (jsonMat.isGeomQueue())
-		material->BlendMode = BLEND_Opaque;
+	FVector2D defaultTileSize(1.0f, 1.0f), defaultTileOffset(0.0f, 0.0f);
 
-	bool needsOpacity = (jsonMat.isTransparentQueue() || jsonMat.isAlphaTestQueue()) && !jsonMat.isGeomQueue();
-	if (needsOpacity){
-		auto &opacityTarget = jsonMat.isTransparentQueue() ? material->Opacity: material->OpacityMask;
+	float defaultMetallic = 0.0f, defaultSmoothness = 0.0f;
+	FLinearColor defaultSpecular = FLinearColor::White;
 
-		if (albedoTexExpression && albedoColorExpression){
-			auto opacityMul = createExpression<UMaterialExpressionMultiply>(material);
-			albedoTexExpression->ConnectExpression(&opacityMul->A, 4);
-			albedoColorExpression->ConnectExpression(&opacityMul->B, 4);
-			opacityTarget.Expression = opacityMul;
-		}else if (albedoTexExpression != 0)
-			albedoTexExpression->ConnectExpression(&opacityTarget, 4);
-		else if (albedoColorExpression != 0)
-			albedoColorExpression->ConnectExpression(&opacityTarget, 4);
+	for(int i = 0; i < terrData.splatPrototypes.Num(); i++){
+		auto& cur = terrData.splatPrototypes[i];
+		if (i == 0){
+			defaultMetallic = cur.metallic;
+			defaultSpecular = cur.specular;
+			defaultSmoothness = cur.smoothness;
+			defaultTileSize = cur.tileSize;
+			defaultTileOffset = cur.tileOffset;
+		}
 		else{
-			UE_LOG(JsonLog, Warning, TEXT("Could not find matchin opacity source in material %s"), *jsonMat.name);
+			needMetallicBlend = needMetallicBlend || (defaultMetallic != cur.metallic);
+			needSpecularBlend = needSpecularBlend || (defaultSpecular != cur.specular);
+			needSmoothnessBlend = needSmoothnessBlend || (defaultSmoothness != cur.smoothness);
+			needUvScales = needUvScales || (defaultTileSize != cur.tileSize) || (defaultTileOffset != cur.tileSize);
+		}
+		needColorBlend = needColorBlend || (cur.textureId >= 0);
+		needNormalBlend = needNormalBlend || (cur.normalMapId >= 0);
+	}
+
+	TArray<UMaterialExpression*> layerUvCoords;
+	if (needUvScales){
+		for(int i = 0; i < terrData.splatPrototypes.Num(); i++){
+			const auto& src = terrData.splatPrototypes[i];
+			auto coordName = FString::Printf(TEXT("uv coords #%d: %s"), i, *terrData.getLayerName(i));
+			auto curExpr = createLayerCoords(material, terr, terrData, src.tileSize, src.tileOffset, TEXT("uv coords"));
+			layerUvCoords.Add(curExpr);
+		}
+	}
+	else{
+		auto defaultExpr = createLayerCoords(material, terr, terrData, defaultTileSize, defaultTileOffset, TEXT("default uv coords"));
+		for(int i = 0; i < terrData.splatPrototypes.Num(); i++){
+			layerUvCoords.Add(defaultExpr);
 		}
 	}
 
-	auto numExpressions = material->Expressions.Num();
-	int expressionRows = (int)(sqrtf((float)numExpressions))+1;
-	if (expressionRows != 0){
-			for (int i = 0; i < numExpressions; i++){
-					auto cur = material->Expressions[i];
-					auto row = i / expressionRows;
-					auto col = i % expressionRows;
-
-					int32 size = 256;
-
-					int32 x = (col - expressionRows) * size;
-					int32 y = row * size;
-
-					cur->MaterialExpressionEditorX = x;
-					cur->MaterialExpressionEditorY = y;
+	auto* colorBlendExpr = createLayerBlending(material, needColorBlend, terrData, 
+		[&](UMaterial* mat, int layerIndex, const JsonSplatPrototype& srcSplat) -> UMaterialExpression*{
+			auto* colorTex = importer->getTexture(srcSplat.textureId);
+			if (colorTex){
+				auto texExpr = createTextureExpression(material, colorTex, 0);
+				texExpr->Coordinates.Expression = layerUvCoords[layerIndex];
+				return texExpr;
 			}
-	}	
+			else{
+				auto expr = createExpression<UMaterialExpressionConstant4Vector>(material);
+				expr->Constant = FLinearColor::White;
+				return expr;
+			}
+		}, TEXT("Color")
+	);
+	material->BaseColor.Expression = colorBlendExpr;
+
+	if (needNormalBlend){
+		auto* normBlendExpr = createLayerBlending(material, needNormalBlend, terrData,
+			[&](UMaterial* mat, int layerIndex, const JsonSplatPrototype& srcSplat) -> UMaterialExpression*{
+				auto* normTex = importer->getTexture(srcSplat.normalMapId);
+
+				if (normTex){
+					auto texExpr = createTextureExpression(material, normTex, 0);
+					texExpr->Coordinates.Expression = layerUvCoords[layerIndex];
+					return texExpr;
+				}
+				else{
+					auto expr = createExpression<UMaterialExpressionConstant4Vector>(material);
+					expr->Constant = FLinearColor(0.0f, 0.0f, 1.0f, 0.0f);
+					return expr;
+				}
+			}, TEXT("Normals")
+		);
+		material->Normal.Expression = normBlendExpr;
+	}
+
+	auto metallicBlendExpr = createLayerBlending(material, needMetallicBlend, terrData,
+		[&](UMaterial* mat, int layerIndex, const JsonSplatPrototype& srcSplat) -> UMaterialExpression*{
+			auto name = FString::Printf(TEXT("Metallic for layer %d(%s)"), layerIndex, *terrData.getLayerName(layerIndex));
+			auto result = createConstantExpression(material, srcSplat.metallic, *name);
+			return result;
+		}, TEXT("Metallic")
+	);
+	material->Metallic.Expression = metallicBlendExpr;
+
+	auto roughnessExpr = createLayerBlending(material, needSmoothnessBlend, terrData,
+		[&](UMaterial* mat, int layerIndex, const JsonSplatPrototype& srcSplat) -> UMaterialExpression*{
+			auto name = FString::Printf(TEXT("Roughness for layer %d(%s)"), layerIndex, *terrData.getLayerName(layerIndex));
+			auto result = createConstantExpression(material, 1.0f - srcSplat.smoothness, 0);
+			return result;
+		}, TEXT("Smoothness/Roughness")
+	);
+	//auto smoothnessBlend
+	material->Roughness.Expression = roughnessExpr;
+
+	//no specular
+	arrangeNodesTree(material);
 }
-#endif
+
+UMaterial* MaterialBuilder::buildTerrainMaterial(const JsonGameObject &gameObj,
+		const JsonTerrain &terr, const JsonTerrainData &terrainData, JsonImporter *importer){
+	FString terrPath, terrFileName, terrExt;
+	FPaths::Split(terrainData.exportPath, terrPath, terrFileName, terrExt);
+
+	auto materialName = terrainData.name + TEXT("_Material");
+	auto basePackageName = sanitizePackageName(materialName);
+	auto importPath = importer->getProjectImportPath();
+	auto materialPackagePath = buildPackagePath(basePackageName, 
+		&terrPath, &importPath, &importer->getAssetCommonPath());
+
+	UE_LOG(JsonLogTerrain, Log, TEXT("Creating material package for terrain \"%s\"(\"%s\") at \"%s\""), 
+		*terrainData.name, *terrainData.exportPath, *materialPackagePath);
+
+	auto materialPackage = CreatePackage(0, *materialPackagePath);
+
+	/*
+	//Nope. We need a factory.
+
+	auto materialObj = NewObject<UMaterial>(materialPackage, UMaterial::StaticClass(), *sanitizeObjectName(*materialName), 
+			RF_Standalone|RF_Public);
+	*/
+
+	auto matFactory = NewObject<UMaterialFactoryNew>();
+	matFactory->AddToRoot();
+
+	UMaterial* materialObj = (UMaterial*)matFactory->FactoryCreateNew(
+		UMaterial::StaticClass(), 
+		materialPackage, 
+		FName(*basePackageName), 
+		RF_Standalone|RF_Public,
+		0, GWarn
+	);
+
+	buildTerrainMaterial(materialObj, gameObj, terr, terrainData, importer);
+
+	if (materialObj){
+		materialObj->PreEditChange(0);
+		materialObj->PostEditChange();
+
+		//importer->registerMaterialPath(jsonMat.id, material->GetPathName());
+		FAssetRegistryModule::AssetCreated(materialObj);
+		materialPackage->SetDirtyFlag(true);
+	}
+
+	matFactory->RemoveFromRoot();
+
+	return materialObj;
+}
+
+
+UMaterial* MaterialBuilder::createMaterial(const FString& name, const FString &path, JsonImporter *importer, 
+		MaterialCallbackFunc newCallback, MaterialCallbackFunc existingCallback, MaterialCallbackFunc postEditCallback){
+	FString sanitizedMatName;
+	FString sanitizedPackageName;
+
+	UMaterial *existingMaterial = nullptr;
+	UPackage *matPackage = importer->createPackage(
+		name, path, importer->getAssetRootPath(), FString("Material"), 
+		&sanitizedPackageName, &sanitizedMatName, &existingMaterial);
+
+	if (existingMaterial){
+		if (existingCallback)
+			existingCallback(existingMaterial);
+		return existingMaterial;
+	}
+
+	auto matFactory = NewObject<UMaterialFactoryNew>();
+	matFactory->AddToRoot();
+
+	UMaterial* material = (UMaterial*)matFactory->FactoryCreateNew(
+		UMaterial::StaticClass(), matPackage, FName(*sanitizedMatName), RF_Standalone|RF_Public,
+		0, GWarn);
+
+	if (newCallback)
+		newCallback(material);
+
+	if (material){
+		material->PreEditChange(0);
+		material->PostEditChange();
+		
+		if (postEditCallback)
+			postEditCallback(material);
+		//importer->registerMaterialPath(jsonMat.id, material->GetPathName());
+		FAssetRegistryModule::AssetCreated(material);
+		matPackage->SetDirtyFlag(true);
+	}
+
+	matFactory->RemoveFromRoot();
+
+	return material;
+}

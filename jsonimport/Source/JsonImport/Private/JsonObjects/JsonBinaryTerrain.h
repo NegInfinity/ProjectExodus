@@ -8,6 +8,14 @@
 //using FloatPlane2D = DataPlane2D<float>;
 using FloatPlane3D = DataPlane3D<float>;
 
+class JsonTerrainConstants{
+public:
+	enum{
+		quadsPerComponent = 63,
+		maxComponentsPerDimension = 64
+	};
+};
+
 class JsonBinaryTerrain{
 public:
 	FloatPlane2D heightMap;
@@ -22,7 +30,8 @@ public:
 class JsonConvertedTerrain{
 public:
 	DataPlane2D<uint16> heightMap;
-	DataPlane3D<uint8> alphaMaps;
+	TArray<DataPlane2D<uint8>> alphaMaps;
+	//DataPlane3D<uint8> alphaMaps;
 	//detail maps???
 
 	void clear();

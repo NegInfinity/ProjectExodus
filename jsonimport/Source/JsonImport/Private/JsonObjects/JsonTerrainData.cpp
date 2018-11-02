@@ -57,3 +57,7 @@ void JsonTerrainData::load(JsonObjPtr data){
 
 	JSON_GET_VAR(data, wavingGrassTint);
 }
+
+FString JsonTerrainData::getLayerName(int layerIndex) const{
+	return FString::Printf(TEXT("Layer%d"), layerIndex);
+}

@@ -48,6 +48,8 @@ namespace MaterialTools{
 	UMaterialExpression* makeNormalMapScaler(UMaterial* material, UMaterialExpression *normalTex, UMaterialExpression* scaleFactor);
 	UMaterialExpressionAppendVector* createAppendVectorExpression(UMaterial* material, UMaterialExpression *argA = 0, UMaterialExpression *argB = 0, const TCHAR* name = 0);
 
+	//UMaterialExpressionLandscapeLayerBlend* createLayerExpression(UMaterial* material, 
+
 	template<typename Exp> Exp* createExpression(UMaterial *material, const TCHAR* name = 0){
 		Exp* result = NewObject<Exp>(material);
 		material->Expressions.Add(result);

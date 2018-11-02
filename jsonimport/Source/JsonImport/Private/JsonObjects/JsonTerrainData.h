@@ -54,6 +54,8 @@ public:
 
 	FLinearColor wavingGrassTint;
 
+	FString getLayerName(int layerIndex) const;
+
 	JsonTerrainData() = default;
 	JsonTerrainData(JsonObjPtr data);
 	void load(JsonObjPtr data);

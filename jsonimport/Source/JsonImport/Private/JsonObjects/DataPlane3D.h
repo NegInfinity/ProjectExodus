@@ -93,7 +93,7 @@ public:
 
 	DataPlane2D<T> getLayerData(int layer) const{
 		DataPlane2D<T> result;
-		getLayer(result, layer);
+		getLayerData(result, layer);
 		return result;
 	}
 

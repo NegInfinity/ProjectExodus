@@ -5,11 +5,16 @@
 
 using FloatPlane2D = DataPlane2D<float>;
 namespace JsonTerrainTools{
+	//For remapping unity terrain masks onto unreal data layout
+	bool scaleSplatMapToHeightMap(FloatPlane2D &dst, const FloatPlane2D &src, bool gui = false);
+
 	//uses linear interpolation internally. As this is how unity does it.
 	bool rescaleSplatMap(FloatPlane2D &dst, const FloatPlane2D &src, bool gui = false);
 
 	//uses linear interpolation internally
 	bool rescaleHeightMap(FloatPlane2D &dst, const FloatPlane2D &src, bool gui = false);
+
+	//This is broken.
 
 	//https://en.wikipedia.org/wiki/Cubic_Hermite_spline
 	inline constexpr float interpolateHermite(float p0, float p1, float m0, float m1, float t){
@@ -49,14 +54,44 @@ namespace JsonTerrainTools{
 		*/
 		return interpolateHermite(
 			p1, 
-			catmullRomTangent(p2, p0, 2.0f), 
 			p2, 
-			catmullRomTangent(p3, p1, 2.0f), 
+			catmullRomTangent(p0, p2, 2.0f), 
+			catmullRomTangent(p1, p3, 2.0f), 
 			t
 		);
 	}
 
 	inline constexpr float interpolateCatmullRom(const float* data, int idx0, int idx1, int idx2, int idx3, float t){
+		return interpolateCatmullRom(
+			data[idx0],
+			data[idx1],
+			data[idx2],
+			data[idx3],
+			t
+		);
+	}
+
+	/*
+	https://en.wikipedia.org/wiki/Centripetal_Catmull%E2%80%93Rom_spline
+	This is a simplification of:
+		a1 = p0 * (t1 - t)/(t1 - t0) + p1 * (t - t0)/(t1 - t0);
+		a2 = p1 * (t2 - t)/(t2 - t1) + p2 * (t - t1)/(t2 - t1);
+		a3 = p2 * (t3 - t)/(t3 - t2) + p3 * (t - t2)/(t3 - t2);
+		b1 = a1 * (t2 - t)/(t2 - t0) + a2 * (t - t0)/(t2 - t0);
+		b2 = a2 * (t3 - t)/(t3 - t1) + a3 * (t - t1)/(t3 - t1);
+		c = b1 * (t2 - t)/(t2 - t1) + b2 * (t - t1)/(t2 - t1);
+	for evenly spaced t, where t1 = 0.0f, t0 = -1.0f, t2 = 1.0f, t3 = 2.0f, etc.
+	*/
+	inline constexpr float interpolateCatmullRomUniform(float p0, float p1, float p2, float p3, float t){
+		return 0.5f * (
+			(2.0f * p1) +
+			(-p0 + p2) * t +
+			(2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3) * t * t +
+			(-p0 + 3.0f * p1 - 3.0f * p2 + p3) * t * t * t
+		);
+	}
+
+	inline constexpr float interpolateCatmullRomUniform(const float* data, int32 idx0, int32 idx1, int32 idx2, int32 idx3, float t){
 		return interpolateCatmullRom(
 			data[idx0],
 			data[idx1],

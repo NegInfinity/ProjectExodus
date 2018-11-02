@@ -40,6 +40,13 @@ using namespace JsonObjects;
 using namespace UnrealUtilities;
 //using namespace MaterialTools;
 
+FString JsonImporter::getProjectImportPath() const{
+	auto result = getDefaultImportPath();
+	if (result.Len() && sourceBaseName.Len())
+		result = FPaths::Combine(*result, *sourceBaseName);
+	return result;
+}
+
 void JsonImporter::importTerrainData(JsonObjPtr jsonData, JsonId terrainId, const FString &rootPath){
 	//
 	JsonTerrainData terrainData;
