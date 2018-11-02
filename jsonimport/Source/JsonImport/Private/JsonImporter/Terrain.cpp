@@ -199,7 +199,8 @@ void JsonImporter::processTerrain(ImportWorkData &workData, const JsonGameObject
 		}
 	}
 
-	UMaterial *terrainMaterial = materialBuilder.buildTerrainMaterial(jsonGameObj, jsonTerrain, *terrainData, this);
+	auto terrainVertSize = FIntPoint(xSize, ySize);
+	UMaterial *terrainMaterial = materialBuilder.buildTerrainMaterial(jsonGameObj, jsonTerrain, *terrainData, terrainVertSize, this);
 
 	FTransform terrainTransform;
 	FMatrix terrainMatrix = jsonGameObj.ueWorldMatrix;

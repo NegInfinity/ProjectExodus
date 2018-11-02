@@ -58,11 +58,14 @@ public:
 		MaterialCallbackFunc postEditCallback = MaterialCallbackFunc());
 
 	UMaterial *buildTerrainMaterial(const JsonGameObject &gameObj,
-		const JsonTerrain &terr, const JsonTerrainData &terrData, JsonImporter *importer);
+		const JsonTerrain &terr, const JsonTerrainData &terrData, 
+		const FIntPoint &terrainVertSize,
+		JsonImporter *importer);
 
 	MaterialBuilder() = default;
 protected:
-	void buildTerrainMaterial(UMaterial *material, const JsonGameObject &gameObj, const JsonTerrain &terr, const JsonTerrainData &terrData, JsonImporter *importer);
+	void buildTerrainMaterial(UMaterial *material, const JsonGameObject &gameObj, const JsonTerrain &terr, 
+		const JsonTerrainData &terrData, const FIntPoint &terrainVertSize, JsonImporter *importer);
 
 	void buildMaterial(UMaterial* material, const JsonMaterial &jsonMat, const MaterialFingerprint &fingerprint, MaterialBuildData &buildData);
 	void arrangeNodesGrid(UMaterial* material, const JsonMaterial &jsonMat, const MaterialFingerprint &fingerprint, MaterialBuildData &buildData);
