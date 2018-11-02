@@ -239,15 +239,21 @@ void JsonImporter::processReflectionProbes(ImportWorkData &workData, const JsonG
 
 		FMatrix captureMatrix = gameObj.ueWorldMatrix;
 
-		FVector ueCenter = unityToUe(probe.center);
-		FVector ueSize = unityToUe(probe.size);
+		FVector ueCenter = unityPosToUe(probe.center);
+		FVector ueSize = unitySizeToUe(probe.size);
 		FVector xAxis, yAxis, zAxis;
 		captureMatrix.GetScaledAxes(xAxis, yAxis, zAxis);
 		auto origin = captureMatrix.GetOrigin();
-		origin += xAxis * ueCenter.X * 100.0f + yAxis * ueCenter.Y * 100.0f + zAxis * ueCenter.Z * 100.0f;
-		xAxis *= ueSize.X;
-		yAxis *= ueSize.Y;
-		zAxis *= ueSize.Z;
+		//origin += xAxis * ueCenter.X * 100.0f + yAxis * ueCenter.Y * 100.0f + zAxis * ueCenter.Z * 100.0f;
+		origin += xAxis * ueCenter.X + yAxis * ueCenter.Y + zAxis * ueCenter.Z;
+
+		auto sphereInfluence = FMath::Max3(ueSize.X, ueSize.Y, ueSize.Z) * 0.5f;
+		if (probe.boxProjection){
+			xAxis *= ueSize.X * 0.5f;
+			yAxis *= ueSize.Y * 0.5f;
+			zAxis *= ueSize.Z * 0.5f;
+		}
+
 		captureMatrix.SetOrigin(origin);
 		captureMatrix.SetAxes(&xAxis, &yAxis, &zAxis);
 
@@ -269,6 +275,11 @@ void JsonImporter::processReflectionProbes(ImportWorkData &workData, const JsonG
 
 				auto captureComp = actor->GetCaptureComponent();
 				reflComponent = captureComp;
+				auto* sphereComp = Cast<USphereReflectionCaptureComponent>(captureComp);
+				if (sphereComp){
+					sphereComp->InfluenceRadius = sphereInfluence;
+				}
+				//reflComponent->Influence
 				actor->MarkComponentsRenderStateDirty();
 				setParentAndFolder(actor, parentActor, folderPath, workData);
 			}
