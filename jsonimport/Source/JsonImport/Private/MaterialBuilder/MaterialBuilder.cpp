@@ -822,11 +822,17 @@ UMaterialExpression* createTerrainLayerCoords(UMaterial *material, const JsonTer
 	, const FVector2D& splatSize, const FVector2D& splatOffset, const FIntPoint &terrainVertSize,  const TCHAR* text = 0){
 	auto landCoord = createExpression<UMaterialExpressionLandscapeLayerCoords>(material, text);
 
-	//we'll need another mapping rotate/scale module here, most likely
-	//Let's postpone for now.
-	landCoord->MappingScale = 1.0f;//1 per one vert unit//100.0f;//this means that 
-	landCoord->MappingPanU = 0.0f;//offset.X;
-	landCoord->MappingPanV = 0.0f;//offset.Y;
+	landCoord->MappingScale = 1.0f;//1 per one vert unit
+	landCoord->MappingPanU = 0.0f;
+	landCoord->MappingPanV = 0.0f;
+
+	auto swapMaskX = createComponentMask(material, true, false, false, false);
+	swapMaskX->Input.Expression = landCoord;
+
+	auto swapMaskY = createComponentMask(material, false, true, false, false);
+	swapMaskY->Input.Expression = landCoord;
+
+	auto landCoordSwapped = createAppendVectorExpression(material, swapMaskY, swapMaskX);
 
 	auto ueToQuadUv = FVector2D(1.0f, 1.0f);
 	if (terrainVertSize.X != 1)
@@ -844,43 +850,22 @@ UMaterialExpression* createTerrainLayerCoords(UMaterial *material, const JsonTer
 	quadToFinalScale.X = splatSize.X ? terrData.worldSize.X / splatSize.X : 1.0f;
 	quadToFinalScale.Y = splatSize.Y ? terrData.worldSize.Z / splatSize.Y : 1.0f;	
 
-	auto finalUvOffset = FVector2D(0.0f, 0.0f);
-	finalUvOffset.Y = 1.0f - FMath::Frac(quadToFinalScale.Y);
-	finalUvOffset.X += splatUvOffset.X;
-	finalUvOffset.Y -= splatUvOffset.Y;
-
-	auto downScaleUvConst = createExpression<UMaterialExpressionConstant4Vector>(material, TEXT("Terrain channel downscale"));
-	downScaleUvConst->Constant.R = ueToQuadUv.X;
-	downScaleUvConst->Constant.G = ueToQuadUv.Y;
-	auto downScaleUvVal = createComponentMask(material, true, true, false, false);
-	downScaleUvVal->Input.Expression = downScaleUvConst;
-
-	auto scaleUvConst = createExpression<UMaterialExpressionConstant4Vector>(material, TEXT("Terrain channel scale2"));
-	scaleUvConst->Constant.R = quadToFinalScale.X;
-	scaleUvConst->Constant.G = quadToFinalScale.Y;
+	auto scaleUvConst = createExpression<UMaterialExpressionConstant4Vector>(material, TEXT("Terrain channel downscale"));
+	scaleUvConst->Constant.R = ueToQuadUv.X * quadToFinalScale.X;
+	scaleUvConst->Constant.G = -ueToQuadUv.Y * quadToFinalScale.Y;
 	auto scaleUvVal = createComponentMask(material, true, true, false, false);
 	scaleUvVal->Input.Expression = scaleUvConst;
-	 
+
 	auto offsetUvConst = createExpression<UMaterialExpressionConstant4Vector>(material, TEXT("Terrain channel offset"));
-	offsetUvConst->Constant.R = finalUvOffset.X;
-	offsetUvConst->Constant.G = finalUvOffset.Y;
+	offsetUvConst->Constant.R = splatUvOffset.X;
+	offsetUvConst->Constant.G = -splatUvOffset.Y;
 	auto offsetUvVal = createComponentMask(material, true, true, false, false);
 	offsetUvVal ->Input.Expression = offsetUvConst;
 
-	auto mul = createMulExpression(material, landCoord, downScaleUvVal);
-	auto mul2 = createMulExpression(material, mul, scaleUvVal);
-	auto add = createAddExpression(material, mul2, offsetUvVal);
+	auto mul = createMulExpression(material, landCoordSwapped, scaleUvVal);
+	auto add = createAddExpression(material, mul, offsetUvVal);
 
-	auto swapMaskX = createComponentMask(material, true, false, false, false);
-	swapMaskX->Input.Expression = add;
-	auto swapMaskY = createComponentMask(material, false, true, false, false);
-	swapMaskY->Input.Expression = add;
-
-	auto append = createAppendVectorExpression(material, swapMaskY, swapMaskX);
-
-	return append;
-
-	//return result;
+	return add;
 }
 
 UMaterialExpression* createLayerBlending(UMaterial* material, bool needSeparateBlend, const JsonTerrainData &terrData
