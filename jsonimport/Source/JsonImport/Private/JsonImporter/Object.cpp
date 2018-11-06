@@ -294,6 +294,10 @@ void JsonImporter::processReflectionProbes(ImportWorkData &workData, const JsonG
 				auto captureComp = actor->GetCaptureComponent();
 				reflComponent = captureComp;
 				//captureComp->Brightness = intensity;
+				auto *boxComp = Cast<UBoxReflectionCaptureComponent>(captureComp);
+				if (boxComp){
+					boxComp->BoxTransitionDistance = unityDistanceToUe(probe.blendDistance * 0.5f);
+				}
 
 				//TODO: Cubemaps
 				/*if (isStatic)

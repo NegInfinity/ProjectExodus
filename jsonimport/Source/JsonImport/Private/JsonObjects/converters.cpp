@@ -29,3 +29,7 @@ FMatrix JsonObjects::unityWorldToUe(const FMatrix &unityWorld){
 	ueMatrix.SetAxes(&zAxis, &xAxis, &yAxis, &pos);
 	return ueMatrix;
 }
+
+float JsonObjects::unityDistanceToUe(const float arg){
+	return arg * 100.0f;
+}
