@@ -4,6 +4,7 @@
 #include "JsonObjects.h"
 
 #include "MaterialBuilder.h"
+#include "TerrainBuildData.h"
 #include "JsonObjects/JsonTerrainData.h"
 
 class UMaterialExpression;
@@ -15,6 +16,7 @@ class UTexture;
 class UMaterial;
 class ALandscape;
 class ULandscapeLayerInfoObject;
+class ULandscapeGrassType;
 
 class JsonImporter{
 protected:
@@ -49,7 +51,8 @@ protected:
 	void processTerrain(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonTerrain &jsonTerrain, AActor *parentActor, const FString& folderPath);
 	void processTerrains(ImportWorkData &workData, const JsonGameObject &gameObj, AActor *parentActor, const FString& folderPath);
 
-	ULandscapeLayerInfoObject* createTerrainLayerInfo(ImportWorkData &workData, const JsonGameObject &jsonGameObj, const JsonTerrainData &terrData, int layerIndex);
+	ULandscapeLayerInfoObject* createTerrainLayerInfo(ImportWorkData &workData, const JsonGameObject &jsonGameObj, 
+		const JsonTerrainData &terrData,int layerIndex, bool detailLayer, const FString &terrainDataPath);
 
 	//UMaterial *createTerrainMaterial(ImportWorkData &workData, const JsonGameObject &jsonGameObj, const JsonTerrainData &terrData, const JsonConvertedTerrain &convTerrain);
 	UWorld *createWorldForScene(const FString &sceneName, const FString &scenePath);
@@ -61,6 +64,9 @@ protected:
 
 	void importTerrainData(JsonObjPtr jsonData, JsonId terrainId, const FString &rootPath);
 	void loadTerrains(const JsonValPtrs* terrains);
+
+	ULandscapeGrassType* createGrassType(ImportWorkData &workData, const JsonGameObject &jsonGameObj, const JsonTerrainData &terrainData, 
+		int layerIndex, const FString &terrainDataPth);
 public:
 	void registerMaterialPath(int32 id, FString path);
 	void registerEmissiveMaterial(int32 id);

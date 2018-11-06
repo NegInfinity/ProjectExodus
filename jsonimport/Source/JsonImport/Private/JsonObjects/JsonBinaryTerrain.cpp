@@ -98,6 +98,28 @@ int32 findCloseLandscapeSize(int srcVertSize){
 	return comps * JsonTerrainConstants::quadsPerComponent + 1;
 }
 
+void convertFloat3DSplatToUintPlanes(TArray<DataPlane2D<uint8>> &outResult, const FloatPlane3D& src, int desiredW, int desiredH, const TCHAR* mapType = 0){
+	if (!mapType)
+		mapType = TEXT("");
+
+	outResult.Empty();
+	UE_LOG(JsonLogTerrain, Log, TEXT("Processing %s maps. %d detail maps present"), mapType, src.getNumLayers());
+	for(int layerIndex = 0; layerIndex < src.getNumLayers(); layerIndex++){
+		UE_LOG(JsonLogTerrain, Log, TEXT("Processing %s map %d out of %d."), mapType, layerIndex, src.getNumLayers());
+		auto srcFloats = src.getLayerData(layerIndex);
+		srcFloats.transpose();
+		FloatPlane2D dstFloats(desiredW, desiredH);
+		JsonTerrainTools::scaleSplatMapToHeightMap(dstFloats, srcFloats, true);
+
+		auto& byteMap = outResult.AddDefaulted_GetRef();
+		dstFloats.convertTo(byteMap, 
+			[](float arg) ->uint8{
+				return FMath::Clamp(FMath::RoundToInt(arg * (float)0xFF), 0, 0xFF);
+			}
+		);
+	}
+}
+
 void JsonConvertedTerrain::assignFrom(const JsonBinaryTerrain& src){
 	UE_LOG(JsonLogTerrain, Log, TEXT("Transposing height map"));
 	auto floatHMap = src.heightMap.getTransposed();
@@ -136,28 +158,6 @@ void JsonConvertedTerrain::assignFrom(const JsonBinaryTerrain& src){
 	);
 	UE_LOG(JsonLogTerrain, Log, TEXT("Conversion finished. %d x %d"), heightMap.getWidth(), heightMap.getHeight());
 
-	UE_LOG(JsonLogTerrain, Log, TEXT("Processing alpha maps. %d alpha maps present"), src.alphaMaps.getNumLayers());
-	alphaMaps.Empty();
-	for(int alphaIndex = 0; alphaIndex < src.alphaMaps.getNumLayers(); alphaIndex++){
-		UE_LOG(JsonLogTerrain, Log, TEXT("Processing alpha maps %d out of %d."), alphaIndex, src.alphaMaps.getNumLayers());
-		auto srcFloats = src.alphaMaps.getLayerData(alphaIndex);
-		srcFloats.transpose();
-		FloatPlane2D dstFloats(idealHMapW, idealHMapH);
-		JsonTerrainTools::scaleSplatMapToHeightMap(dstFloats, srcFloats, true);
-
-		auto& byteMap = alphaMaps.AddDefaulted_GetRef();
-		dstFloats.convertTo(byteMap, 
-			[](float arg) ->uint8{
-				return FMath::Clamp(FMath::RoundToInt(arg * (float)0xFF), 0, 0xFF);
-			}
-		);
-
-		/*
-		auto filePath = FString::Printf(TEXT("%d.bin"), alphaIndex);
-		auto debugPath = FPaths::Combine(TEXT("D:\\work\\EpicGames\\debug"), *filePath);
-
-		auto bytes = byteMap.getArrayCopy();
-		FFileHelper::SaveArrayToFile(bytes, *debugPath);
-		*/
-	}
+	convertFloat3DSplatToUintPlanes(alphaMaps, src.alphaMaps, idealHMapW, idealHMapH, TEXT("alpha"));
+	convertFloat3DSplatToUintPlanes(detailMaps, src.detailMaps, idealHMapW, idealHMapH, TEXT("detail"));
 }

@@ -33,6 +33,7 @@ public:
 	TArray<DataPlane2D<uint8>> alphaMaps;
 	//DataPlane3D<uint8> alphaMaps;
 	//detail maps???
+	TArray<DataPlane2D<uint8>> detailMaps;
 
 	void clear();
 	void assignFrom(const JsonBinaryTerrain& src);

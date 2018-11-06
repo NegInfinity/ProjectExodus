@@ -903,6 +903,29 @@ UMaterialExpression* createLayerBlending(UMaterial* material, bool needSeparateB
 	return blendExpr;
 }
 
+UMaterialExpression* createDetailControl(UMaterial* material, const JsonTerrainData &terrData, JsonImporter *importer){
+	//if (terrData.
+	if (terrData.detailPrototypes.Num() <= 0)
+		return nullptr;
+
+	auto numDetailLayers = terrData.detailPrototypes.Num();
+	auto grassControl = createExpression<UMaterialExpressionLandscapeGrassOutput>(material, TEXT("Grass control"));
+
+	for(int i = 0; i < numDetailLayers; i++){
+		auto layerName = terrData.getGrassLayerName(i);
+
+		auto& dstGrass = grassControl->GrassTypes.AddDefaulted_GetRef();
+		dstGrass.Name = *layerName;
+
+		auto layerSample = createExpression<UMaterialExpressionLandscapeLayerSample>(material, *layerName);
+		layerSample->ParameterName = *layerName;
+		layerSample->PreviewWeight = 1.0f;
+		dstGrass.Input.Expression = layerSample;
+	}
+
+	return grassControl;
+}
+
 void MaterialBuilder::buildTerrainMaterial(UMaterial *material, const JsonGameObject &gameObj, 
 		const JsonTerrain &terr, const JsonTerrainData &terrData, 
 		const FIntPoint &terrainVertSize, JsonImporter *importer){
@@ -1010,20 +1033,25 @@ void MaterialBuilder::buildTerrainMaterial(UMaterial *material, const JsonGameOb
 	//auto smoothnessBlend
 	material->Roughness.Expression = roughnessExpr;
 
+	createDetailControl(material, terrData, importer);
+
 	//no specular
 	arrangeNodesTree(material);
 }
 
 UMaterial* MaterialBuilder::buildTerrainMaterial(const JsonGameObject &gameObj,
-		const JsonTerrain &terr, const JsonTerrainData &terrainData, const FIntPoint &terrainVertSize, JsonImporter *importer){
+		const JsonTerrain &terr, const JsonTerrainData &terrainData, const FIntPoint &terrainVertSize, 
+		const FString & terrainDataPath, JsonImporter *importer){
+	/*
 	FString terrPath, terrFileName, terrExt;
 	FPaths::Split(terrainData.exportPath, terrPath, terrFileName, terrExt);
+	*/
 
 	auto materialName = terrainData.name + TEXT("_Material");
 	auto basePackageName = sanitizePackageName(materialName);
 	auto importPath = importer->getProjectImportPath();
 	auto materialPackagePath = buildPackagePath(basePackageName, 
-		&terrPath, &importPath, &importer->getAssetCommonPath());
+		&terrainDataPath, &importPath, &importer->getAssetCommonPath());
 
 	UE_LOG(JsonLogTerrain, Log, TEXT("Creating material package for terrain \"%s\"(\"%s\") at \"%s\""), 
 		*terrainData.name, *terrainData.exportPath, *materialPackagePath);
@@ -1050,14 +1078,10 @@ UMaterial* MaterialBuilder::buildTerrainMaterial(const JsonGameObject &gameObj,
 
 	buildTerrainMaterial(materialObj, gameObj, terr, terrainData, terrainVertSize, importer);
 
-	//materialObj->AddToRoot();
-
 	if (materialObj){
 		materialObj->PreEditChange(0);
 		materialObj->PostEditChange();
 
-		//importer->registerMaterialPath(jsonMat.id, material->GetPathName());
-		//materialObj->ForceRecompileForRendering();
 		FAssetRegistryModule::AssetCreated(materialObj);
 		materialPackage->SetDirtyFlag(true);
 	}

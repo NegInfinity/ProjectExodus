@@ -64,6 +64,10 @@ FString JsonTerrainData::getLayerName(int layerIndex) const{
 	return FString::Printf(TEXT("Layer%d"), layerIndex);
 }
 
+FString JsonTerrainData::getGrassLayerName(int layerIndex) const{
+	return FString::Printf(TEXT("GrassLayer%d"), layerIndex);
+}
+
 FVector JsonTerrainData::getNormalizedPosAsWorld(const FVector& normalizedUnityCoord, const FVector &origin) const{
 	auto ueSize = unitySizeToUe(worldSize);
 	auto ueCoord = unityVecToUe(normalizedUnityCoord);

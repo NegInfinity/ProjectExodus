@@ -111,18 +111,22 @@ ALandscape* JsonImporter::createDefaultLandscape(UWorld *world){
 	return result;
 }
 
+ULandscapeGrassType* JsonImporter::createGrassType(ImportWorkData &workData, const JsonGameObject &jsonGameObj, const JsonTerrainData &terrainData, 
+		int layerIndex, const FString &terrainDataPth){
+	return nullptr;
+}
+
 ULandscapeLayerInfoObject* JsonImporter::createTerrainLayerInfo(ImportWorkData &workData, 
-		const JsonGameObject &jsonGameObj, const JsonTerrainData &terrainData, int layerIndex){
+		const JsonGameObject &jsonGameObj, const JsonTerrainData &terrainData,
+		int layerIndex, bool grassLayer, 
+		const FString &terrainDataPath){
 
-	FString terrPath, terrFileName, terrExt;
-	FPaths::Split(terrainData.exportPath, terrPath, terrFileName, terrExt);
+	auto layerName = grassLayer ? terrainData.getGrassLayerName(layerIndex): terrainData.getLayerName(layerIndex);
+	auto basePackageName = layerName;
 
-	auto layerName = terrainData.getLayerName(layerIndex);//genTerrainLayerName(terrainData, layerIndex);
-	auto basePackageName = terrainData.name + FString("_") + layerName;
-
-	auto importPath = getProjectImportPath();//getDefaultImportPath();
+	auto importPath = getProjectImportPath();
 	auto layerPackagePath = buildPackagePath(basePackageName, 
-		&terrPath, &importPath, &assetCommonPath);
+		&terrainDataPath, &importPath, &assetCommonPath);
 
 
 	UE_LOG(JsonLogTerrain, Log, TEXT("Creating package for layer %d of terrain \"%s\" at \"%s\""), 
@@ -130,10 +134,9 @@ ULandscapeLayerInfoObject* JsonImporter::createTerrainLayerInfo(ImportWorkData &
 
 	auto layerPackage = CreatePackage(0, *layerPackagePath);
 
-	auto layerObj = //NewObject<ULandscapeLayerInfoObject>(layerPackage);
+	auto layerObj = 
 		NewObject<ULandscapeLayerInfoObject>(layerPackage, ULandscapeLayerInfoObject::StaticClass(), *sanitizeObjectName(*layerName), 
 			RF_Standalone|RF_Public);
-	//newLayer.LayerInfo = layerObj;
 	layerObj->LayerName = *layerName;
 
 	int32 colIndex = 1 + layerIndex % 7;
@@ -193,12 +196,6 @@ void processFoliageTreeActors(ImportWorkData &workData, ALandscape *landscape,
 	}
 
 	auto objPos = jsonGameObj.ueWorldMatrix.GetOrigin();
-	/*
-	auto xAxis = unityVecToUe(FVector(1.0f, 0.0f, 0.0f));
-	auto yAxis = unityVecToUe(FVector(0.0f, 1.0f, 0.0f));
-	auto zAxis = unityVecToUe(FVector(0.0f, 0.0f, 1.0f));
-	*/
-	//auto ueTerrainSize = 
 
 	for(int instanceIndex = 0; instanceIndex < terrData.treeInstances.Num(); instanceIndex++){
 		UE_LOG(JsonLogTerrain, Log, TEXT("Processing tree instance %d"), instanceIndex);
@@ -235,7 +232,7 @@ void processFoliageTreeActors(ImportWorkData &workData, ALandscape *landscape,
 
 void JsonImporter::processTerrain(ImportWorkData &workData, const JsonGameObject &jsonGameObj, const JsonTerrain &jsonTerrain, 
 		AActor *parentActor, const FString& folderPath){
-	
+
 	auto dataId = jsonTerrain.terrainDataId;
 	UE_LOG(JsonLogTerrain, Log, TEXT("Terrain data id found: %d"), dataId);
 
@@ -245,6 +242,16 @@ void JsonImporter::processTerrain(ImportWorkData &workData, const JsonGameObject
 		return;
 	}
 	UE_LOG(JsonLogTerrain, Log, TEXT("Export path: \"%s\""), *(terrainData->exportPath));
+
+	FString terrPath, terrFileName, terrExt;
+	FPaths::Split(terrainData->exportPath, terrPath, terrFileName, terrExt);
+	auto terrainDataPath = FPaths::Combine(terrPath, terrFileName + TEXT("_Data"));
+
+	TerrainBuildData buildData;
+	buildData.gameObj = &jsonGameObj;
+	buildData.terrData = terrainData;
+	buildData.terrainDataPath = terrainDataPath;
+	buildData.importer = this;
 
 	JsonBinaryTerrain binaryTerrain;
 	auto fullExportPath = FPaths::Combine(assetRootPath, terrainData->exportPath);
@@ -269,10 +276,11 @@ void JsonImporter::processTerrain(ImportWorkData &workData, const JsonGameObject
 	ySize = heightMapData.getHeight();
 
 	TArray<FLandscapeImportLayerInfo> importLayers;
+	//normal layers
 	if (convertedTerrain.alphaMaps.Num() > 0){
 		for(int i = 0; i < convertedTerrain.alphaMaps.Num(); i++){
 			auto layerName = terrainData->getLayerName(i);
-			auto layerInfoObj = createTerrainLayerInfo(workData, jsonGameObj, *terrainData, i);
+			auto layerInfoObj = createTerrainLayerInfo(workData, jsonGameObj, *terrainData, i, false, terrainDataPath);
 
 			auto &newLayer = importLayers.AddDefaulted_GetRef();
 			newLayer.LayerName = *layerName;
@@ -282,8 +290,27 @@ void JsonImporter::processTerrain(ImportWorkData &workData, const JsonGameObject
 		}
 	}
 
+	//grass
+	TArray<ULandscapeGrassType*> grassTypes;
+	if (convertedTerrain.detailMaps.Num() > 0){
+		for(int i = 0; i < convertedTerrain.detailMaps.Num(); i++){
+			auto layerName = terrainData->getGrassLayerName(i);
+			auto layerInfoObj = createTerrainLayerInfo(workData, jsonGameObj, *terrainData, i, true, terrainDataPath);
+
+			auto &newLayer = importLayers.AddDefaulted_GetRef();
+			newLayer.LayerName = *layerName;
+			newLayer.LayerData = convertedTerrain.detailMaps[i].getArrayCopy();
+			newLayer.LayerInfo = layerInfoObj;
+			newLayer.SourceFilePath = TEXT("");
+
+			auto newGrassType = createGrassType(workData, jsonGameObj, *terrainData, i, terrainDataPath);
+			grassTypes.Add(newGrassType);
+		}
+	}
+
+
 	auto terrainVertSize = FIntPoint(xSize, ySize);
-	UMaterial *terrainMaterial = materialBuilder.buildTerrainMaterial(jsonGameObj, jsonTerrain, *terrainData, terrainVertSize, this);
+	UMaterial *terrainMaterial = materialBuilder.buildTerrainMaterial(jsonGameObj, jsonTerrain, *terrainData, terrainVertSize, terrainDataPath, this);
 
 	FTransform terrainTransform;
 	FMatrix terrainMatrix = jsonGameObj.ueWorldMatrix;

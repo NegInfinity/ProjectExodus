@@ -59,7 +59,7 @@ public:
 
 	UMaterial *buildTerrainMaterial(const JsonGameObject &gameObj,
 		const JsonTerrain &terr, const JsonTerrainData &terrData, 
-		const FIntPoint &terrainVertSize,
+		const FIntPoint &terrainVertSize, const FString & terrainDataPath, 
 		JsonImporter *importer);
 
 	MaterialBuilder() = default;
