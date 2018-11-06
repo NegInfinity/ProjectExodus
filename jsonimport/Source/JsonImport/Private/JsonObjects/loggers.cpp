@@ -2,6 +2,10 @@
 #include "loggers.h"
 #include "JsonLog.h"
 
+void JsonObjects::logValue(const FString &msg, const LinearColorArray &arr){
+	UE_LOG(JsonLog, Log, TEXT("%s: LinearColorArray[%d]{...}"), *msg, arr.Num());
+}
+
 void JsonObjects::logValue(const FString &msg, const IntArray &arr){
 	UE_LOG(JsonLog, Log, TEXT("%s: IntArray[%d]{...}"), *msg, arr.Num());
 }

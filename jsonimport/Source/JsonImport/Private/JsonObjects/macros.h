@@ -9,5 +9,5 @@
 #define JSON_GET_PARAM(obj, name, op) name = op(obj, #name); logValue(#name, name);
 
 #define JSON_GET_VAR(obj, name) JsonObjects::getJsonValue(name, obj, #name); logValue(#name, name);
-#define JSON_GET_VAR2(obj, name, paramName) JsonOBjects::getJsonValue(name, obj, #paramName); logValue(#paramName, name);
+#define JSON_GET_VAR2(obj, name, paramName) JsonObjects::getJsonValue(name, obj, #paramName); logValue(#paramName, name);
 

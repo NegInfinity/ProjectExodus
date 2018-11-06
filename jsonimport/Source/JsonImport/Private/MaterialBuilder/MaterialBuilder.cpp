@@ -1050,11 +1050,14 @@ UMaterial* MaterialBuilder::buildTerrainMaterial(const JsonGameObject &gameObj,
 
 	buildTerrainMaterial(materialObj, gameObj, terr, terrainData, terrainVertSize, importer);
 
+	//materialObj->AddToRoot();
+
 	if (materialObj){
 		materialObj->PreEditChange(0);
 		materialObj->PostEditChange();
 
 		//importer->registerMaterialPath(jsonMat.id, material->GetPathName());
+		//materialObj->ForceRecompileForRendering();
 		FAssetRegistryModule::AssetCreated(materialObj);
 		materialPackage->SetDirtyFlag(true);
 	}

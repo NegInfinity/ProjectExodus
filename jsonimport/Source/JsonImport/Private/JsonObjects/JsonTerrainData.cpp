@@ -1,6 +1,8 @@
 #include "JsonImportPrivatePCH.h"
 #include "JsonTerrainData.h"
 #include "macros.h"
+#include "utilities.h"
+#include "converters.h"
 
 using namespace JsonObjects;
 
@@ -47,7 +49,7 @@ void JsonTerrainData::load(JsonObjPtr data){
 	//splatPrototypes --> splat prototypes
 	getJsonObjArray(data, splatPrototypes, "splatPrototypes");
 	//treeInstances --> tree instances
-	getJsonObjArray(data, treeInstances , "treeInstances ");
+	getJsonObjArray(data, treeInstances , "treeInstances");
 	//treePrototypes --> treePrototypes);
 	getJsonObjArray(data, treePrototypes, "treePrototypes");
 
@@ -60,4 +62,19 @@ void JsonTerrainData::load(JsonObjPtr data){
 
 FString JsonTerrainData::getLayerName(int layerIndex) const{
 	return FString::Printf(TEXT("Layer%d"), layerIndex);
+}
+
+FVector JsonTerrainData::getNormalizedPosAsWorld(const FVector& normalizedUnityCoord, const FVector &origin) const{
+	auto ueSize = unitySizeToUe(worldSize);
+	auto ueCoord = unityVecToUe(normalizedUnityCoord);
+	//ueCoord.X = ueCoord.X * 0.5f - 0.5f;
+	//ueCoord.Y = ueCoord.Y * 0.5f - 0.5f;
+
+	auto result = origin + 
+		FVector(
+			ueCoord.X * ueSize.X,
+			ueCoord.Y * ueSize.Y,
+			ueCoord.Z * ueSize.Z
+		);
+	return result;
 }

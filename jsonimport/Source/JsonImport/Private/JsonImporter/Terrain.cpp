@@ -15,7 +15,10 @@
 #include "ImportWorkData.h"
 #include "UnrealUtilities.h"
 
+#include "Runtime/Foliage/Public/InstancedFoliageActor.h"
+
 using namespace UnrealUtilities;
+using namespace JsonObjects;
 
 void JsonImporter::processTerrains(ImportWorkData &workData, const JsonGameObject &gameObj, AActor *parentActor, const FString& folderPath){
 	UE_LOG(JsonLog, Log, TEXT("Processing terrains for object %d"), gameObj.id);
@@ -150,6 +153,86 @@ ULandscapeLayerInfoObject* JsonImporter::createTerrainLayerInfo(ImportWorkData &
 	return layerObj;
 }
 
+void processFoliageTreeActors(ImportWorkData &workData, ALandscape *landscape, 
+		const JsonGameObject &jsonGameObj, const JsonTerrain &jsonTerrain, const JsonTerrainData &terrData, 
+		JsonImporter *importer){
+	UE_LOG(JsonLogTerrain, Log, TEXT("Processing terrain mesh actors. %d types, %d instances"), terrData.treePrototypes.Num(), terrData.treeInstances.Num());
+
+	auto* ifa = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(workData.world, true);
+
+	FString terrPath, terrFileName, terrExt;
+	FPaths::Split(terrData.exportPath, terrPath, terrFileName, terrExt);
+
+	TMap<int32, UFoliageType*> foliageTypes;
+	TMap<int32, FFoliageMeshInfo*> foliageMeshInfos;
+	//TMap<int32, UFoliageType*> foliages;
+
+	//TMap<JsonId, 
+	int prototypeIndex = 0;
+	for(const auto& curProtoTree: terrData.treePrototypes){
+		auto curProtoIdx = prototypeIndex++;
+		UE_LOG(JsonLogTerrain, Log, TEXT("Processing tree prototype %d. meshId %d; prefabId %d; prefabObj %d"),
+			curProtoIdx, curProtoTree.meshId, curProtoTree.prefabId, curProtoTree.prefabObjectId);
+
+		if (!isValidId(curProtoTree.meshId)){
+			UE_LOG(JsonLogTerrain, Log, TEXT("Prototype %d has no mesh, nothing to do"), curProtoIdx);
+			continue;
+		}
+		auto meshId = curProtoTree.meshId;
+
+		auto treeMesh = importer->loadStaticMeshById(meshId);
+		if (!treeMesh){
+			UE_LOG(JsonLogTerrain, Warning, TEXT("Mesh %d could not be loaded for prototype %d"), meshId, curProtoIdx);
+		}
+
+		UFoliageType *foliageInfo = nullptr;
+		auto meshInfo = ifa->AddMesh(treeMesh, &foliageInfo);
+		foliageTypes.Add(curProtoIdx, foliageInfo);
+		foliageMeshInfos.Add(curProtoIdx, meshInfo);
+		//for(const auto& curInstance: terrData.treeInstances)
+	}
+
+	auto objPos = jsonGameObj.ueWorldMatrix.GetOrigin();
+	/*
+	auto xAxis = unityVecToUe(FVector(1.0f, 0.0f, 0.0f));
+	auto yAxis = unityVecToUe(FVector(0.0f, 1.0f, 0.0f));
+	auto zAxis = unityVecToUe(FVector(0.0f, 0.0f, 1.0f));
+	*/
+	//auto ueTerrainSize = 
+
+	for(int instanceIndex = 0; instanceIndex < terrData.treeInstances.Num(); instanceIndex++){
+		UE_LOG(JsonLogTerrain, Log, TEXT("Processing tree instance %d"), instanceIndex);
+		auto srcInst = terrData.treeInstances[instanceIndex];
+		auto protoIndex = srcInst.prototypeIndex;
+		auto foundFoliage = foliageTypes.Find(protoIndex);
+		auto *foundMeshInfo = foliageMeshInfos.Find(protoIndex);
+		if (!foundFoliage || !foundMeshInfo){
+			UE_LOG(JsonLogTerrain, Warning, TEXT("Could not find foliage %d for instance %d while processing terrain %s"),
+				protoIndex, instanceIndex, *terrData.name);
+			continue;
+		}
+		
+		auto meshInfo = *foundMeshInfo;
+		auto foliageType = *foundFoliage;
+
+		auto srcPos = srcInst.position;
+		UE_LOG(JsonLogTerrain, Log, TEXT("Src coord %f %f %f"), srcPos.X, srcPos.Y, srcPos.Z);
+
+		FFoliageInstance dstInst;
+
+		auto scale = FVector(srcInst.widthScale, srcInst.widthScale, srcInst.heightScale);
+		//FVector unityScale(srcInst.widthScale, srcInst.he
+
+		dstInst.DrawScale3D = scale * 0.1f; //??why??
+
+		auto treePos = terrData.getNormalizedPosAsWorld(srcInst.position, objPos);
+		UE_LOG(JsonLogTerrain, Log, TEXT("Dst coord %f %f %f"), treePos.X, treePos.Y, treePos.Z);
+		//Hmm. Instance coordinates are within 0..1 range on terrain. 
+		dstInst.Location = treePos;//unityPosToUe(treePos);
+		meshInfo->AddInstance(ifa, foliageType, dstInst, true);
+	}
+}
+
 void JsonImporter::processTerrain(ImportWorkData &workData, const JsonGameObject &jsonGameObj, const JsonTerrain &jsonTerrain, 
 		AActor *parentActor, const FString& folderPath){
 	
@@ -276,5 +359,6 @@ void JsonImporter::processTerrain(ImportWorkData &workData, const JsonGameObject
 
 	setParentAndFolder(result, parentActor, folderPath, workData);
 
-	//return result;
+	if (terrainData)
+		processFoliageTreeActors(workData, result, jsonGameObj, jsonTerrain, *terrainData, this);
 }

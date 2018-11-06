@@ -42,6 +42,10 @@ protected:
 	void processLights(ImportWorkData &workData, const JsonGameObject &gameObj, AActor *parentActor, const FString& folderPath);
 	void processMesh(ImportWorkData &workData, const JsonGameObject &gameObj, int objId, AActor *parentActor, const FString& folderPath);
 
+	/*
+	void processFoliageActors(ImportWorkData &workData, ALandscape *landscape, const JsonGameObject &jsonGameObj, 
+		const JsonTerrain &jsonTerrain, const JsonTerrainData &terrData, 
+		AActor *parentActor, const FString& folderPath);*/
 	void processTerrain(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonTerrain &jsonTerrain, AActor *parentActor, const FString& folderPath);
 	void processTerrains(ImportWorkData &workData, const JsonGameObject &gameObj, AActor *parentActor, const FString& folderPath);
 
@@ -70,6 +74,9 @@ public:
 	UTexture *getTexture(int32 id);
 	UTexture* loadTexture(int32 id);
 	UMaterial* loadMaterial(int32 id);
+
+	FString getMeshPath(JsonId id) const;
+	UStaticMesh *loadStaticMeshById(JsonId id) const;
 
 	void importScene(const FString& path);
 	void importProject(const FString& path);

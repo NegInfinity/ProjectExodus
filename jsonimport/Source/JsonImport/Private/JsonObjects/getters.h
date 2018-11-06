@@ -19,6 +19,7 @@ namespace JsonObjects{
 			auto jsonObj = jsonVal->AsObject();
 			if (!jsonObj.IsValid()){	
 				UE_LOG(JsonLog, Warning, TEXT("Could not retrieve index %d from \"%s\""), i, name);
+				result.Add(T());
 				continue;
 			}
 			result.Add(T(jsonObj));
@@ -49,25 +50,21 @@ namespace JsonObjects{
 	FString getString(JsonObjPtr data, const char* name);
 	JsonObjPtr getObject(JsonObjPtr data, const char* name);
 
-	IntArray getIntArray(JsonObjPtr, const char *name);
-	StringArray getStringArray(JsonObjPtr, const char *name);
+	IntArray getIntArray(JsonObjPtr data, const char *name);
+	StringArray getStringArray(JsonObjPtr data, const char *name);
+	FloatArray getFloatArray(JsonObjPtr data, const char *name);
+	LinearColorArray getLinearColorArray(JsonObjPtr data, const char *name);
 
-	TArray<float> toFloatArray(const JsonValPtrs &inData){
-		TArray<float> result;
-		for(auto cur: inData){
-			double val = 0.0;
-			if (cur.IsValid()){
-				cur->TryGetNumber(val);
-			}
-				//val = cur->AsNumber();
-			result.Add(val);
-		}
-		return result;
-	}
-	
-	FloatArray toFloatArray(const JsonValPtrs* inData);
+	//this needs cleanup
+	FloatArray toFloatArray(const JsonValPtrs &inData);
+	FloatArray toFloatArray(const JsonValPtrs* inData);//two versions?
 	IntArray toIntArray(const JsonValPtrs &inData);
 	StringArray toStringArray(const JsonValPtrs &inData);
+	LinearColorArray toLinearColorArray(const JsonValPtrs &inData);
+
+	FLinearColor toLinearColor(JsonObjPtr data, const FLinearColor &defaultVal = FLinearColor());
+	FLinearColor toLinearColor(const FJsonValue &data, const FLinearColor &defaultVal = FLinearColor());
+
 	
 	void getJsonValue(FLinearColor& outValue, JsonObjPtr data, const char*name);
 	void getJsonValue(FMatrix& outValue, JsonObjPtr data, const char *name);
@@ -84,6 +81,8 @@ namespace JsonObjects{
 	//JsonObjPtr getObject(JsonObjPtr data, const char* name);
 	void getJsonValue(IntArray &outValue, JsonObjPtr data, const char* name);
 	void getJsonValue(StringArray &outValue, JsonObjPtr data, const char* name);
+	void getJsonValue(FloatArray &outValue, JsonObjPtr data, const char* name);
+	void getJsonValue(LinearColorArray &outValue, JsonObjPtr data, const char* name);
 
 	void getJsonValue(FColor& outValue, JsonObjPtr data, const char *name);
 	FColor getRgbColor(JsonObjPtr data, const char *name, const FColor &defaultVal = FColor());

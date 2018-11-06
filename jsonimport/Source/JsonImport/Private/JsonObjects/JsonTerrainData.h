@@ -54,6 +54,8 @@ public:
 
 	FLinearColor wavingGrassTint;
 
+	FVector getNormalizedPosAsWorld(const FVector &normalizedUnityCoord, const FVector &origin) const;
+
 	FString getLayerName(int layerIndex) const;
 
 	JsonTerrainData() = default;

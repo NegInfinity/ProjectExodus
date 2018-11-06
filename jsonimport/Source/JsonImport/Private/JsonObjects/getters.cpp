@@ -37,10 +37,30 @@ JsonObjPtr JsonObjects::getObject(JsonObjPtr data, const char* name){
 	//if (!result || !result->IsvV
 }
 
+FLinearColor JsonObjects::toLinearColor(const FJsonValue &data, const FLinearColor &defaultVal){
+	auto objPtr = data.AsObject();
+	return toLinearColor(objPtr);
+}
+
+FLinearColor JsonObjects::toLinearColor(JsonObjPtr data, const FLinearColor &defaultVal){
+	FLinearColor result = defaultVal;
+	if (!data.IsValid())
+			return result;
+	
+	result.A = getFloat(data, "a");
+	result.R = getFloat(data, "r");
+	result.G = getFloat(data, "g");
+	result.B = getFloat(data, "b");
+
+	return result;
+}
+
 FLinearColor JsonObjects::getLinearColor(JsonObjPtr data, const char* name, const FLinearColor &defaultVal){
 	FLinearColor result = defaultVal;
 
 	auto colorObj = getObject(data, name);
+	return toLinearColor(colorObj, defaultVal);
+	/*
 	if (!colorObj.IsValid())
 			return result;
 	result.A = getFloat(colorObj, "a");
@@ -49,6 +69,7 @@ FLinearColor JsonObjects::getLinearColor(JsonObjPtr data, const char* name, cons
 	result.B = getFloat(colorObj, "b");
 
 	return result;
+	*/
 }
 
 FMatrix JsonObjects::getMatrix(JsonObjPtr data, const char* name, const FMatrix &defaultVal){
@@ -162,6 +183,14 @@ IntArray JsonObjects::getIntArray(JsonObjPtr jsonObj, const char *name){
 	return IntArray();
 }
 
+FloatArray JsonObjects::getFloatArray(JsonObjPtr jsonObj, const char *name){
+	const JsonValPtrs* arrValues = 0;
+	loadArray(jsonObj, arrValues, name);
+	if (arrValues)
+		return toFloatArray(*arrValues);
+	return FloatArray();
+}
+
 void JsonObjects::getJsonValue(FLinearColor& outValue, JsonObjPtr data, const char*name){
 	outValue = getLinearColor(data, name);
 }
@@ -228,6 +257,11 @@ void JsonObjects::getJsonValue(StringArray &outValue, JsonObjPtr data, const cha
 	outValue = getStringArray(data, name);
 }
 
+void JsonObjects::getJsonValue(FloatArray &outValue, JsonObjPtr data, const char* name){
+	outValue = getFloatArray(data, name);
+}
+
+
 StringArray JsonObjects::toStringArray(const JsonValPtrs& inData){
 	StringArray result;
 	for(auto cur: inData){
@@ -254,7 +288,11 @@ FloatArray JsonObjects::toFloatArray(const JsonValPtrs* inData){
 	}
 	return result;
 }
-	
+
+void JsonObjects::getJsonValue(LinearColorArray &outValue, JsonObjPtr data, const char* name){
+	outValue = getLinearColorArray(data, name);
+}
+
 IntArray JsonObjects::toIntArray(const JsonValPtrs &inData){
 	IntArray result;
 	for(auto cur: inData){
@@ -273,4 +311,36 @@ StringArray JsonObjects::getStringArray(JsonObjPtr jsonObj, const char *name){
 	if (arrValues)
 		return toStringArray(*arrValues);
 	return StringArray();
+}
+
+FloatArray JsonObjects::toFloatArray(const JsonValPtrs &inData){
+	FloatArray result;
+	for(auto cur: inData){
+		double val = 0.0;
+		if (cur.IsValid()){
+			cur->TryGetNumber(val);
+		}
+			//val = cur->AsNumber();
+		result.Add(val);
+	}
+	return result;
+}
+
+LinearColorArray JsonObjects::toLinearColorArray(const JsonValPtrs &inData){
+	LinearColorArray result;
+	for(auto cur: inData){
+		FLinearColor val;
+		if (cur.IsValid())
+			val = toLinearColor(*cur);
+		result.Add(val);
+	}
+	return result;
+}
+
+LinearColorArray JsonObjects::getLinearColorArray(JsonObjPtr jsonObj, const char *name){
+	const JsonValPtrs* arrValues = 0;
+	loadArray(jsonObj, arrValues, name);
+	if (arrValues)
+		return toLinearColorArray(*arrValues);
+	return LinearColorArray();
 }
