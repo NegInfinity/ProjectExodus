@@ -4,7 +4,6 @@
 #include "JsonObjects.h"
 
 #include "MaterialBuilder.h"
-#include "TerrainBuildData.h"
 #include "JsonObjects/JsonTerrainData.h"
 
 class UMaterialExpression;
