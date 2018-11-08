@@ -46,6 +46,8 @@ public:
 	}
 };
 
+class TerrainBuilder;
+
 class MaterialBuilder{
 public:
 	UMaterial *importMaterial(const JsonMaterial& jsonMat, JsonImporter *importer, JsonMaterialId matId);
@@ -57,15 +59,14 @@ public:
 		MaterialCallbackFunc newCallback = MaterialCallbackFunc(), MaterialCallbackFunc existingCallback = MaterialCallbackFunc(), 
 		MaterialCallbackFunc postEditCallback = MaterialCallbackFunc());
 
-	UMaterial *buildTerrainMaterial(const JsonGameObject &gameObj,
-		const JsonTerrain &terr, const JsonTerrainData &terrData, 
-		const FIntPoint &terrainVertSize, const FString & terrainDataPath, 
-		JsonImporter *importer);
+	UMaterial *buildTerrainMaterial(const TerrainBuilder *terrainBuilder,
+		const FIntPoint &terrainVertSize, const FString &terrainDataPath);
+
+	UMaterial *buildBillboardMaterial(int32 texId, bool billboard, const TerrainBuilder *terrainBuilder, const FString &terrainDataPath);
 
 	MaterialBuilder() = default;
 protected:
-	void buildTerrainMaterial(UMaterial *material, const JsonGameObject &gameObj, const JsonTerrain &terr, 
-		const JsonTerrainData &terrData, const FIntPoint &terrainVertSize, JsonImporter *importer);
+	void buildTerrainMaterial(UMaterial *material, const TerrainBuilder *terrainBuilder, const FIntPoint &terrainVertSize, const FString &terrainDataPath);
 
 	void buildMaterial(UMaterial* material, const JsonMaterial &jsonMat, const MaterialFingerprint &fingerprint, MaterialBuildData &buildData);
 	void arrangeNodesGrid(UMaterial* material, const JsonMaterial &jsonMat, const MaterialFingerprint &fingerprint, MaterialBuildData &buildData);

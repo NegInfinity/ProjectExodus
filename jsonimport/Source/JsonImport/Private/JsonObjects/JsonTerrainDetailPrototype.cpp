@@ -13,6 +13,9 @@ void JsonTerrainDetailPrototype::load(JsonObjPtr data){
 	JSON_GET_VAR(data, detailPrefabId);
 	JSON_GET_VAR(data, detailPrefabObjectId);
 
+	JSON_GET_VAR(data, meshId);
+	JSON_GET_VAR(data, meshMaterials);
+
 	JSON_GET_VAR(data, bendFactor);
 	JSON_GET_PARAM(data, dryColor, getColor);//Gamma?
 	JSON_GET_PARAM(data, healthyColor, getColor);

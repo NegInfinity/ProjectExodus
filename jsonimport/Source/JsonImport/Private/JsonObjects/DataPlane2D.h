@@ -79,6 +79,14 @@ public:
 		return data;
 	}
 
+	void saveToRaw(const FString& filename) const{
+		auto totalDataSize = sizeof(T) * numTotalEls;
+		const uint8* dataPtr = (const uint8*)data.GetData();
+		TArrayView<const uint8> view(dataPtr, totalDataSize);
+		//TArrayView<const uint8> view(data.GetData(), data.Num());
+		FFileHelper::SaveArrayToFile(view, *filename);
+	}
+
 	bool loadFromRaw(const FString& filename, int w_, int h_){
 		resize(w_, h_);
 		TArray<uint8> data;

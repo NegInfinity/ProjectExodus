@@ -10,6 +10,8 @@ namespace SceneExport{
 		public int textureId = -1;
 		public int detailPrefabId = -1;
 		public int detailPrefabObjectId = -1;
+		
+		public MeshIdData meshIdData = new MeshIdData();
 		public void writeRawJsonValue(FastJsonWriter writer){
 			writer.beginRawObject();
 			writer.writeKeyVal("bendFactor", data.bendFactor);
@@ -24,6 +26,8 @@ namespace SceneExport{
 			writer.writeKeyVal("usePrototypeMesh", data.usePrototypeMesh);
 			
 			writer.writeKeyVal("textureId", textureId);
+			writer.writeKeyVal("detailMeshId", meshIdData.meshId);
+			writer.writeKeyVal("detailMeshMaterials", meshIdData.meshMaterials);
 			writer.writeKeyVal("detailPrefabId", detailPrefabId);
 			writer.writeKeyVal("detailPrefabObjectId", detailPrefabObjectId);
 			
@@ -36,6 +40,8 @@ namespace SceneExport{
 			textureId = resMap.getTextureId(data.prototypeTexture);
 			detailPrefabId = resMap.getRootPrefabId(data.prototype, true);
 			detailPrefabObjectId = resMap.getPrefabObjectId(data.prototype, true);
+			
+			meshIdData = new MeshIdData(data.prototype, resMap);
 			//meshId = resMap.getPrefabObjectId
 		}
 	}

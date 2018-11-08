@@ -4,9 +4,53 @@
 #include "JsonTypes.h"
 #include "JsonLog.h"
 #include "ImportWorkData.h"
+#include "Developer/RawMesh/Public/RawMesh.h"
+#include "Runtime/Engine/Classes/Engine/StaticMesh.h"
 #include <functional>
 
+class JsonImporter;
+class UStaticMesh;
+
 namespace UnrealUtilities{
+	//using StaticMeshCallback = std::function<void(UStaticMesh* mesh)>;
+	using StaticMeshBuildCallback = std::function<void(UStaticMesh* mesh, FStaticMeshSourceModel& model)>;
+	using RawMeshFillCallback = std::function<void(FRawMesh& rawMesh, int lod)>;
+
+	//Mesh generation routine. There's only one lod for now.
+	void generateStaticMesh(UStaticMesh *mesh, RawMeshFillCallback fillCallback, 
+		StaticMeshBuildCallback preConfig = nullptr, StaticMeshBuildCallback postConfig = nullptr);
+
+	UPackage* createAssetPackage(const FString &objectName, const FString* objectPath, const JsonImporter *importer, std::function<UObject*(UPackage*)> assetCreator);
+
+	template <typename T>T* createAssetObject(const FString& objectName, const FString* objectPath, const JsonImporter *importer, 
+			std::function<void(T* obj)> onCreate, EObjectFlags objectFlags){
+		return createAssetObject<T>(objectName, objectPath, importer, onCreate, nullptr, objectFlags);
+	}
+
+	template <typename T>T* createAssetObject(const FString& objectName, const FString* objectPath, const JsonImporter *importer, 
+			std::function<void(T* obj)> onCreate, std::function<T*(UPackage* pkg)> creatorFunc = nullptr, EObjectFlags objectFlags = RF_NoFlags){
+
+		T* finalResult;
+		createAssetPackage(objectName, objectPath, importer,
+			[&](UPackage* pkg) -> T*{
+				T* newObj = nullptr;
+				if (creatorFunc){
+					newObj = creatorFunc(pkg);
+				}
+				else{
+					newObj =  NewObject<T>(pkg, T::StaticClass(), *sanitizeObjectName(*objectName), objectFlags);
+				}
+				if (onCreate)
+					onCreate(newObj);
+				finalResult = newObj;
+				return newObj;
+			}
+		);
+
+
+		return finalResult;
+	}
+
 	template <typename T>T* createActor(UWorld *world, FTransform transform, bool editorMode, const TCHAR* logName = 0){
 		T* result = 0;
 		if (editorMode){
@@ -40,6 +84,9 @@ namespace UnrealUtilities{
 	FString sanitizeObjectName(const FString &arg);
 	FString sanitizePackageName(const FString &arg);
 
+	FString buildPackagePath(const FString &desiredName, const FString &desiredDir, const JsonImporter *importer);
+	FString buildPackagePath(const FString &desiredName, 
+		const FString *desiredDir, const JsonImporter *importer);
 	FString buildPackagePath(const FString &desiredName, 
 		const FString *desiredDir = nullptr, const FString *defaultPackageRoot = nullptr, const FString *commonAssetPath = nullptr);
 

@@ -57,6 +57,7 @@ public:
 	FVector getNormalizedPosAsWorld(const FVector &normalizedUnityCoord, const FVector &origin) const;
 
 	FString getLayerName(int layerIndex) const;
+	FString getGrassTypeName(int layerIndex) const;
 	FString getGrassLayerName(int layerIndex) const;
 
 	JsonTerrainData() = default;

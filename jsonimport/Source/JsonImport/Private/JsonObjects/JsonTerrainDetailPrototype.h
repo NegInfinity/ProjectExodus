@@ -7,6 +7,9 @@ public:
 	int detailPrefabId;
 	int detailPrefabObjectId;
 
+	int meshId;
+	IntArray meshMaterials;
+
 	float bendFactor;
 	FLinearColor dryColor;
 	FLinearColor healthyColor;

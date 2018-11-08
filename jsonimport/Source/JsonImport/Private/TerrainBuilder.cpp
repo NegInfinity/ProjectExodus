@@ -7,6 +7,7 @@
 //#include "JsonObjects/.h"
 #include "UnrealUtilities.h"
 #include "Runtime/Foliage/Public/InstancedFoliageActor.h"
+#include "Runtime/Landscape/Classes/LandscapeGrassType.h"
 
 using namespace JsonObjects;
 using namespace UnrealUtilities;
@@ -16,47 +17,136 @@ TerrainBuilder::TerrainBuilder(ImportWorkData &workData_, JsonImporter *importer
 :workData(workData_), importer(importer_), jsonGameObj(gameObj_), jsonTerrain(jsonTerrain_), terrainData(terrainData_){
 }
 
-ULandscapeGrassType* TerrainBuilder::createGrassType(int layerIndex, const FString &terrainDataPth){
-	return nullptr;
+UStaticMesh* TerrainBuilder::createBillboardMesh(const FString &baseName, const JsonTerrainDetailPrototype &detPrototype, const FString &terrainDataPath){
+	//return nullptr;
+	auto meshBuilder = [&](FRawMesh& rawMesh, int lod) -> void{
+		float defSize = 50.0f;
+		TArray<FVector> verts = {
+			FVector(0.0f, -defSize, defSize),
+			FVector(0.0f, defSize, defSize),
+			FVector(0.0f, defSize, -defSize),
+			FVector(0.0f, -defSize, -defSize)
+		};
+		TArray<FVector2D> uvs = {
+			FVector2D(0.0f, 1.0f),
+			FVector2D(1.0f, 1.0f),
+			FVector2D(1.0f, 0.0f),
+			FVector2D(0.0f, 0.0f)
+		};
+		FVector n(-1.0f, 0.0f, 0.0f);
+		TArray<FVector> normals = {
+			n, n, n, n
+		};
+		//IntArray indices = {0, 2, 1, 0, 3, 2};
+		IntArray indices = {0, 2, 1, 0, 3, 2, 0, 1, 2, 0, 2, 3};
+
+		rawMesh.VertexPositions.SetNum(0);
+		rawMesh.WedgeColors.SetNum(0);
+		rawMesh.WedgeIndices.SetNum(0);
+		for(int i = 0; i < MAX_MESH_TEXTURE_COORDS; i++)
+			rawMesh.WedgeTexCoords[i].SetNum(0);
+		rawMesh.WedgeColors.SetNum(0);
+		rawMesh.WedgeTangentZ.SetNum(0);
+
+		auto addIdx = [&](int32 idx) -> void{
+			rawMesh.WedgeIndices.Add(idx);
+			rawMesh.WedgeTangentZ.Add(normals[idx]);
+			rawMesh.WedgeTexCoords[0].Add(uvs[idx]);
+		};
+
+		for(auto cur: verts){
+			rawMesh.VertexPositions.Add(cur);
+		}
+
+		for(auto idx: indices){
+			addIdx(idx);
+		}
+
+		rawMesh.FaceMaterialIndices.Add(0);
+		rawMesh.FaceMaterialIndices.Add(0);
+
+		rawMesh.FaceSmoothingMasks.Add(0);
+		rawMesh.FaceSmoothingMasks.Add(0);
+
+		rawMesh.FaceMaterialIndices.Add(0);
+		rawMesh.FaceMaterialIndices.Add(0);
+
+		rawMesh.FaceSmoothingMasks.Add(0);
+		rawMesh.FaceSmoothingMasks.Add(0);
+	};
+
+	auto result = createAssetObject<UStaticMesh>(baseName, &terrainDataPath, importer, 
+		[&](UStaticMesh *mesh){
+			generateStaticMesh(mesh, meshBuilder, nullptr, 
+				[&](UStaticMesh* mesh, FStaticMeshSourceModel &model){
+					mesh->StaticMaterials.Empty();
+
+					model.BuildSettings.bRecomputeNormals = false;
+					model.BuildSettings.bRecomputeTangents = true;
+				}
+			);
+		},
+		[&](auto pkg){
+			return NewObject<UStaticMesh>(pkg, FName(*baseName), RF_Standalone|RF_Public);
+		}
+	);
+	return result;
+}
+
+
+ULandscapeGrassType* TerrainBuilder::createGrassType(int layerIndex, const FString &terrainDataPath){
+	auto grassTypeName = terrainData.getGrassTypeName(layerIndex);
+	const auto &srcType = terrainData.detailPrototypes[layerIndex];
+	
+	auto result = createAssetObject<ULandscapeGrassType>(
+		grassTypeName, &terrainDataPath, importer, 
+		[&](ULandscapeGrassType* obj){
+			auto& dstType = obj->GrassVarieties.AddDefaulted_GetRef();
+			if (srcType.usePrototypeMesh){
+				auto mesh = importer->loadStaticMeshById(srcType.meshId);
+				if (!mesh){
+					UE_LOG(JsonLogTerrain, Warning, TEXT("Could not load mesh %d used by detail layer %d"), srcType.meshId, layerIndex);
+					return;
+				}
+				dstType.GrassMesh = mesh;
+			}
+			else{
+				//billboard?
+				auto mesh = createBillboardMesh(grassTypeName + TEXT("_Mesh"), srcType, terrainDataPath);
+				if (!mesh){
+					UE_LOG(JsonLogTerrain, Warning, TEXT("Could not load mesh %d used by detail layer %d"), srcType.meshId, layerIndex);
+					return;
+				} 
+				dstType.GrassMesh = mesh;
+			}
+		}, RF_Standalone|RF_Public
+	);
+
+	return result;
 }
 
 ULandscapeLayerInfoObject* TerrainBuilder::createTerrainLayerInfo(int layerIndex, bool grassLayer, 
 		const FString &terrainDataPath){
 
 	auto layerName = grassLayer ? terrainData.getGrassLayerName(layerIndex): terrainData.getLayerName(layerIndex);
-	auto basePackageName = layerName;
+	
+	auto result = createAssetObject<ULandscapeLayerInfoObject>(
+		layerName, &terrainDataPath, importer, 
+		[&](ULandscapeLayerInfoObject* layerObj){
+			layerObj->LayerName = *layerName;
 
-	auto importPath = importer->getProjectImportPath();
-	auto assetCommonPath = importer->getAssetCommonPath();
-
-	auto layerPackagePath = buildPackagePath(basePackageName, 
-		&terrainDataPath, &importPath, &assetCommonPath);
-
-	UE_LOG(JsonLogTerrain, Log, TEXT("Creating package for layer %d of terrain \"%s\" at \"%s\""), 
-		layerIndex, *terrainData.name, *layerPackagePath);
-
-	auto layerPackage = CreatePackage(0, *layerPackagePath);
-
-	auto layerObj = 
-		NewObject<ULandscapeLayerInfoObject>(layerPackage, ULandscapeLayerInfoObject::StaticClass(), *sanitizeObjectName(*layerName), 
-			RF_Standalone|RF_Public);
-	layerObj->LayerName = *layerName;
-
-	int32 colIndex = 1 + layerIndex % 7;
-	layerObj->LayerUsageDebugColor = FLinearColor(
-		(colIndex & 0x1) ? 1.0f: 0.0f,
-		(colIndex & 0x2) ? 1.0f: 0.0f,
-		(colIndex & 0x4) ? 1.0f: 0.0f
-	);
+			int32 colIndex = 1 + layerIndex % 7;
+			layerObj->LayerUsageDebugColor = FLinearColor(
+				(colIndex & 0x1) ? 1.0f: 0.0f,
+				(colIndex & 0x2) ? 1.0f: 0.0f,
+				(colIndex & 0x4) ? 1.0f: 0.0f
+			);
 			
-	layerObj->SetFlags(RF_Standalone|RF_Public);
+			layerObj->SetFlags(RF_Standalone|RF_Public);
+		}
+	);
 
-	if (layerObj){
-		FAssetRegistryModule::AssetCreated(layerObj);
-		layerPackage->SetDirtyFlag(true);
-	}
-
-	return layerObj;
+	return result;
 }
 
 
@@ -161,8 +251,10 @@ ALandscape* TerrainBuilder::buildTerrain(){
 	xSize = heightMapData.getWidth();
 	ySize = heightMapData.getHeight();
 
-	TArray<FLandscapeImportLayerInfo> importLayers;
+#define SAVE_DEBUG_IMAGES
+
 	//normal layers
+	TArray<FLandscapeImportLayerInfo> importLayers;
 	if (convertedTerrain.alphaMaps.Num() > 0){
 		for(int i = 0; i < convertedTerrain.alphaMaps.Num(); i++){
 			auto layerName = terrainData.getLayerName(i);
@@ -177,7 +269,7 @@ ALandscape* TerrainBuilder::buildTerrain(){
 	}
 
 	//grass
-	TArray<ULandscapeGrassType*> grassTypes;
+	grassTypes.Empty();
 	if (convertedTerrain.detailMaps.Num() > 0){
 		for(int i = 0; i < convertedTerrain.detailMaps.Num(); i++){
 			auto layerName = terrainData.getGrassLayerName(i);
@@ -185,19 +277,23 @@ ALandscape* TerrainBuilder::buildTerrain(){
 
 			auto &newLayer = importLayers.AddDefaulted_GetRef();
 			newLayer.LayerName = *layerName;
-			newLayer.LayerData = convertedTerrain.detailMaps[i].getArrayCopy();
+			auto& detail = convertedTerrain.detailMaps[i];
+			newLayer.LayerData = detail.getArrayCopy();
 			newLayer.LayerInfo = layerInfoObj;
 			newLayer.SourceFilePath = TEXT("");
+		#ifdef SAVE_DEBUG_IMAGES
+			auto fullDstPath = FPaths::Combine(TEXT("D:\\work\\EpicGames\\debug"), layerName + FString::Printf(TEXT("_%dx%d"), xSize, ySize) + TEXT(".raw"));
+			detail.saveToRaw(fullDstPath);
+		#endif
 
 			auto newGrassType = createGrassType(i, terrainDataPath);
 			grassTypes.Add(newGrassType);
 		}
 	}
 
-
 	auto terrainVertSize = FIntPoint(xSize, ySize);
 	MaterialBuilder materialBuilder;
-	UMaterial *terrainMaterial = materialBuilder.buildTerrainMaterial(jsonGameObj, jsonTerrain, terrainData, terrainVertSize, terrainDataPath, importer);
+	UMaterial *terrainMaterial = materialBuilder.buildTerrainMaterial(this, terrainVertSize, terrainDataPath);
 
 	FTransform terrainTransform;
 	FMatrix terrainMatrix = jsonGameObj.ueWorldMatrix;

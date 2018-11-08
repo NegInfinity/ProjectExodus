@@ -44,6 +44,10 @@ namespace SceneExport{
 		public int findTextureId(Texture tex){
 			return textures.getId(tex, false);
 		}
+		
+		public MeshIdData getMeshId(GameObject srcObj){
+			return new MeshIdData(srcObj, this);
+		}
 
 		public int getMeshId(Mesh obj){
 			return meshes.getId(obj, true);

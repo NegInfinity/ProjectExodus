@@ -1,7 +1,27 @@
 #include "JsonImportPrivatePCH.h"
 #include "UnrealUtilities.h"
+#include "JsonImporter.h"
 
 using namespace UnrealUtilities;
+
+UPackage* UnrealUtilities::createAssetPackage(const FString &objectName, const FString* objectPath, 
+		const JsonImporter *importer, std::function<UObject*(UPackage*)> assetCreator){
+
+	auto fullPackagePath = buildPackagePath(objectName, objectPath, importer);
+
+	auto newPackage = CreatePackage(0, *fullPackagePath);
+
+	if (assetCreator){
+		auto newAsset = assetCreator(newPackage);
+		if (newAsset){
+			FAssetRegistryModule::AssetCreated(newAsset);
+			newPackage->SetDirtyFlag(true);
+		}
+	}
+
+	return newPackage;
+}
+	
 
 FString UnrealUtilities::getDefaultImportPath(){
 	return TEXT("/Game/Import");
@@ -14,6 +34,20 @@ FString UnrealUtilities::sanitizeObjectName(const FString &arg){
 FString UnrealUtilities::sanitizePackageName(const FString &arg){
 	return PackageTools::SanitizePackageName(arg);
 }
+
+FString UnrealUtilities::buildPackagePath(const FString &desiredName, const FString &desiredDir, const JsonImporter *importer){
+	return buildPackagePath(desiredName, &desiredDir, importer);
+}
+
+FString UnrealUtilities::buildPackagePath(const FString &desiredName, const FString *desiredDir, const JsonImporter *importer){
+	if (importer){
+		auto commonPath = importer->getAssetCommonPath();
+		auto importPath = importer->getProjectImportPath();
+		return buildPackagePath(desiredName, desiredDir, &importPath, &commonPath);
+	}
+	return buildPackagePath(desiredName, desiredDir, nullptr, nullptr);
+}
+
 
 FString UnrealUtilities::buildPackagePath(const FString &desiredName, const FString *desiredDir, const FString *defaultPackageRoot, const FString *commonAssetPath){
 	FString packageRoot = defaultPackageRoot ? *defaultPackageRoot: *getDefaultImportPath();
@@ -108,4 +142,53 @@ UPackage* UnrealUtilities::createPackage(const FString &basePackageName,
 
 	UE_LOG(JsonLog, Log, TEXT("Done creating package"));
 	return package;
+}
+
+void UnrealUtilities::generateStaticMesh(UStaticMesh *mesh, RawMeshFillCallback fillCallback, 
+		StaticMeshBuildCallback preConfig, StaticMeshBuildCallback postConfig){
+	int32 lod = 0;
+	if (mesh->SourceModels.Num() < 1){
+		UE_LOG(JsonLog, Warning, TEXT("Adding static mesh lod!"));
+		new(mesh->SourceModels) FStaticMeshSourceModel();//???
+	}
+
+	FStaticMeshSourceModel &srcModel = mesh->SourceModels[lod];
+
+	mesh->LightingGuid = FGuid::NewGuid();
+	mesh->LightMapResolution = 64;///config?`
+	mesh->LightMapCoordinateIndex = 1;
+	if (preConfig)
+		preConfig(mesh, srcModel);
+
+	FRawMesh newRawMesh;
+	srcModel.RawMeshBulkData->LoadRawMesh(newRawMesh);
+	newRawMesh.VertexPositions.SetNum(0);
+
+	if (fillCallback){
+		fillCallback(newRawMesh, lod);
+	}
+
+	bool valid = newRawMesh.IsValid();
+	bool fixable = newRawMesh.IsValidOrFixable();
+	UE_LOG(JsonLog, Log, TEXT("Mesh is valid: %d, mesh is validOrFixable: %d"), (int)valid, (int)fixable);
+	if (!valid){
+		UE_LOG(JsonLog, Warning, TEXT("Mesh is not valid!"));
+		if (!fixable){
+			UE_LOG(JsonLog, Warning, TEXT("Mesh is not fixable!"));
+		}
+	}
+
+	srcModel.RawMeshBulkData->SaveRawMesh(newRawMesh);
+
+	srcModel.BuildSettings.bRecomputeNormals = false;//!hasNormals;//hasNormals
+	srcModel.BuildSettings.bRecomputeTangents = true;
+
+	if (postConfig)
+		postConfig(mesh, srcModel);
+
+	TArray<FText> buildErrors;
+	mesh->Build(false, &buildErrors);
+	for(FText& err: buildErrors){
+		UE_LOG(JsonLog, Error, TEXT("MeshBuildError: %s"), *(err.ToString()));
+	}
 }

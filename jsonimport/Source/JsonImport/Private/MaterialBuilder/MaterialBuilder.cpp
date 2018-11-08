@@ -3,6 +3,8 @@
 
 #include "JsonImporter.h"
 
+#include "TerrainBuilder.h"
+
 #include "Materials/Material.h"
 #include "Materials/MaterialExpressionTextureSample.h"
 #include "Materials/MaterialExpressionSubtract.h"
@@ -317,43 +319,6 @@ UMaterialExpression* makeTextureTransformNodes(UMaterial* material,
 
 	return add;
 }
-
-/*
-UMaterialExpression* makeTextureTransformNodes(UMaterial* material, 
-	const FVector2D &scaleVec, const FVector2D& offsetVec, int coordIndex = 0, 
-	const TCHAR* coordNodeName = 0, const TCHAR* coordScaleParamName = 0, const TCHAR* coordOffsetParamName = 0, 
-	bool coordNodeOnly = false){
-
-	auto texCoord = createExpression<UMaterialExpressionTextureCoordinate>(material, coordNodeName);
-	texCoord->CoordinateIndex = coordIndex;
-
-	if (coordNodeOnly)
-		return texCoord;
-
-	auto uvScale = createVectorParameterExpression(material, scaleVec, coordScaleParamName);
-	auto uvOffset = createVectorParameterExpression(material, offsetVec, coordOffsetParamName);
-
-	auto uvScaleVec2 = createExpression<UMaterialExpressionAppendVector>(material);
-	auto uvOffsetVec2 = createExpression<UMaterialExpressionAppendVector>(material);
-
-	uvScale->ConnectExpression(&uvScaleVec2->A, 1);
-	uvScale->ConnectExpression(&uvScaleVec2->B, 2);
-
-	uvOffset->ConnectExpression(&uvOffsetVec2->A, 1);
-	uvOffset->ConnectExpression(&uvOffsetVec2->B, 2);
-
-	auto add = createExpression<UMaterialExpressionAdd>(material);
-	auto mul = createExpression<UMaterialExpressionMultiply>(material);
-	add->A.Expression = mul;
-	add->B.Expression = uvOffsetVec2;
-
-	mul->A.Expression = texCoord;
-	mul->B.Expression = uvScaleVec2;
-
-	return add;
-}
-*/
-
 
 void MaterialBuilder::processMainUv(UMaterial* material, const JsonMaterial &jsonMat, 
 		const MaterialFingerprint &fingerprint, MaterialBuildData &buildData){
@@ -767,6 +732,11 @@ void MaterialBuilder::processOpacity(UMaterial* material, const JsonMaterial &js
 	}
 }
 
+UMaterial* MaterialBuilder::buildBillboardMaterial(int32 texId, bool billboard, const TerrainBuilder *terrainBuilder, const FString &terrainDataPath){
+	
+	return nullptr;
+}
+
 
 UMaterial* MaterialBuilder::importMaterial(const JsonMaterial& jsonMat, JsonImporter *importer, JsonMaterialId matId){
 	MaterialFingerprint fingerprint(jsonMat);
@@ -903,10 +873,14 @@ UMaterialExpression* createLayerBlending(UMaterial* material, bool needSeparateB
 	return blendExpr;
 }
 
-UMaterialExpression* createDetailControl(UMaterial* material, const JsonTerrainData &terrData, JsonImporter *importer){
+UMaterialExpression* createDetailControl(UMaterial* material, const TerrainBuilder *terrainBuilder){
 	//if (terrData.
+	check(terrainBuilder);
+	const auto& terrData = terrainBuilder->terrainData;
 	if (terrData.detailPrototypes.Num() <= 0)
 		return nullptr;
+
+	check(terrainBuilder->grassTypes.Num() == terrainBuilder->terrainData.detailPrototypes.Num());
 
 	auto numDetailLayers = terrData.detailPrototypes.Num();
 	auto grassControl = createExpression<UMaterialExpressionLandscapeGrassOutput>(material, TEXT("Grass control"));
@@ -914,8 +888,10 @@ UMaterialExpression* createDetailControl(UMaterial* material, const JsonTerrainD
 	for(int i = 0; i < numDetailLayers; i++){
 		auto layerName = terrData.getGrassLayerName(i);
 
-		auto& dstGrass = grassControl->GrassTypes.AddDefaulted_GetRef();
+		auto &grassTypes = grassControl->GrassTypes;
+		auto& dstGrass = grassTypes.Num() > 0 ? grassTypes[0]: grassTypes.AddDefaulted_GetRef();
 		dstGrass.Name = *layerName;
+		dstGrass.GrassType = terrainBuilder->grassTypes[i];
 
 		auto layerSample = createExpression<UMaterialExpressionLandscapeLayerSample>(material, *layerName);
 		layerSample->ParameterName = *layerName;
@@ -926,9 +902,13 @@ UMaterialExpression* createDetailControl(UMaterial* material, const JsonTerrainD
 	return grassControl;
 }
 
-void MaterialBuilder::buildTerrainMaterial(UMaterial *material, const JsonGameObject &gameObj, 
-		const JsonTerrain &terr, const JsonTerrainData &terrData, 
-		const FIntPoint &terrainVertSize, JsonImporter *importer){
+void MaterialBuilder::buildTerrainMaterial(UMaterial* material, 
+		const TerrainBuilder *terrainBuilder,
+		const FIntPoint &terrainVertSize, const FString &terrainDataPath){
+
+	checkf(terrainBuilder, TEXT("Terrain builder cannot be null"));
+
+	const auto &terrData = terrainBuilder->terrainData;
 
 	bool needColorBlend = false;
 	bool needNormalBlend = false;
@@ -962,6 +942,7 @@ void MaterialBuilder::buildTerrainMaterial(UMaterial *material, const JsonGameOb
 	}
 
 	TArray<UMaterialExpression*> layerUvCoords;
+	const auto &terr = terrainBuilder->jsonTerrain;
 	if (needUvScales){
 		for(int i = 0; i < terrData.splatPrototypes.Num(); i++){
 			const auto& src = terrData.splatPrototypes[i];
@@ -977,6 +958,7 @@ void MaterialBuilder::buildTerrainMaterial(UMaterial *material, const JsonGameOb
 		}
 	}
 
+	auto* importer = terrainBuilder->getImporter();
 	auto* colorBlendExpr = createLayerBlending(material, needColorBlend, terrData, 
 		[&](UMaterial* mat, int layerIndex, const JsonSplatPrototype& srcSplat) -> UMaterialExpression*{
 			auto* colorTex = importer->getTexture(srcSplat.textureId);
@@ -1033,20 +1015,20 @@ void MaterialBuilder::buildTerrainMaterial(UMaterial *material, const JsonGameOb
 	//auto smoothnessBlend
 	material->Roughness.Expression = roughnessExpr;
 
-	createDetailControl(material, terrData, importer);
+	createDetailControl(material, terrainBuilder);
 
 	//no specular
 	arrangeNodesTree(material);
 }
 
-UMaterial* MaterialBuilder::buildTerrainMaterial(const JsonGameObject &gameObj,
-		const JsonTerrain &terr, const JsonTerrainData &terrainData, const FIntPoint &terrainVertSize, 
-		const FString & terrainDataPath, JsonImporter *importer){
-	/*
-	FString terrPath, terrFileName, terrExt;
-	FPaths::Split(terrainData.exportPath, terrPath, terrFileName, terrExt);
-	*/
+UMaterial* MaterialBuilder::buildTerrainMaterial(const TerrainBuilder *terrainBuilder, 
+		const FIntPoint &terrainVertSize, const FString &terrainDataPath){
 
+	checkf(terrainBuilder, TEXT("Terrain builder cannot be null"));
+
+	const auto& terrainData = terrainBuilder->terrainData;
+	const auto* importer = terrainBuilder->getImporter();
+	
 	auto materialName = terrainData.name + TEXT("_Material");
 	auto basePackageName = sanitizePackageName(materialName);
 	auto importPath = importer->getProjectImportPath();
@@ -1057,13 +1039,6 @@ UMaterial* MaterialBuilder::buildTerrainMaterial(const JsonGameObject &gameObj,
 		*terrainData.name, *terrainData.exportPath, *materialPackagePath);
 
 	auto materialPackage = CreatePackage(0, *materialPackagePath);
-
-	/*
-	//Nope. We need a factory.
-
-	auto materialObj = NewObject<UMaterial>(materialPackage, UMaterial::StaticClass(), *sanitizeObjectName(*materialName), 
-			RF_Standalone|RF_Public);
-	*/
 
 	auto matFactory = NewObject<UMaterialFactoryNew>();
 	matFactory->AddToRoot();
@@ -1076,7 +1051,7 @@ UMaterial* MaterialBuilder::buildTerrainMaterial(const JsonGameObject &gameObj,
 		0, GWarn
 	);
 
-	buildTerrainMaterial(materialObj, gameObj, terr, terrainData, terrainVertSize, importer);
+	buildTerrainMaterial(materialObj, terrainBuilder, terrainVertSize, terrainDataPath);
 
 	if (materialObj){
 		materialObj->PreEditChange(0);
