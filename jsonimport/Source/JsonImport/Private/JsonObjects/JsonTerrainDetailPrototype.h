@@ -7,8 +7,8 @@ public:
 	int detailPrefabId;
 	int detailPrefabObjectId;
 
-	int meshId;
-	IntArray meshMaterials;
+	int detailMeshId;
+	IntArray detailMeshMaterials;
 
 	float bendFactor;
 	FLinearColor dryColor;
@@ -20,6 +20,14 @@ public:
 	float noiseSpread;
 	FString renderMode;
 	bool usePrototypeMesh;
+
+	bool billboardFlag = false;
+	bool vertexLitFlag = false;
+	bool grassFlag = false;
+
+	bool isBillboard()const {return billboardFlag;}
+	bool isVertexLit()const {return vertexLitFlag;}
+	bool isGrassFlag()const {return grassFlag;}
 
 	JsonTerrainDetailPrototype() = default;
 	JsonTerrainDetailPrototype(JsonObjPtr data);

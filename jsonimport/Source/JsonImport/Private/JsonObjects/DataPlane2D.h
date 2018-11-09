@@ -118,13 +118,13 @@ public:
 		}
 	}
 
-	template<typename DstT, class Converter> DataPlane2D<DstT> convertTo(Converter convert){
+	template<typename DstT, class Converter> DataPlane2D<DstT> convertTo(Converter convert) const{
 		DataPlane2D<DstT> result;
 		result.assignFrom(*this, convert);
 		return result;
 	}
 
-	template<typename DstT, class Converter> void convertTo(DataPlane2D<DstT> &out, Converter convert){
+	template<typename DstT, class Converter> void convertTo(DataPlane2D<DstT> &out, Converter convert) const{
 		out.assignFrom(*this, convert);
 	}
 

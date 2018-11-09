@@ -12,7 +12,6 @@
 #include "Materials/MaterialExpressionScalarParameter.h"
 #include "Materials/MaterialExpressionConstant.h"
 #include "Materials/MaterialExpressionComponentMask.h"
-
 #include "Materials/MaterialExpressionLandscapeLayerBlend.h"
 #include "Materials/MaterialExpressionLandscapeLayerCoords.h"
 #include "Materials/MaterialExpressionLandscapeLayerSample.h"
@@ -320,3 +319,64 @@ UMaterialExpressionAppendVector* MaterialTools::createAppendVectorExpression(UMa
 	return result;
 }
 
+UMaterialExpressionConstant2Vector* MaterialTools::createConstVec2Expression(UMaterial *material, const FVector2D &vec, const TCHAR* inputName){
+	auto result = createExpression<UMaterialExpressionConstant2Vector>(material, inputName);
+	
+	result->R = vec.X;
+	result->G = vec.Y;
+
+	return result;
+}
+
+UMaterialExpressionConstant3Vector* MaterialTools::createConstVec3Expression(UMaterial *material, const FVector &vec, const TCHAR* inputName){
+	auto result = createExpression<UMaterialExpressionConstant3Vector>(material, inputName);
+
+	result->Constant.R = vec.X;
+	result->Constant.G = vec.Y;
+	result->Constant.B = vec.Z;
+	result->Constant.A = 1.0f;
+
+	return result;
+}
+
+UMaterialExpressionConstant4Vector* MaterialTools::createConstVec4Expression(UMaterial *material, const FVector4 &vec, const TCHAR* inputName){
+	auto result = createExpression<UMaterialExpressionConstant4Vector>(material, inputName);
+
+	result->Constant.R = vec.X;
+	result->Constant.G = vec.Y;
+	result->Constant.B = vec.Z;
+	result->Constant.A = vec.W;
+
+	return result;
+}
+
+UMaterialExpressionConstant2Vector* MaterialTools::createConstVec2Expression(UMaterial *material, float x, float y, const TCHAR* inputName){
+	auto result = createExpression<UMaterialExpressionConstant2Vector>(material, inputName);
+
+	result->R = x;
+	result->G = y;
+
+	return result;
+}
+
+UMaterialExpressionConstant3Vector* MaterialTools::createConstVec3Expression(UMaterial *material, float x, float y, float z, const TCHAR* inputName){
+	auto result = createExpression<UMaterialExpressionConstant3Vector>(material, inputName);
+
+	result->Constant.R = x;
+	result->Constant.G = y;
+	result->Constant.B = z;
+	result->Constant.A = 1.0f;
+
+	return result;
+}
+
+UMaterialExpressionConstant4Vector* MaterialTools::createConstVec4Expression(UMaterial *material, float x, float y, float z, float w, const TCHAR* inputName){
+	auto result = createExpression<UMaterialExpressionConstant4Vector>(material, inputName);
+
+	result->Constant.R = x;
+	result->Constant.G = y;
+	result->Constant.B = z;
+	result->Constant.A = w;
+
+	return result;
+}

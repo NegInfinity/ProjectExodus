@@ -6,6 +6,8 @@
 #include "JsonImporter.h"
 //#include "JsonObjects/.h"
 #include "UnrealUtilities.h"
+#include "Materials/Material.h"
+
 #include "Runtime/Foliage/Public/InstancedFoliageActor.h"
 #include "Runtime/Landscape/Classes/LandscapeGrassType.h"
 
@@ -17,21 +19,21 @@ TerrainBuilder::TerrainBuilder(ImportWorkData &workData_, JsonImporter *importer
 :workData(workData_), importer(importer_), jsonGameObj(gameObj_), jsonTerrain(jsonTerrain_), terrainData(terrainData_){
 }
 
-UStaticMesh* TerrainBuilder::createBillboardMesh(const FString &baseName, const JsonTerrainDetailPrototype &detPrototype, const FString &terrainDataPath){
+UStaticMesh* TerrainBuilder::createBillboardMesh(const FString &baseName, const JsonTerrainDetailPrototype &detPrototype, int layerIndex, const FString &terrainDataPath){
 	//return nullptr;
 	auto meshBuilder = [&](FRawMesh& rawMesh, int lod) -> void{
 		float defSize = 50.0f;
 		TArray<FVector> verts = {
-			FVector(0.0f, -defSize, defSize),
-			FVector(0.0f, defSize, defSize),
-			FVector(0.0f, defSize, -defSize),
-			FVector(0.0f, -defSize, -defSize)
+			FVector(0.0f, -defSize, defSize * 2.0f),
+			FVector(0.0f, defSize, defSize * 2.0f),
+			FVector(0.0f, defSize, 0.0f),
+			FVector(0.0f, -defSize, 0.0f)
 		};
 		TArray<FVector2D> uvs = {
-			FVector2D(0.0f, 1.0f),
-			FVector2D(1.0f, 1.0f),
+			FVector2D(0.0f, 0.0f),
 			FVector2D(1.0f, 0.0f),
-			FVector2D(0.0f, 0.0f)
+			FVector2D(1.0f, 1.0f),
+			FVector2D(0.0f, 1.0f)
 		};
 		FVector n(-1.0f, 0.0f, 0.0f);
 		TArray<FVector> normals = {
@@ -75,11 +77,15 @@ UStaticMesh* TerrainBuilder::createBillboardMesh(const FString &baseName, const 
 		rawMesh.FaceSmoothingMasks.Add(0);
 	};
 
+	MaterialBuilder matBuilder;
+	auto billboardMaterial = matBuilder.createBillboardMaterial(&detPrototype, layerIndex, this, terrainDataPath);
+
 	auto result = createAssetObject<UStaticMesh>(baseName, &terrainDataPath, importer, 
 		[&](UStaticMesh *mesh){
 			generateStaticMesh(mesh, meshBuilder, nullptr, 
 				[&](UStaticMesh* mesh, FStaticMeshSourceModel &model){
 					mesh->StaticMaterials.Empty();
+					mesh->StaticMaterials.Add(billboardMaterial);
 
 					model.BuildSettings.bRecomputeNormals = false;
 					model.BuildSettings.bRecomputeTangents = true;
@@ -93,7 +99,6 @@ UStaticMesh* TerrainBuilder::createBillboardMesh(const FString &baseName, const 
 	return result;
 }
 
-
 ULandscapeGrassType* TerrainBuilder::createGrassType(int layerIndex, const FString &terrainDataPath){
 	auto grassTypeName = terrainData.getGrassTypeName(layerIndex);
 	const auto &srcType = terrainData.detailPrototypes[layerIndex];
@@ -103,22 +108,44 @@ ULandscapeGrassType* TerrainBuilder::createGrassType(int layerIndex, const FStri
 		[&](ULandscapeGrassType* obj){
 			auto& dstType = obj->GrassVarieties.AddDefaulted_GetRef();
 			if (srcType.usePrototypeMesh){
-				auto mesh = importer->loadStaticMeshById(srcType.meshId);
+				auto mesh = importer->loadStaticMeshById(srcType.detailMeshId);
 				if (!mesh){
-					UE_LOG(JsonLogTerrain, Warning, TEXT("Could not load mesh %d used by detail layer %d"), srcType.meshId, layerIndex);
+					UE_LOG(JsonLogTerrain, Warning, TEXT("Could not load mesh %d used by detail layer %d"), srcType.detailMeshId, layerIndex);
 					return;
+				}
+				else{
+					//check and fix materials
+					for(auto &cur: mesh->StaticMaterials){
+						UMaterial* mat = Cast<UMaterial>(cur.MaterialInterface);
+						if (!mat)
+							continue;
+						if (!mat->bUsedWithInstancedStaticMeshes){
+							mat->bUsedWithInstancedStaticMeshes = true;
+							mat->MarkPackageDirty();
+						}
+						//if (mat && mat->
+					}
 				}
 				dstType.GrassMesh = mesh;
 			}
 			else{
 				//billboard?
-				auto mesh = createBillboardMesh(grassTypeName + TEXT("_Mesh"), srcType, terrainDataPath);
+				auto mesh = createBillboardMesh(grassTypeName + TEXT("_Mesh"), srcType, layerIndex, terrainDataPath);
 				if (!mesh){
-					UE_LOG(JsonLogTerrain, Warning, TEXT("Could not load mesh %d used by detail layer %d"), srcType.meshId, layerIndex);
+					UE_LOG(JsonLogTerrain, Warning, TEXT("Could not create billboard mesh for layer %d"), srcType.detailMeshId, layerIndex);
 					return;
 				} 
 				dstType.GrassMesh = mesh;
 			}
+
+			auto totalCells = (float)terrainData.detailHeight * (float)terrainData.detailWidth;
+			auto totalGrass = totalCells * 16.0f;//Don't know why it works this way.
+			auto landArea = terrainData.worldSize.X * terrainData.worldSize.Z;
+
+			auto density = totalGrass / landArea;
+			density /= 10.0f;//per TEN square meters? Okay...
+
+			//dstType.GrassDensity = density;
 		}, RF_Standalone|RF_Public
 	);
 
@@ -251,8 +278,6 @@ ALandscape* TerrainBuilder::buildTerrain(){
 	xSize = heightMapData.getWidth();
 	ySize = heightMapData.getHeight();
 
-#define SAVE_DEBUG_IMAGES
-
 	//normal layers
 	TArray<FLandscapeImportLayerInfo> importLayers;
 	if (convertedTerrain.alphaMaps.Num() > 0){
@@ -268,6 +293,8 @@ ALandscape* TerrainBuilder::buildTerrain(){
 		}
 	}
 
+//#define TERRAIN_SAVE_DEBUG_IMAGES
+
 	//grass
 	grassTypes.Empty();
 	if (convertedTerrain.detailMaps.Num() > 0){
@@ -281,7 +308,7 @@ ALandscape* TerrainBuilder::buildTerrain(){
 			newLayer.LayerData = detail.getArrayCopy();
 			newLayer.LayerInfo = layerInfoObj;
 			newLayer.SourceFilePath = TEXT("");
-		#ifdef SAVE_DEBUG_IMAGES
+		#ifdef TERRAIN_SAVE_DEBUG_IMAGES
 			auto fullDstPath = FPaths::Combine(TEXT("D:\\work\\EpicGames\\debug"), layerName + FString::Printf(TEXT("_%dx%d"), xSize, ySize) + TEXT(".raw"));
 			detail.saveToRaw(fullDstPath);
 		#endif
@@ -293,7 +320,7 @@ ALandscape* TerrainBuilder::buildTerrain(){
 
 	auto terrainVertSize = FIntPoint(xSize, ySize);
 	MaterialBuilder materialBuilder;
-	UMaterial *terrainMaterial = materialBuilder.buildTerrainMaterial(this, terrainVertSize, terrainDataPath);
+	UMaterial *terrainMaterial = materialBuilder.createTerrainMaterial(this, terrainVertSize, terrainDataPath);
 
 	FTransform terrainTransform;
 	FMatrix terrainMatrix = jsonGameObj.ueWorldMatrix;
@@ -322,11 +349,12 @@ ALandscape* TerrainBuilder::buildTerrain(){
 	UE_LOG(JsonLogTerrain, Log, TEXT("Terrain hMap width: %d; height: %d"), heightMapData.getWidth(), heightMapData.getHeight());
 	auto sizeDefault = FVector(100.0f * (float)(xSize - 1), 100.0f * (float)(ySize - 1), 25600.0f * 2.0f);
 	terrainScale = 100.0f * ueWorldSize / sizeDefault;
+	terrainScale.Z *= 2.0f;
 	//terrainScale.X = 100.0f * (ueWorldSize.X / 100.0f);
 	FVector terrainOffset = FVector::ZeroVector;
 
 	logValue(TEXT("Terrain offset: "), terrainOffset);
-	terrainOffset += vTerZ * ueWorldSize.Z * 0.5f;// / 100.0f;
+	//terrainOffset += vTerZ * ueWorldSize.Z * 0.5f;// / 100.0f;
 	logValue(TEXT("Terrain offset: "), terrainOffset);
 
 	vTerX *= terrainScale.X;
@@ -368,6 +396,16 @@ ALandscape* TerrainBuilder::buildTerrain(){
 	result->SetActorTransform(terrainTransform);
 
 	processFoliageTreeActors(result);
+
+	if (terrainData.detailPrototypes.Num() > 0){
+		landProxy->FlushGrassComponents();
+		/*
+		auto comps = landProxy->LandscapeComponents;
+		TSet<ULandscapeComponent*> components;
+		components.Append(comps);
+		ALandscapeProxy::InvalidateGeneratedComponentData(components);
+		*/
+	}
 
 	return result;
 }

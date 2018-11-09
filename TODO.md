@@ -9,3 +9,4 @@
 * 
 
 
+* !!! - showstopper bug - VertexInterpolator does not have MinimalAPI degined and cannot be spawned as a result. UMaterialExpressionVertexInterpolator, UMaterialExpressionSaturae, UMaterialExpression distance

@@ -7,6 +7,7 @@
 
 //using FloatPlane2D = DataPlane2D<float>;
 using FloatPlane3D = DataPlane3D<float>;
+using IntPlane3D = DataPlane3D<int32>;
 
 class JsonTerrainConstants{
 public:
@@ -20,7 +21,8 @@ class JsonBinaryTerrain{
 public:
 	FloatPlane2D heightMap;
 	FloatPlane3D alphaMaps;
-	FloatPlane3D detailMaps;
+	//FloatPlane3D detailMaps;
+	IntPlane3D detailMaps;
 
 	void clear();
 	bool load(const FString &filename);

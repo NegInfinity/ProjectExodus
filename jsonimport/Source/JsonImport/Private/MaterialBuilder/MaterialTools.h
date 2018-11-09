@@ -2,6 +2,50 @@
 
 #include "JsonTypes.h"
 
+#include "Materials/Material.h"
+#include "Materials/MaterialExpressionTextureSample.h"
+#include "Materials/MaterialExpressionSubtract.h"
+#include "Materials/MaterialExpressionMultiply.h"
+#include "Materials/MaterialExpressionAdd.h"
+#include "Materials/MaterialExpressionTextureCoordinate.h"
+#include "Materials/MaterialExpressionVectorParameter.h"
+#include "Materials/MaterialExpressionScalarParameter.h"
+#include "Materials/MaterialExpressionLinearInterpolate.h"
+#include "Materials/MaterialExpressionNormalize.h"
+#include "Materials/MaterialExpressionConstant.h"
+
+#include "Materials/MaterialExpressionConstant2Vector.h"
+#include "Materials/MaterialExpressionConstant3Vector.h"
+#include "Materials/MaterialExpressionConstant4Vector.h"
+#include "Materials/MaterialExpressionAppendVector.h"
+#include "Materials/MaterialExpressionComponentMask.h"
+#include "Materials/MaterialExpressionOneMinus.h"
+#include "Materials/MaterialExpressionDotProduct.h"
+#include "Materials/MaterialExpressionSquareRoot.h"
+#include "Materials/MaterialExpressionSaturate.h"
+#include "Materials/MaterialExpressionClamp.h"
+#include "Materials/MaterialExpressionMax.h"
+
+#include "Materials/MaterialExpressionLandscapeLayerBlend.h"
+#include "Materials/MaterialExpressionLandscapeLayerCoords.h"
+#include "Materials/MaterialExpressionLandscapeLayerSample.h"
+#include "Materials/MaterialExpressionLandscapeLayerSwitch.h"
+#include "Materials/MaterialExpressionLandscapeLayerWeight.h"
+#include "Materials/MaterialExpressionLandscapeVisibilityMask.h"
+#include "Materials/MaterialExpressionLandscapeGrassOutput.h"
+
+#include "Materials/MaterialExpressionLandscapeLayerBlend.h"
+#include "Materials/MaterialExpressionLandscapeLayerCoords.h"
+#include "Materials/MaterialExpressionLandscapeLayerSample.h"
+#include "Materials/MaterialExpressionLandscapeLayerSwitch.h"
+#include "Materials/MaterialExpressionLandscapeLayerWeight.h"
+#include "Materials/MaterialExpressionLandscapeVisibilityMask.h"
+#include "Materials/MaterialExpressionLandscapeGrassOutput.h"
+
+
+/*
+//proper forward declarations are nice and all, but ghaving to include all the expression multiple times is annoying.
+
 class UMaterialExpression;
 class UMaterialExpressionParameter;
 class UMaterialExpressionVectorParameter;
@@ -12,6 +56,10 @@ class UMaterialExpressionComponentMask;
 class UMaterialExpressionAppendVector;
 class UTexture;
 class UMaterial;
+class UMaterialExpressionConstant2Vector;
+class UMaterialExpressionConstant3Vector
+class UMaterialExpressionConstant4Vector
+*/
 
 namespace MaterialTools{
 	UMaterialExpression* createMaterialInput(UMaterial *material, UTexture *texture, 
@@ -34,9 +82,19 @@ namespace MaterialTools{
 	UMaterialExpressionVectorParameter *createVectorParameterExpression(UMaterial *material, const FVector &vec, const TCHAR* inputName);
 	UMaterialExpressionVectorParameter *createVectorParameterExpression(UMaterial *material, const FVector2D &vec, const TCHAR* inputName);
 
+	UMaterialExpressionConstant2Vector *createConstVec2Expression(UMaterial *material, const FVector2D &vec, const TCHAR* inputName = nullptr);
+	UMaterialExpressionConstant3Vector *createConstVec3Expression(UMaterial *material, const FVector &vec, const TCHAR* inputName = nullptr);
+	UMaterialExpressionConstant4Vector *createConstVec4Expression(UMaterial *material, const FVector4 &vec, const TCHAR* inputName = nullptr);
+
+	UMaterialExpressionConstant2Vector *createConstVec2Expression(UMaterial *material, float x, float y, const TCHAR* inputName = nullptr);
+	UMaterialExpressionConstant3Vector *createConstVec3Expression(UMaterial *material, float x, float y, float z, const TCHAR* inputName = nullptr);
+	UMaterialExpressionConstant4Vector *createConstVec4Expression(UMaterial *material, float x, float y, float z, float w, const TCHAR* inputName = nullptr);
+
 	UMaterialExpressionConstant* createConstantExpression(UMaterial *material, float value, const TCHAR* constantName);
 	UMaterialExpressionComponentMask* createComponentMask(UMaterial *material, bool r, bool g, bool b, bool a, const TCHAR* name = 0);
 	UMaterialExpressionComponentMask* createComponentMask(UMaterial *material, UMaterialExpression* src, bool r, bool g, bool b, bool a, const TCHAR* name = 0);
+
+
 
 	UMaterialExpressionAdd* createAddExpression(UMaterial *material, UMaterialExpression *arg1, UMaterialExpression *arg2, const TCHAR *name = 0);
 	UMaterialExpressionMultiply* createMulExpression(UMaterial *material, UMaterialExpression *arg1, UMaterialExpression *arg2, const TCHAR *name = 0);

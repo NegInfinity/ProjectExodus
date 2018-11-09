@@ -91,6 +91,15 @@ public:
 		}
 	}
 
+	template<typename DstT, typename Converter> void getConvertedLayerData(DataPlane2D<DstT> &result, int layer, Converter converter) const{
+		result.resize(getWidth(), getHeight());
+		auto* dst = result.getData();
+		auto* src = getLayer(layer);
+		for(auto i = 0; i < getNumLayerElements(); i++){
+			dst[i] = converter(src[i]);
+		}
+	}
+
 	DataPlane2D<T> getLayerData(int layer) const{
 		DataPlane2D<T> result;
 		getLayerData(result, layer);

@@ -70,6 +70,8 @@ namespace SceneExport{
 		}
 		
 		int getOrRegMeshId(GameObject obj, Mesh mesh){
+			if (!mesh)
+				return ExportUtility.invalidId;
 			int result = meshes.getId(mesh, true, null);
 			if (meshMaterials.ContainsKey(mesh))
 				return result;
@@ -87,6 +89,8 @@ namespace SceneExport{
 				return ExportUtility.invalidId;
 
 			var mesh = meshFilter.sharedMesh;
+			if (!mesh)
+				return ExportUtility.invalidId;
 			return getOrRegMeshId(obj, mesh);
 		}
 		

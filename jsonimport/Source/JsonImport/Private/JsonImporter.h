@@ -76,9 +76,9 @@ public:
 		return assetCommonPath;
 	}
 
-	UTexture *getTexture(int32 id);
-	UTexture* loadTexture(int32 id);
-	UMaterial* loadMaterial(int32 id);
+	UTexture *getTexture(int32 id) const;
+	UTexture* loadTexture(int32 id) const;
+	UMaterial* loadMaterial(int32 id) const;
 
 	FString getMeshPath(JsonId id) const;
 	UStaticMesh *loadStaticMeshById(JsonId id) const;
@@ -106,6 +106,9 @@ public:
 	FString findCommonPath(const JsonValPtrs* resources);
 	FString getProjectImportPath() const;
 
+	/*
+	Ugh, this function again. I need to replace it with more compact version
+	*/
 	template<typename T> UPackage* createPackage(const FString &name, 
 			const FString &filePath, const FString &rootPath, 
 			const FString &objNameSuffix, FString *outPackageName, 

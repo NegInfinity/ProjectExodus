@@ -29,19 +29,27 @@
 
 using namespace JsonObjects;
 
-UMaterial* JsonImporter::loadMaterial(int32 id){
+UMaterial* JsonImporter::loadMaterial(int32 id) const{
 	UE_LOG(JsonLog, Log, TEXT("Looking for material %d"), id);
 	if (id < 0){
 		UE_LOG(JsonLog, Log, TEXT("Invalid id %d"), id);
 		return 0;
 	}
 
+	auto foundPath = matIdMap.Find(id);
+	if (!foundPath){
+		UE_LOG(JsonLog, Log, TEXT("Id %d is not in the map"), id);
+		return 0;
+	}
+	/*
 	if (!matIdMap.Contains(id)){
 		UE_LOG(JsonLog, Log, TEXT("Id %d is not in the map"), id);
 		return 0;
 	}
 
 	auto matPath = matIdMap[id];
+	*/
+	auto matPath = *foundPath;
 	UMaterial *mat = Cast<UMaterial>(StaticLoadObject(UMaterial::StaticClass(), 0, *matPath));
 	UE_LOG(JsonLog, Log, TEXT("Material located"));
 	return mat;

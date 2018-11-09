@@ -47,6 +47,7 @@ public:
 };
 
 class TerrainBuilder;
+class JsonTerrainDetailPrototype;
 
 class MaterialBuilder{
 public:
@@ -59,13 +60,15 @@ public:
 		MaterialCallbackFunc newCallback = MaterialCallbackFunc(), MaterialCallbackFunc existingCallback = MaterialCallbackFunc(), 
 		MaterialCallbackFunc postEditCallback = MaterialCallbackFunc());
 
-	UMaterial *buildTerrainMaterial(const TerrainBuilder *terrainBuilder,
+	UMaterial *createTerrainMaterial(const TerrainBuilder *terrainBuilder,
 		const FIntPoint &terrainVertSize, const FString &terrainDataPath);
 
-	UMaterial *buildBillboardMaterial(int32 texId, bool billboard, const TerrainBuilder *terrainBuilder, const FString &terrainDataPath);
+	UMaterial *createBillboardMaterial(const JsonTerrainDetailPrototype * detailPrototype, int layerIndex, const TerrainBuilder *terrainBuilder, const FString &terrainDataPath);
 
 	MaterialBuilder() = default;
 protected:
+	void createBillboardTransformNodes(UMaterial *material);
+	void fillBillboardMaterial(UMaterial* material, const JsonTerrainDetailPrototype * detailPrototype, int layerIndex, const TerrainBuilder *terrainBuilder);
 	void buildTerrainMaterial(UMaterial *material, const TerrainBuilder *terrainBuilder, const FIntPoint &terrainVertSize, const FString &terrainDataPath);
 
 	void buildMaterial(UMaterial* material, const JsonMaterial &jsonMat, const MaterialFingerprint &fingerprint, MaterialBuildData &buildData);
@@ -85,4 +88,3 @@ protected:
 	void processRoughness(UMaterial* material, const JsonMaterial &jsonMat, const MaterialFingerprint &fingerprint, MaterialBuildData &buildData);
 	void processParallax(UMaterial* material, const JsonMaterial &jsonMat, const MaterialFingerprint &fingerprint, MaterialBuildData &buildData);
 };
-

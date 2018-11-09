@@ -27,23 +27,31 @@
 
 #include "DesktopPlatformModule.h"
 
-UTexture* JsonImporter::getTexture(int32 id){
+UTexture* JsonImporter::getTexture(int32 id) const{
 	if (id < 0)
 		return 0;
 	return loadTexture(id);
 }
 
-UTexture* JsonImporter::loadTexture(int32 id){
+UTexture* JsonImporter::loadTexture(int32 id) const{
 	UE_LOG(JsonLog, Log, TEXT("Looking for tex %d"), id);
 	if (id < 0){
 		UE_LOG(JsonLog, Log, TEXT("Invalid id %d"), id);
 		return 0;
 	}
+	auto foundPath = texIdMap.Find(id);
+	if (!foundPath){
+		UE_LOG(JsonLog, Log, TEXT("Id %d is not in the map"), id);
+		return 0;
+	}
+	/*
 	if (!texIdMap.Contains(id)){
 		UE_LOG(JsonLog, Log, TEXT("Id %d is not in the map"), id);
 		return 0;
 	}
 	auto texPath = texIdMap[id];
+	*/
+	auto texPath = *foundPath;
 	UTexture *texture = Cast<UTexture>(StaticLoadObject(UTexture::StaticClass(), 0, *texPath));
 	UE_LOG(JsonLog, Log, TEXT("Texture located"));
 	return texture;

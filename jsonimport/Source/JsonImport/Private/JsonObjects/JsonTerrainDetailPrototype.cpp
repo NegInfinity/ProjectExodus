@@ -13,8 +13,8 @@ void JsonTerrainDetailPrototype::load(JsonObjPtr data){
 	JSON_GET_VAR(data, detailPrefabId);
 	JSON_GET_VAR(data, detailPrefabObjectId);
 
-	JSON_GET_VAR(data, meshId);
-	JSON_GET_VAR(data, meshMaterials);
+	JSON_GET_VAR(data, detailMeshId);
+	JSON_GET_VAR(data, detailMeshMaterials);
 
 	JSON_GET_VAR(data, bendFactor);
 	JSON_GET_PARAM(data, dryColor, getColor);//Gamma?
@@ -27,4 +27,8 @@ void JsonTerrainDetailPrototype::load(JsonObjPtr data){
 	JSON_GET_VAR(data, noiseSpread);
 	JSON_GET_VAR(data, renderMode);
 	JSON_GET_VAR(data, usePrototypeMesh);
+
+	billboardFlag = (renderMode == TEXT("GrassBillboard"));
+	vertexLitFlag = (renderMode == TEXT("VertexLit"));
+	grassFlag = (renderMode == TEXT("Grass"));
 }

@@ -98,6 +98,14 @@ int32 findCloseLandscapeSize(int srcVertSize){
 	return comps * JsonTerrainConstants::quadsPerComponent + 1;
 }
 
+void convertToUint8(DataPlane2D<uint8> &dstData, const FloatPlane2D &srcData){
+	srcData.convertTo(dstData, 
+		[](float arg) ->uint8{
+			return FMath::Clamp(FMath::RoundToInt(arg * (float)0xFF), 0, 0xFF);
+		}
+	);
+}
+
 void convertFloat3DSplatToUintPlanes(TArray<DataPlane2D<uint8>> &outResult, const FloatPlane3D& src, int desiredW, int desiredH, const TCHAR* mapType = 0){
 	if (!mapType)
 		mapType = TEXT("");
@@ -112,11 +120,14 @@ void convertFloat3DSplatToUintPlanes(TArray<DataPlane2D<uint8>> &outResult, cons
 		JsonTerrainTools::scaleSplatMapToHeightMap(dstFloats, srcFloats, true);
 
 		auto& byteMap = outResult.AddDefaulted_GetRef();
+		convertToUint8(byteMap, dstFloats);
+		/*
 		dstFloats.convertTo(byteMap, 
 			[](float arg) ->uint8{
 				return FMath::Clamp(FMath::RoundToInt(arg * (float)0xFF), 0, 0xFF);
 			}
 		);
+		*/
 	}
 }
 
@@ -153,11 +164,56 @@ void JsonConvertedTerrain::assignFrom(const JsonBinaryTerrain& src){
 	floatHMap.convertTo(
 		heightMap, 
 		[](float arg) ->uint16{
-			return FMath::Clamp(FMath::RoundToInt(arg * (float)0xFFFF), 0, 0xFFFF);
+			float zeroLevel = (float)0x7FFF;
+			float oneLevel = (float)0xFFFF;
+			float diff = oneLevel - zeroLevel;
+			return FMath::Clamp(FMath::RoundToInt(arg * diff + zeroLevel), 0, 0xFFFF);
+			//return FMath::Clamp(FMath::RoundToInt(arg * (float)0xFFFF), 0, 0xFFFF);
 		}
 	);
 	UE_LOG(JsonLogTerrain, Log, TEXT("Conversion finished. %d x %d"), heightMap.getWidth(), heightMap.getHeight());
 
 	convertFloat3DSplatToUintPlanes(alphaMaps, src.alphaMaps, idealHMapW, idealHMapH, TEXT("alpha"));
-	convertFloat3DSplatToUintPlanes(detailMaps, src.detailMaps, idealHMapW, idealHMapH, TEXT("detail"));
+
+	auto& dstDetails = detailMaps;
+	const auto& srcDetails = src.detailMaps;
+	UE_LOG(JsonLogTerrain, Log, TEXT("Processing %d detail maps"), srcDetails.getNumLayers());
+	for(int detailIndex = 0 ; detailIndex < srcDetails.getNumLayers(); detailIndex++){
+		UE_LOG(JsonLogTerrain, Log, TEXT("Processing detail map %d out of %d."), detailIndex, srcDetails.getNumLayers());
+
+		auto srcLayer = srcDetails.getLayerData(detailIndex);
+		srcLayer.transpose();
+
+		FloatPlane2D srcFloats;
+		srcLayer.convertTo(srcFloats, [](int32 arg)->float{
+			return (float)FMath::Clamp(arg, 0, 16)/16.0f; //why? Is this an oversight?
+		});
+
+		FloatPlane2D dstFloats(idealHMapW, idealHMapH);//desiredW, desiredH);
+		JsonTerrainTools::scaleSplatMapToHeightMap(dstFloats, srcFloats, true);
+
+		auto& byteMap = dstDetails.AddDefaulted_GetRef();
+		convertToUint8(byteMap, dstFloats);
+		/*
+		dstFloats.convertTo(byteMap, 
+			[](float arg) ->uint8{
+				return FMath::Clamp(FMath::RoundToInt(arg * (float)0xFF), 0, 0xFF);
+			}
+		);
+		*/
+		//srcLayer.
+
+		/*
+		FloatPlane2D srcFloats(srcLaye
+		FloatPlane2D dstFloats(desiredW, desiredH);
+		JsonTerrainTools::scaleSplatMapToHeightMap(dstFloats, srcFloats, true);
+
+		auto& byteMap = outResult.AddDefaulted_GetRef();
+		dstFloats.convertTo(byteMap, 
+			[](float arg) ->uint8{
+				return FMath::Clamp(FMath::RoundToInt(arg * (float)0xFF), 0, 0xFF);
+			}
+		);
+		*/
+	}
 }
