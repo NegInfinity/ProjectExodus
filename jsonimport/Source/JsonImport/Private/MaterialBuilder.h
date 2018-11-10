@@ -75,6 +75,16 @@ public:
 
 	MaterialBuilder() = default;
 protected:
+	void setScalarParam(UMaterialInstanceConstant *matInst, const char *paramName, float val) const;	
+	void setVectorParam(UMaterialInstanceConstant *matInst, const char *paramName, FVector2D val) const;
+	void setVectorParam(UMaterialInstanceConstant *matInst, const char *paramName, FVector val) const;
+	void setVectorParam(UMaterialInstanceConstant *matInst, const char *paramName, FLinearColor val) const;
+	void setTexParam(UMaterialInstanceConstant *matInst, const char *paramName, int32 texId, const JsonImporter *importer) const;
+	void setTexParam(UMaterialInstanceConstant *matInst, const char *paramName, UTexture *tex) const;
+	bool setStaticSwitch(FStaticParameterSet &paramSet, const char *switchName, bool newValue) const;
+	bool setTexParams(UMaterialInstanceConstant *matInst,  FStaticParameterSet &paramSet, int32 texId, 
+		const char *switchName, const char *texParamName, const JsonImporter *importer) const;
+
 	void setupMaterialInstance(UMaterialInstanceConstant *matInst, const JsonMaterial &jsonMat, JsonImporter *importer, JsonMaterialId matId);
 
 	void createBillboardTransformNodes(UMaterial *material);

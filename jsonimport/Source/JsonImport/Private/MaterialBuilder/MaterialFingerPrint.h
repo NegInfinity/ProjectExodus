@@ -35,7 +35,7 @@ public:
 			bool normalMapIntensity: 1;//normalmap slider is being used
 			bool detailNormalMapScale: 1;//detail normal map scale
 			bool occlusionIntensity: 1;//occlusion intensity is being used
-			bool altSmoothnessTexture: 1;//if true, smoothness is taken from either metallic or specular alpha.
+			bool altSmoothnessTexture: 1;//if true, smoothness is taken from ALBEDO channel. Which disables alpha blend. If false, it is from either metallic or specular alpha.
 
 			//Render mode
 			RenderMode renderMode: 2;
@@ -45,6 +45,22 @@ public:
 		};
 		MaterialFingerprintId id;
 	};
+
+	bool isFadeMode() const{
+		return (renderMode == Fade);
+	}
+
+	bool isTransparentMode() const{
+		return (renderMode == Transparent);
+	}
+
+	bool isAlphaBlendMode() const{
+		return (renderMode == Transparent) || (renderMode == Fade);
+	}
+
+	bool isAlphaTestMode() const{
+		return (renderMode == Cutout);
+	}
 
 	bool hasDetailMaps() const{
 		return detailAlbedoTex || detailNormalTex;
