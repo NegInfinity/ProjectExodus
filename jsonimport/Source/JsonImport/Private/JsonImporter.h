@@ -25,6 +25,7 @@ protected:
 	IdNameMap meshIdMap;
 	IdNameMap texIdMap;
 	IdNameMap matIdMap;
+	IdNameMap matInstIdMap;
 
 	TMap<JsonId, JsonTerrainData> terrainDataMap;
 
@@ -67,6 +68,7 @@ protected:
 	ULandscapeGrassType* createGrassType(ImportWorkData &workData, const JsonGameObject &jsonGameObj, const JsonTerrainData &terrainData, 
 		int layerIndex, const FString &terrainDataPth);
 public:
+	void registerMaterialInstancePath(int32 id, FString path);
 	void registerMaterialPath(int32 id, FString path);
 	void registerEmissiveMaterial(int32 id);
 	const FString& getAssetRootPath() const{
@@ -76,6 +78,7 @@ public:
 		return assetCommonPath;
 	}
 
+	UMaterialInstanceConstant* getMaterialInstance(int32 id) const;
 	UTexture *getTexture(int32 id) const;
 	UTexture* loadTexture(int32 id) const;
 	UMaterial* loadMaterial(int32 id) const;
@@ -98,6 +101,7 @@ public:
 
 	void importTexture(JsonObjPtr obj, const FString &rootPath);
 	void importMaterial(JsonObjPtr obj, int32 matId);
+	void importMaterialInstance(JsonObjPtr obj, int32 matId);
 	void importMesh(JsonObjPtr obj, int32 meshId);
 	void importObject(JsonObjPtr obj, int32 objId, ImportWorkData &importData);
 	void importObject(const JsonGameObject &jsonGameObj , int32 objId, ImportWorkData &importData);

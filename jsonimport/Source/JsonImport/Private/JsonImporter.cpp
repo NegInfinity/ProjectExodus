@@ -106,6 +106,7 @@ void JsonImporter::loadMaterials(const JsonValPtrs* materials){
 		if (!obj.IsValid())
 			continue;
 		importMaterial(obj, curId);
+		importMaterialInstance(obj, curId);
 		matProgress.EnterProgressFrame(1.0f);
 	}
 }
@@ -215,4 +216,11 @@ UStaticMesh* JsonImporter::loadStaticMeshById(JsonId id) const{
 		return nullptr;
 	auto result = LoadObject<UStaticMesh>(0, **path);
 	return result;
+}
+
+void JsonImporter::registerMaterialInstancePath(int32 id, FString path){
+	if (matInstIdMap.Contains(id)){
+		UE_LOG(JsonLog, Warning, TEXT("DUplicate material registration for id %d, path \"%s\""), id, *path);
+	}
+	matInstIdMap.Add(id, path);
 }

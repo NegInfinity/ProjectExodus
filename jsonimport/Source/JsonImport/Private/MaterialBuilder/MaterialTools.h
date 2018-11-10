@@ -116,4 +116,16 @@ namespace MaterialTools{
 		}
 		return result;
 	}
+
+	template<typename T> auto makeFactoryRootGuard(){
+		auto factory = NewObject<T>();
+		factory ->AddToRoot();
+		return TSharedPtr<T>(
+			factory, 
+			[](T* p){
+				if (p) 
+					p->RemoveFromRoot();
+			}
+		);
+	}
 }

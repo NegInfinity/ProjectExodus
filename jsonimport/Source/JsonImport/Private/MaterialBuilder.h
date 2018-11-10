@@ -5,6 +5,9 @@
 #include "JsonObjects/JsonGameObject.h"
 #include "JsonObjects/JsonTerrainData.h"
 #include "JsonObjects/JsonTerrain.h"
+#include "Materials/MaterialInstance.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "Materials/MaterialInstanceConstant.h"
 #include <functional>
 
 class JsonImporter;
@@ -51,8 +54,13 @@ class JsonTerrainDetailPrototype;
 
 class MaterialBuilder{
 public:
+	UMaterial* loadDefaultMaterial();
+
 	UMaterial *importMaterial(const JsonMaterial& jsonMat, JsonImporter *importer, JsonMaterialId matId);
 	UMaterial *importMaterial(JsonObjPtr obj, JsonImporter *importer, JsonMaterialId matId);
+
+	UMaterialInstanceConstant* importMaterialInstance(const JsonMaterial& jsonMat, JsonImporter *importer, JsonMaterialId matId);
+	UMaterialInstanceConstant* importMaterialInstance(JsonObjPtr obj, JsonImporter *importer, JsonMaterialId matId);
 
 	using MaterialCallbackFunc = std::function<void(UMaterial*)>;
 
@@ -67,6 +75,8 @@ public:
 
 	MaterialBuilder() = default;
 protected:
+	void setupMaterialInstance(UMaterialInstanceConstant *matInst, const JsonMaterial &jsonMat, JsonImporter *importer, JsonMaterialId matId);
+
 	void createBillboardTransformNodes(UMaterial *material);
 	void fillBillboardMaterial(UMaterial* material, const JsonTerrainDetailPrototype * detailPrototype, int layerIndex, const TerrainBuilder *terrainBuilder);
 	void buildTerrainMaterial(UMaterial *material, const TerrainBuilder *terrainBuilder, const FIntPoint &terrainVertSize, const FString &terrainDataPath);
