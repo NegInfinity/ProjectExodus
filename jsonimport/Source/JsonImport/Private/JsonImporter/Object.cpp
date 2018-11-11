@@ -165,7 +165,8 @@ void JsonImporter::processMesh(ImportWorkData &workData, const JsonGameObject &j
 	if (materials.Num() > 0){
 		for(int i = 0; i < materials.Num(); i++){
 			auto matId = materials[i];
-			UMaterial *material = loadMaterial(matId);
+
+			auto material = loadMaterialInterface(matId);
 			meshComp->SetMaterial(i, material);
 		}
 	}

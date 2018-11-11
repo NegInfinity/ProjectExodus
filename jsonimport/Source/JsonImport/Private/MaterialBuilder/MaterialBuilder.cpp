@@ -20,7 +20,7 @@ DEFINE_LOG_CATEGORY(JsonLogMatNodeSort);
 using namespace MaterialTools;
 using namespace UnrealUtilities;
 
-UMaterial* MaterialBuilder::importMaterial(const JsonMaterial& jsonMat, JsonImporter *importer, JsonMaterialId matId){
+UMaterial* MaterialBuilder::importMasterMaterial(const JsonMaterial& jsonMat, JsonImporter *importer, JsonMaterialId matId){
 	MaterialFingerprint fingerprint(jsonMat);
 
 	FString sanitizedMatName;
@@ -32,7 +32,7 @@ UMaterial* MaterialBuilder::importMaterial(const JsonMaterial& jsonMat, JsonImpo
 		&sanitizedPackageName, &sanitizedMatName, &existingMaterial);
 
 	if (existingMaterial){
-		importer->registerMaterialPath(jsonMat.id, existingMaterial->GetPathName());
+		importer->registerMasterMaterialPath(jsonMat.id, existingMaterial->GetPathName());
 		UE_LOG(JsonLog, Log, TEXT("Found existing material: %s (package %s)"), *sanitizedMatName, *sanitizedPackageName);
 		return existingMaterial;
 	}
@@ -52,7 +52,7 @@ UMaterial* MaterialBuilder::importMaterial(const JsonMaterial& jsonMat, JsonImpo
 		material->PreEditChange(0);
 		material->PostEditChange();
 
-		importer->registerMaterialPath(jsonMat.id, material->GetPathName());
+		importer->registerMasterMaterialPath(jsonMat.id, material->GetPathName());
 		FAssetRegistryModule::AssetCreated(material);
 		matPackage->SetDirtyFlag(true);
 	}
@@ -62,12 +62,12 @@ UMaterial* MaterialBuilder::importMaterial(const JsonMaterial& jsonMat, JsonImpo
 	return material;
 }
 
-UMaterial* MaterialBuilder::importMaterial(JsonObjPtr obj, JsonImporter *importer, JsonMaterialId matId){
+UMaterial* MaterialBuilder::importMasterMaterial(JsonObjPtr obj, JsonImporter *importer, JsonMaterialId matId){
 	UE_LOG(JsonLog, Log, TEXT("Importing material %d"), matId);
 
 	JsonMaterial jsonMat(obj);
 
-	return importMaterial(jsonMat, importer, matId);
+	return importMasterMaterial(jsonMat, importer, matId);
 }
 
 UMaterialInstanceConstant* MaterialBuilder::importMaterialInstance(JsonObjPtr obj, JsonImporter *importer, JsonMaterialId matId){
@@ -129,6 +129,8 @@ UMaterialInstanceConstant* MaterialBuilder::importMaterialInstance(const JsonMat
 	MaterialFingerprint fingerprint(jsonMat);
 
 	FString matName = sanitizeObjectName(jsonMat.name);
+	FString pkgName = sanitizeObjectName(jsonMat.name + TEXT("_MatInstnace"));
+
 	auto matPath = FPaths::GetPath(jsonMat.path);
 	FString packagePath = buildPackagePath(
 		matName, matPath, importer
@@ -143,7 +145,7 @@ UMaterialInstanceConstant* MaterialBuilder::importMaterialInstance(const JsonMat
 
 	//createPackage(
 	auto matFactory = makeFactoryRootGuard<UMaterialInstanceConstantFactoryNew>();
-	auto matInst = createAssetObject<UMaterialInstanceConstant>(matName, &matPath, importer, 
+	auto matInst = createAssetObject<UMaterialInstanceConstant>(pkgName, &matPath, importer, 
 		[&](UMaterialInstanceConstant* inst){
 			inst->PreEditChange(0);
 			inst->PostEditChange();
@@ -152,7 +154,10 @@ UMaterialInstanceConstant* MaterialBuilder::importMaterialInstance(const JsonMat
 		[&](UPackage* pkg) -> auto{
 			matFactory->InitialParent = baseMaterial;
 			auto result = (UMaterialInstanceConstant*)matFactory->FactoryCreateNew(
-				UMaterialInstanceConstant::StaticClass(), pkg, *sanitizeObjectName(matName), RF_Standalone|RF_Public, 0, GWarn
+				UMaterialInstanceConstant::StaticClass(), pkg, 
+				*matName,
+				//*sanitizeObjectName(matName), 
+				RF_Standalone|RF_Public, 0, GWarn
 			);
 
 			setupMaterialInstance(result, jsonMat, importer, matId);
@@ -166,50 +171,11 @@ UMaterialInstanceConstant* MaterialBuilder::importMaterialInstance(const JsonMat
 		return matInst;
 	}
 
+	auto fullPath = matInst->GetPathName();
+
+	importer->registerMaterialInstancePath(matId, fullPath);
+
 	return matInst;
-
-	//FMaterialUtil
-	//FMaterialUtilities
-
-
-#if 0
-	FString sanitizedMatName;
-	FString sanitizedPackageName;
-
-	UMaterial *existingMaterial = nullptr;
-	UPackage *matPackage = importer->createPackage(
-		jsonMat.name, jsonMat.path, importer->getAssetRootPath(), FString("Material"), 
-		&sanitizedPackageName, &sanitizedMatName, &existingMaterial);
-
-	if (existingMaterial){
-		importer->registerMaterialPath(jsonMat.id, existingMaterial->GetPathName());
-		UE_LOG(JsonLog, Log, TEXT("Found existing material: %s (package %s)"), *sanitizedMatName, *sanitizedPackageName);
-		return existingMaterial;
-	}
-
-	auto matFactory = NewObject<UMaterialFactoryNew>();
-	matFactory->AddToRoot();
-
-	UMaterial* material = (UMaterial*)matFactory->FactoryCreateNew(
-		UMaterial::StaticClass(), matPackage, FName(*sanitizedMatName), RF_Standalone|RF_Public,
-		0, GWarn);
-
-	//stuff
-	MaterialBuildData buildData(matId, importer);
-	buildMaterial(material, jsonMat, fingerprint, buildData);
-
-	if (material){
-		material->PreEditChange(0);
-		material->PostEditChange();
-
-		importer->registerMaterialPath(jsonMat.id, material->GetPathName());
-		FAssetRegistryModule::AssetCreated(material);
-		matPackage->SetDirtyFlag(true);
-	}
-
-	matFactory->RemoveFromRoot();
-#endif
-	return nullptr;
 }
 
 void MaterialBuilder::setScalarParam(UMaterialInstanceConstant *matInst, const char *paramName, float val) const{
@@ -347,8 +313,12 @@ void MaterialBuilder::setupMaterialInstance(UMaterialInstanceConstant *matInst, 
 	FStaticParameterSet outParams;
 	matInst->GetStaticParameterValues(outParams);
 
-	//that's a lot of parameters. (-_-)
-	//Don't touch them without a GOOD reason.
+/*
+=======================
+	that's a lot of parameters. (-_-)
+	Don't touch them without a GOOD reason.
+=======================
+*/
 
 	//albedo texture and color
 	//albedoColor (c)
@@ -432,7 +402,7 @@ void MaterialBuilder::setupMaterialInstance(UMaterialInstanceConstant *matInst, 
 
 	//occlusionTexEnabled (bool)
 	//occlusionTex (tex2d)
-	setTexParams(matInst, outParams, jsonMat.normalMapTex, "normalMapTexEnabled", "normalMapTexture", importer);
+	setTexParams(matInst, outParams, jsonMat.occlusionTex, "occlusionTexEnabled", "occlusionTex", importer);
 
 	//roughness (float)
 	setScalarParam(matInst, "roughness", 1.0f - jsonMat.smoothness);//hmm...

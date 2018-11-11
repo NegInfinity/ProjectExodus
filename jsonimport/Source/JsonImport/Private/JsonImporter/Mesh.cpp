@@ -241,7 +241,8 @@ void JsonImporter::importMesh(JsonObjPtr obj, int32 meshId){
 	if (materials){
 		auto matIds = toIntArray(*materials);
 		for(auto matId: matIds){
-			UMaterial *material = loadMaterial(matId);
+			UMaterialInterface *material = loadMaterialInterface(matId);
+			//UMaterial *material = loadMaterialInterface(matId);
 			//mesh->Materials.Add(material);
 			mesh->StaticMaterials.Add(material);
 		}

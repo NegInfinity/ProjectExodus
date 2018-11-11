@@ -24,7 +24,7 @@ protected:
 	FString sourceBaseName;
 	IdNameMap meshIdMap;
 	IdNameMap texIdMap;
-	IdNameMap matIdMap;
+	IdNameMap matMasterIdMap;
 	IdNameMap matInstIdMap;
 
 	TMap<JsonId, JsonTerrainData> terrainDataMap;
@@ -69,7 +69,7 @@ protected:
 		int layerIndex, const FString &terrainDataPth);
 public:
 	void registerMaterialInstancePath(int32 id, FString path);
-	void registerMaterialPath(int32 id, FString path);
+	void registerMasterMaterialPath(int32 id, FString path);
 	void registerEmissiveMaterial(int32 id);
 	const FString& getAssetRootPath() const{
 		return assetRootPath;
@@ -78,10 +78,13 @@ public:
 		return assetCommonPath;
 	}
 
-	UMaterialInstanceConstant* getMaterialInstance(int32 id) const;
+	//UMaterialInstanceConstant* getMaterialInstance(int32 id) const;
 	UTexture *getTexture(int32 id) const;
 	UTexture* loadTexture(int32 id) const;
-	UMaterial* loadMaterial(int32 id) const;
+	UMaterialInstanceConstant* loadMaterialInstance(int32 id) const;
+	UMaterial* loadMasterMaterial(int32 id) const;
+
+	UMaterialInterface* loadMaterialInterface(int32 id) const;
 
 	FString getMeshPath(JsonId id) const;
 	UStaticMesh *loadStaticMeshById(JsonId id) const;
@@ -100,7 +103,7 @@ public:
 	JsonObjPtr loadJsonFromFile(const FString &filename);
 
 	void importTexture(JsonObjPtr obj, const FString &rootPath);
-	void importMaterial(JsonObjPtr obj, int32 matId);
+	void importMasterMaterial(JsonObjPtr obj, int32 matId);
 	void importMaterialInstance(JsonObjPtr obj, int32 matId);
 	void importMesh(JsonObjPtr obj, int32 meshId);
 	void importObject(JsonObjPtr obj, int32 objId, ImportWorkData &importData);

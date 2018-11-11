@@ -56,8 +56,8 @@ class MaterialBuilder{
 public:
 	UMaterial* loadDefaultMaterial();
 
-	UMaterial *importMaterial(const JsonMaterial& jsonMat, JsonImporter *importer, JsonMaterialId matId);
-	UMaterial *importMaterial(JsonObjPtr obj, JsonImporter *importer, JsonMaterialId matId);
+	UMaterial *importMasterMaterial(const JsonMaterial& jsonMat, JsonImporter *importer, JsonMaterialId matId);
+	UMaterial *importMasterMaterial(JsonObjPtr obj, JsonImporter *importer, JsonMaterialId matId);
 
 	UMaterialInstanceConstant* importMaterialInstance(const JsonMaterial& jsonMat, JsonImporter *importer, JsonMaterialId matId);
 	UMaterialInstanceConstant* importMaterialInstance(JsonObjPtr obj, JsonImporter *importer, JsonMaterialId matId);

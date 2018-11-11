@@ -29,7 +29,7 @@
 
 using namespace JsonObjects;
 
-UMaterialInstanceConstant* JsonImporter::getMaterialInstance(int32 id) const{
+UMaterialInstanceConstant* JsonImporter::loadMaterialInstance(int32 id) const{
 	UE_LOG(JsonLog, Log, TEXT("Looking for material instance %d"), id);
 	if (id < 0){
 		UE_LOG(JsonLog, Log, TEXT("Invalid id %d"), id);
@@ -49,34 +49,27 @@ UMaterialInstanceConstant* JsonImporter::getMaterialInstance(int32 id) const{
 }
 
 
-UMaterial* JsonImporter::loadMaterial(int32 id) const{
+UMaterial* JsonImporter::loadMasterMaterial(int32 id) const{
 	UE_LOG(JsonLog, Log, TEXT("Looking for material %d"), id);
 	if (id < 0){
 		UE_LOG(JsonLog, Log, TEXT("Invalid id %d"), id);
 		return 0;
 	}
 
-	auto foundPath = matIdMap.Find(id);
+	auto foundPath = matMasterIdMap.Find(id);
 	if (!foundPath){
 		UE_LOG(JsonLog, Log, TEXT("Id %d is not in the map"), id);
 		return 0;
 	}
-	/*
-	if (!matIdMap.Contains(id)){
-		UE_LOG(JsonLog, Log, TEXT("Id %d is not in the map"), id);
-		return 0;
-	}
 
-	auto matPath = matIdMap[id];
-	*/
 	auto matPath = *foundPath;
 	UMaterial *mat = Cast<UMaterial>(StaticLoadObject(UMaterial::StaticClass(), 0, *matPath));
 	UE_LOG(JsonLog, Log, TEXT("Material located"));
 	return mat;
 }
 
-void JsonImporter::importMaterial(JsonObjPtr obj, int32 matId){
-	materialBuilder.importMaterial(obj, this, matId);
+void JsonImporter::importMasterMaterial(JsonObjPtr obj, int32 matId){
+	materialBuilder.importMasterMaterial(obj, this, matId);
 }
 
 void JsonImporter::importMaterialInstance(JsonObjPtr obj, int32 matId){

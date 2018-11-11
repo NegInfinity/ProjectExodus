@@ -105,7 +105,7 @@ void JsonImporter::loadMaterials(const JsonValPtrs* materials){
 		matId++;
 		if (!obj.IsValid())
 			continue;
-		importMaterial(obj, curId);
+		//importMasterMaterial(obj, curId);
 		importMaterialInstance(obj, curId);
 		matProgress.EnterProgressFrame(1.0f);
 	}
@@ -192,11 +192,11 @@ void JsonImporter::setupAssetPaths(const FString &jsonFilename){
 	sourceBaseName = FPaths::GetBaseFilename(jsonFilename);
 }
 
-void JsonImporter::registerMaterialPath(int32 id, FString path){
-	if (matIdMap.Contains(id)){
+void JsonImporter::registerMasterMaterialPath(int32 id, FString path){
+	if (matMasterIdMap.Contains(id)){
 		UE_LOG(JsonLog, Warning, TEXT("DUplicate material registration for id %d, path \"%s\""), id, *path);
 	}
-	matIdMap.Add(id, path);
+	matMasterIdMap.Add(id, path);
 }
 
 void JsonImporter::registerEmissiveMaterial(int32 id){
@@ -223,4 +223,9 @@ void JsonImporter::registerMaterialInstancePath(int32 id, FString path){
 		UE_LOG(JsonLog, Warning, TEXT("DUplicate material registration for id %d, path \"%s\""), id, *path);
 	}
 	matInstIdMap.Add(id, path);
+}
+
+UMaterialInterface* JsonImporter::loadMaterialInterface(int32 id) const{
+	//return loadMasterMaterial(id);
+	return loadMaterialInstance(id);
 }
