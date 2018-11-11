@@ -398,7 +398,7 @@ ALandscape* TerrainBuilder::buildTerrain(){
 	processFoliageTreeActors(result);
 
 	if (terrainData.detailPrototypes.Num() > 0){
-		landProxy->FlushGrassComponents();
+		//landProxy->FlushGrassComponents();
 		/*
 		auto comps = landProxy->LandscapeComponents;
 		TSet<ULandscapeComponent*> components;

@@ -130,7 +130,9 @@ void JsonImporter::processTerrain(ImportWorkData &workData, const JsonGameObject
 
 	if (!builtTerrain){
 		UE_LOG(JsonLogTerrain, Error, TEXT("Failed to build terrain \"%s\""), *(terrainData->exportPath));
+		return;
 	}
+	builtTerrain->PostEditChange();
 
 	setParentAndFolder(builtTerrain, parentActor, folderPath, workData);
 

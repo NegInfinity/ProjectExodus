@@ -428,7 +428,7 @@ void MaterialBuilder::setupMaterialInstance(UMaterialInstanceConstant *matInst, 
 	setStaticSwitch(outParams, "specularWorkflowEnabled", fingerprint.specularModel);
 
 	//transparencyEnabled (bool)
-	setStaticSwitch(outParams, "transparencyEnabled", jsonMat.isTransparentQueue());//fingerprint.isAlphaBlendMode());
+	setStaticSwitch(outParams, "transparencyEnabled", jsonMat.isTransparentQueue() || jsonMat.isAlphaTestQueue());//fingerprint.isAlphaBlendMode());
 
 	//useOpacityMask (bool, switch on for cutout mode)
 	setStaticSwitch(outParams, "useOpacityMask", jsonMat.isAlphaTestQueue());//fingerprint.isAlphaTestMode());
