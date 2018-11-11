@@ -37,15 +37,16 @@ public:
 			bool occlusionIntensity: 1;//occlusion intensity is being used
 			bool altSmoothnessTexture: 1;//if true, smoothness is taken from ALBEDO channel. Which disables alpha blend. If false, it is from either metallic or specular alpha.
 
-			//Render mode
-			RenderMode renderMode: 2;
-
 			//secondary uv index:
 			uint32 secondaryUv: 4;
+
+			//Render mode //this doesn't work anyway.
+			//RenderMode renderMode: 2;
 		};
 		MaterialFingerprintId id;
 	};
 
+	/*
 	bool isFadeMode() const{
 		return (renderMode == Fade);
 	}
@@ -61,6 +62,7 @@ public:
 	bool isAlphaTestMode() const{
 		return (renderMode == Cutout);
 	}
+	*/
 
 	bool hasDetailMaps() const{
 		return detailAlbedoTex || detailNormalTex;

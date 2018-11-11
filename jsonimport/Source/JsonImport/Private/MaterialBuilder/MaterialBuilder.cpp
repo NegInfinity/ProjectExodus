@@ -137,8 +137,18 @@ UMaterialInstanceConstant* MaterialBuilder::importMaterialInstance(const JsonMat
 	);
 
 	FString defaultMatPath = TEXT("/JsonImport/exodusSolidMaterial");
+	FString transparentMatPath = TEXT("/JsonImport/exodusBlendMaterial");
+	FString maskedMatPath = TEXT("/JsonImport/exodusMaskMaterial");
 
-	auto *baseMaterial = LoadObject<UMaterial>(nullptr, *defaultMatPath);
+	auto baseMaterialPath = defaultMatPath;
+	if (jsonMat.isTransparentQueue()){
+		baseMaterialPath = transparentMatPath;
+	}
+	if (jsonMat.isAlphaTestQueue()){
+		baseMaterialPath = maskedMatPath;
+	}
+
+	auto *baseMaterial = LoadObject<UMaterial>(nullptr, *baseMaterialPath);
 	if (!baseMaterial){
 		UE_LOG(JsonLog, Warning, TEXT("Could not load default material \"%s\""));
 	}
@@ -418,12 +428,14 @@ void MaterialBuilder::setupMaterialInstance(UMaterialInstanceConstant *matInst, 
 	setStaticSwitch(outParams, "specularWorkflowEnabled", fingerprint.specularModel);
 
 	//transparencyEnabled (bool)
-	setStaticSwitch(outParams, "transparencyEnabled", fingerprint.isAlphaBlendMode());
+	setStaticSwitch(outParams, "transparencyEnabled", jsonMat.isTransparentQueue());//fingerprint.isAlphaBlendMode());
 
 	//useOpacityMask (bool, switch on for cutout mode)
-	setStaticSwitch(outParams, "useOpacityMask", fingerprint.isAlphaTestMode());
+	setStaticSwitch(outParams, "useOpacityMask", jsonMat.isAlphaTestQueue());//fingerprint.isAlphaTestMode());
 
 	matInst->UpdateStaticPermutation(outParams);
+	//matInst->InitStaticPermutation();
+	matInst->PostEditChange();
 
 	//matInst->
 
@@ -446,6 +458,22 @@ void MaterialBuilder::setupMaterialInstance(UMaterialInstanceConstant *matInst, 
 	}
 
 	*/
+	/*
+	if (jsonMat.isTransparentQueue()){
+		matInst->BasePropertyOverrides.bOverride_BlendMode = true;
+		matInst->BasePropertyOverrides.BlendMode = BLEND_Translucent;
+		//translucent = true;
+	}
+	if (jsonMat.isAlphaTestQueue()){
+		matInst->BasePropertyOverrides.bOverride_BlendMode = true;
+		matInst->BasePropertyOverrides.BlendMode = BLEND_Masked;
+	}
+
+	if ((jsonMat.isTransparentQueue() || jsonMat.isAlphaTestQueue()) && !jsonMat.isGeomQueue()){
+		//material->TranslucencyLightingMode = TLM_SurfacePerPixelLighting;//TLM_Surface;
+	}
+	*/
+	/*
 	if (fingerprint.isAlphaBlendMode()){
 		matInst->BasePropertyOverrides.bOverride_BlendMode;
 		matInst->BasePropertyOverrides.BlendMode = BLEND_Translucent;
@@ -456,6 +484,6 @@ void MaterialBuilder::setupMaterialInstance(UMaterialInstanceConstant *matInst, 
 		matInst->BasePropertyOverrides.bOverride_BlendMode;
 		matInst->BasePropertyOverrides.BlendMode = BLEND_Masked;
 	}
+	*/
 
-	matInst->PostEditChange();
 }
