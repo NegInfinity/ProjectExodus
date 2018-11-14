@@ -19,6 +19,10 @@ namespace SceneExport{
 		public int resolution = 512;
 		public string mode = "baked";
 		public string refreshMode = "awake";
+		
+		//well, that's cute. customBakedTexture on reflection probe is Texture, despite being limited to cubemap in editor
+		public int customCubemapId = -1;
+		public int customTex2dId = -1;
 		//public string timeSlicingMode;
 		
 		public void writeRawJsonValue(FastJsonWriter writer){
@@ -37,6 +41,9 @@ namespace SceneExport{
 			writer.writeKeyVal("resolution", resolution);
 			writer.writeKeyVal("mode", mode);
 			writer.writeKeyVal("refreshMode", refreshMode);
+			
+			writer.writeKeyVal("customCubemapId", customCubemapId);
+			writer.writeKeyVal("customTex2dId", customTex2dId);
 			//writer.writeKeyVal("timeSlicingMode", timeSlicingMode);
 			writer.endObject();			
 		}
@@ -60,7 +67,7 @@ namespace SceneExport{
 			Uh, do we even need temporary object with all those fields? 
 			Could just grab reflection probes themselves in this case...
 		*/
-		public JsonReflectionProbe(ReflectionProbe obj){
+		public JsonReflectionProbe(ReflectionProbe obj, ResourceMapper resMap){
 			backgroundColor = obj.backgroundColor;
 			blendDistance = obj.blendDistance;
 			boxProjection = obj.boxProjection;
@@ -77,6 +84,11 @@ namespace SceneExport{
 			resolution = obj.resolution;
 			mode = obj.mode.ToString();//getModeString(obj.mode);
 			refreshMode = obj.refreshMode.ToString();//getModeString(obj.mode);
+
+			var customCubemap = obj.customBakedTexture as Cubemap;
+			var customTex2d = obj.customBakedTexture as Texture2D;			
+			customCubemapId = resMap.getCubemapId(customCubemap);
+			customTex2dId = resMap.getTextureId(customTex2d);
 		}
 	}
 }

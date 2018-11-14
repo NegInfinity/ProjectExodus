@@ -8,7 +8,7 @@ namespace SceneExport{
 			".psd", ".tga", ".jpg", ".jpeg", ".exr", ".dds", ".hdr"};
 		
 		static bool isSupportedTexExtension(string ext){
-			return supportedTexExtensions.Contains(ext);
+			return supportedTexExtensions.Contains(ext.ToLower());
 		}
 		
 		static void destroyEditorObject(Object obj){

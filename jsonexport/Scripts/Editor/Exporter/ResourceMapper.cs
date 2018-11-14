@@ -7,6 +7,8 @@ namespace SceneExport{
 		public ObjectMapper<Texture> textures = new ObjectMapper<Texture>();
 		public ObjectMapper<Mesh> meshes = new ObjectMapper<Mesh>();
 		public ObjectMapper<Material> materials = new ObjectMapper<Material>();
+		public ObjectMapper<Cubemap> cubemaps = new ObjectMapper<Cubemap>();
+		public ObjectMapper<AudioClip> audioClips = new ObjectMapper<AudioClip>();
 		Dictionary<Mesh, List<Material>> meshMaterials = new Dictionary<Mesh, List<Material>>();
 		public HashSet<string> resources = new HashSet<string>();
 		
@@ -37,12 +39,28 @@ namespace SceneExport{
 			return terrains.getId(terrain, false);
 		}
 
+		public int getAudioClipId(AudioClip clip){
+			return audioClips.getId(clip, true);
+		}
+		
+		public int findAudioClipId(AudioClip clip){
+			return audioClips.getId(clip, false);
+		}
+		
 		public int getTextureId(Texture tex){
 			return textures.getId(tex, true);
 		}
 		
 		public int findTextureId(Texture tex){
 			return textures.getId(tex, false);
+		}
+		
+		public int getCubemapId(Cubemap cube){
+			return cubemaps.getId(cube, true);
+		}
+		
+		public int findCubemapId(Cubemap cube){
+			return cubemaps.getId(cube, false);
 		}
 		
 		public MeshIdData getMeshId(GameObject srcObj){
@@ -168,6 +186,14 @@ namespace SceneExport{
 
 			foreach(var cur in textures.objectList){
 				result.textures.Add(new JsonTexture(cur, this));
+			}
+			
+			foreach(var cur in cubemaps.objectList){
+				result.cubemaps.Add(new JsonCubemap(cur, this));
+			}
+			
+			foreach(var cur in audioClips.objectList){
+				result.audioClips.Add(new JsonAudioClip(cur, this));
 			}
 			
 			result.prefabs = makePrefabList();

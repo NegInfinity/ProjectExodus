@@ -192,3 +192,9 @@ void UnrealUtilities::generateStaticMesh(UStaticMesh *mesh, RawMeshFillCallback 
 		UE_LOG(JsonLog, Error, TEXT("MeshBuildError: %s"), *(err.ToString()));
 	}
 }
+
+FString UnrealUtilities::genTimestamp(){
+	auto curTime = FDateTime::UtcNow();
+	return curTime.ToString(TEXT("%Y%m%d%H%M%S%Z"));
+}
+

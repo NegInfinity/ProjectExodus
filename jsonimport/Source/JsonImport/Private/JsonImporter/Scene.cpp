@@ -32,9 +32,13 @@
 #include "ObjectTools.h"
 #include "PackageTools.h"
 
+#include "UnrealUtilities.h"
+
 #define LOCTEXT_NAMESPACE "FJsonImportModule"
 
-void JsonImporter::importScene(JsonObjPtr sceneDataObj, bool createWorld){
+using namespace UnrealUtilities;
+
+UWorld* JsonImporter::importScene(JsonObjPtr sceneDataObj, bool createWorld){
 	const JsonValPtrs *sceneObjects = 0;
 
 	bool editorMode = !createWorld;
@@ -49,17 +53,28 @@ void JsonImporter::importScene(JsonObjPtr sceneDataObj, bool createWorld){
 	else
 		UE_LOG(JsonLog, Log, TEXT("Processing scene \"%s\"(%s)"), *sceneName, *scenePath);
 
+	if (sceneName.IsEmpty()){
+		sceneName = FString::Printf(TEXT("importedScene%s"), *genTimestamp());
+	}
+	if (scenePath.IsEmpty()){
+		scenePath = FPaths::Combine(
+			TEXT("!unnamedScenes"), sceneName
+		);
+	}
+
 	loadArray(sceneDataObj, sceneObjects, TEXT("objects"), TEXT("Scene objects"));
 	if (!createWorld){
 		ImportWorkData workData(GEditor->GetEditorWorldContext().World(), editorMode);
 		loadObjects(sceneObjects, workData);
-		return;
+		return nullptr;
 	}
 
-	saveSceneObjectsAsWorld(sceneObjects, sceneName, scenePath);
+	auto result = importSceneObjectsAsWorld(sceneObjects, sceneName, scenePath);
+
+	return result;
 }
 
-bool JsonImporter::saveSceneObjectsAsWorld(const JsonValPtrs * sceneObjects, const FString &sceneName, const FString &scenePath){
+UWorld* JsonImporter::importSceneObjectsAsWorld(const JsonValPtrs * sceneObjects, const FString &sceneName, const FString &scenePath){
 	UWorldFactory *factory = NewObject<UWorldFactory>();
 	factory->WorldType = EWorldType::Inactive;
 	factory->bInformEngineOfWorld = true;
@@ -68,7 +83,7 @@ bool JsonImporter::saveSceneObjectsAsWorld(const JsonValPtrs * sceneObjects, con
 	UWorld *existingWorld = 0;
 	FString worldName = sceneName;
 	FString worldFileName = scenePath;
-	FString packageName;
+	//FString packageName;
 	FString outWorldName, outPackageName;
 	EObjectFlags flags = RF_Public | RF_Standalone;
 	UPackage *worldPackage = 0;
@@ -78,7 +93,7 @@ bool JsonImporter::saveSceneObjectsAsWorld(const JsonValPtrs * sceneObjects, con
 
 	if (existingWorld){
 		UE_LOG(JsonLog, Warning, TEXT("World already exists for %s(%s)"), *sceneName, *scenePath);
-		return false;
+		return nullptr;
 	}
 
 	UWorld *newWorld = CastChecked<UWorld>(factory->FactoryCreateNew(
@@ -90,58 +105,38 @@ bool JsonImporter::saveSceneObjectsAsWorld(const JsonValPtrs * sceneObjects, con
 	}
 
 	if (worldPackage){
+		newWorld->PostEditChange();
 		FAssetRegistryModule::AssetCreated(newWorld);
 		worldPackage->SetDirtyFlag(true);
-	}
-	return true;
-}
+		auto path = worldPackage->GetPathName();
+		auto folderPath = FPaths::GetPath(path);
+		auto contentPath = FPaths::ProjectContentDir();
+		//auto fullpath = FPaths::Combine(contentPath, folderPath, outPackageName + FPackageName::GetAssetPackageExtension());
 
-UWorld* JsonImporter::createWorldForScene(const FString &sceneName, const FString &scenePath){
-	UWorld *newWorld = GEditor->NewMap();
-	UE_LOG(JsonLog, Log, TEXT("World created: %x"), newWorld);
-	UE_LOG(JsonLog, Log, TEXT("World current level: %x"), newWorld->GetCurrentLevel());
-	UE_LOG(JsonLog, Log, TEXT("World persistent level: %x"), newWorld->PersistentLevel);
+		auto fullpath = FPackageName::LongPackageNameToFilename(outPackageName, FPackageName::GetAssetPackageExtension());
+
+		UPackage::Save(worldPackage, newWorld, RF_Standalone|RF_Public, *fullpath);
+
+		/*UE_LOG(JsonLog, Log, TEXT("Paths while saving level: path \"%s\"; folderPath \"%s\"; contentPath \"%s\"; fullpath \"%s\";"),
+			*path, *folderPath, *contentPath, *fullpath);*/
+	}
 	return newWorld;
 }
 
-bool JsonImporter::saveLoadedWorld(UWorld *world, const FString &sceneName, const FString &scenePath){
-	UWorldFactory *factory = NewObject<UWorldFactory>();
-	factory->WorldType = EWorldType::Inactive;
-	factory->bInformEngineOfWorld = true;
-	factory->FeatureLevel = GEditor->DefaultWorldFeatureLevel;
+FString getWorldPackagePath(UWorld *world){
+	if (!world)
+		return FString();
 
-	UWorld *existingWorld = 0;
-	FString worldName = sceneName;
-	FString worldFileName = scenePath;
-	FString packageName;
-	FString outWorldName, outPackageName;
-	EObjectFlags flags = RF_Public | RF_Standalone;
-	UPackage *worldPackage = 0;
+	auto outer = world->GetOuter();
+	if (!outer)
+		return FString();
 
-	worldPackage = createPackage(worldName, worldFileName, assetRootPath, 
-		FString("Level"), &outPackageName, &outWorldName, &existingWorld);
+	auto packagePath = outer->GetPathName();
+	auto filePath = FPackageName::LongPackageNameToFilename(packagePath);//no ext?
+	UE_LOG(JsonLog, Log, TEXT("Path for the newly created world: \"%s\""), *filePath);
 
-	if (existingWorld){
-		return false;
-	}
-
-	UWorld *newWorld = CastChecked<UWorld>(factory->FactoryCreateNew(
-		UWorld::StaticClass(), worldPackage, *outWorldName, flags, 0, GWarn));
-
-	if (newWorld){
-		auto actor = newWorld->SpawnActor<APointLight>();
-		auto label = FString("Test light actor for scene: ") + sceneName;
-		actor->SetActorLabel(*label); 
-	}
-
-	if (worldPackage){
-		FAssetRegistryModule::AssetCreated(newWorld);
-		worldPackage->SetDirtyFlag(true);
-	}
-	return true;
+	return filePath;
 }
-
-
 
 void JsonImporter::importProject(const FString& filename){
 	setupAssetPaths(filename);
@@ -169,23 +164,33 @@ void JsonImporter::importProject(const FString& filename){
 				UE_LOG(JsonLog, Error, TEXT("Invalid scene data"));
 				return;
 			}			
-			importScene(curSceneDataObj, false);
+			auto world = importScene(curSceneDataObj, true);
+			auto worldPackagePath = getWorldPackagePath(world);
+			if (!worldPackagePath.IsEmpty()){
+				//FEditorFileUtils::LoadMap(worldPackagePath);
+			}
+
 			return;
 		}
 
 		int numScenes = 0;
+		FString lastWorldPackage;
 		FScopedSlowTask sceneProgress(scenes->Num(), LOCTEXT("Importing scenes", "Importing scenes"));
 		sceneProgress.MakeDialog();
 		for(int i = 0; i < scenes->Num(); i++){
 			JsonValPtr curSceneData = (*scenes)[i];
-			auto curSceneDataObj = curSceneData->AsObject();
+			auto curSceneDataObj = curSceneData->AsObject(); 
 			if (curSceneDataObj){
-				importScene(curSceneDataObj, true);
+				auto curWorld = importScene(curSceneDataObj, true);
+				auto curPath = getWorldPackagePath(curWorld);
+				if (!curPath.IsEmpty())
+					lastWorldPackage = curPath;
 				numScenes++;
 				//break;
 			}
 			sceneProgress.EnterProgressFrame();
 		}
+		//FEditorFileUtils::LoadMap(lastWorldPackage);
 		//project
 	}
 	else{

@@ -30,34 +30,27 @@ protected:
 	TMap<JsonId, JsonTerrainData> terrainDataMap;
 
 	//This data should be reset between scenes. Otherwise thingsb ecome bad.
-	//IdNameMap objectFolderPaths;
-	//IdActorMap objectActors;
 	IdSet emissiveMaterials;
 	MaterialBuilder materialBuilder;
 
 	ALandscape* createDefaultLandscape(ImportWorkData &workData, const JsonGameObject &jsonGameObj);
 	ALandscape* createDefaultLandscape(UWorld *world);
 
-	bool saveSceneObjectsAsWorld(const JsonValPtrs *sceneObjects, const FString &sceneName, const FString &scenePath);
+	UWorld* importSceneObjectsAsWorld(const JsonValPtrs *sceneObjects, const FString &sceneName, const FString &scenePath);
 	void processReflectionProbes(ImportWorkData &workData, const JsonGameObject &gameObj, int32 objId, AActor *parentActor, const FString &folderPath);
 	void processLight(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonLight &light, AActor *parentActor, const FString& folderPath);
 	void processLights(ImportWorkData &workData, const JsonGameObject &gameObj, AActor *parentActor, const FString& folderPath);
 	void processMesh(ImportWorkData &workData, const JsonGameObject &gameObj, int objId, AActor *parentActor, const FString& folderPath);
 
-	/*
-	void processFoliageActors(ImportWorkData &workData, ALandscape *landscape, const JsonGameObject &jsonGameObj, 
-		const JsonTerrain &jsonTerrain, const JsonTerrainData &terrData, 
-		AActor *parentActor, const FString& folderPath);*/
 	void processTerrain(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonTerrain &jsonTerrain, AActor *parentActor, const FString& folderPath);
 	void processTerrains(ImportWorkData &workData, const JsonGameObject &gameObj, AActor *parentActor, const FString& folderPath);
 
-	ULandscapeLayerInfoObject* createTerrainLayerInfo(ImportWorkData &workData, const JsonGameObject &jsonGameObj, 
-		const JsonTerrainData &terrData,int layerIndex, bool detailLayer, const FString &terrainDataPath);
+	/*ULandscapeLayerInfoObject* createTerrainLayerInfo(ImportWorkData &workData, const JsonGameObject &jsonGameObj, 
+		const JsonTerrainData &terrData,int layerIndex, bool detailLayer, const FString &terrainDataPath);*/
 
-	//UMaterial *createTerrainMaterial(ImportWorkData &workData, const JsonGameObject &jsonGameObj, const JsonTerrainData &terrData, const JsonConvertedTerrain &convTerrain);
-	UWorld *createWorldForScene(const FString &sceneName, const FString &scenePath);
-	bool saveLoadedWorld(UWorld *world, const FString &sceneName, const FString &sceneAssetPath);
-	void importScene(JsonObjPtr sceneData, bool createWorld);
+	//UWorld *createWorldForScene(const FString &sceneName, const FString &scenePath);
+	//bool saveLoadedWorld(UWorld *world, const FString &sceneName, const FString &sceneAssetPath);
+	UWorld* importScene(JsonObjPtr sceneData, bool createWorld);
 
 	void importPrefabs(const JsonValPtrs *prefabs);
 	void importPrefab(const JsonPrefabData& prefab);

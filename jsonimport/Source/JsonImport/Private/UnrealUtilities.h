@@ -107,6 +107,9 @@ namespace UnrealUtilities{
 
 	FString getDefaultImportPath();
 
+	FString genTimestamp();
+
+
 	template<typename T> UPackage* createPackage(
 			const FString &basePackageName, 
 			const FString &srcPackagePath,

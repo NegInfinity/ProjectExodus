@@ -22,6 +22,9 @@ namespace SceneExport{
 		public bool sRGB = true;
 		public string textureType = "default";
 		public bool normalMapFlag = false;
+		
+		public JsonTextureParameters textureParams = new JsonTextureParameters();
+		public JsonTextureImportParameters textureImportParams = new JsonTextureImportParameters();
 
 		public Texture textureRef = null;
 			
@@ -42,6 +45,10 @@ namespace SceneExport{
 			writer.writeKeyVal("sRGB", sRGB);
 			writer.writeKeyVal("normalMapFlag", normalMapFlag);
 			writer.writeKeyVal("importDataFound", importDataFound);
+			
+			writer.writeKeyVal("textureParams", textureParams);
+			writer.writeKeyVal("textureImportParams", textureImportParams);
+			
 			writer.endObject();
 		}
 			
@@ -73,6 +80,10 @@ namespace SceneExport{
 				textureType = texImporter.textureType.ToString();
 				normalMapFlag = (texImporter.textureType == TextureImporterType.NormalMap);
 			}
+			
+			textureParams = new JsonTextureParameters(tex);
+			textureImportParams = new JsonTextureImportParameters(texImporter);
+			
 			textureRef = tex;
 		}
 	}

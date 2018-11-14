@@ -136,6 +136,8 @@ UMaterialInstanceConstant* MaterialBuilder::importMaterialInstance(const JsonMat
 		matName, matPath, importer
 	);
 
+	/*FString defaultMaterial = TEXT("/JsonImport/exodusMaterial");
+	auto baseMaterialPath = defaultMaterial;*/
 	FString defaultMatPath = TEXT("/JsonImport/exodusSolidMaterial");
 	FString transparentMatPath = TEXT("/JsonImport/exodusBlendMaterial");
 	FString maskedMatPath = TEXT("/JsonImport/exodusMaskMaterial");
@@ -437,27 +439,6 @@ void MaterialBuilder::setupMaterialInstance(UMaterialInstanceConstant *matInst, 
 	//matInst->InitStaticPermutation();
 	matInst->PostEditChange();
 
-	//matInst->
-
-	/*
-	if (jsonMat.isTransparentQueue()){
-		material->BlendMode = BLEND_Translucent;
-		translucent = true;
-	}
-	if (jsonMat.isAlphaTestQueue())
-		material->BlendMode = BLEND_Masked;
-	if (jsonMat.isGeomQueue())
-		material->BlendMode = BLEND_Opaque;
-
-	bool needsOpacity = (jsonMat.isTransparentQueue() || jsonMat.isAlphaTestQueue()) && !jsonMat.isGeomQueue();
-	if (!needsOpacity)
-		return;
-
-	if (translucent){
-		material->TranslucencyLightingMode = TLM_SurfacePerPixelLighting;//TLM_Surface;
-	}
-
-	*/
 	/*
 	if (jsonMat.isTransparentQueue()){
 		matInst->BasePropertyOverrides.bOverride_BlendMode = true;
@@ -468,22 +449,9 @@ void MaterialBuilder::setupMaterialInstance(UMaterialInstanceConstant *matInst, 
 		matInst->BasePropertyOverrides.bOverride_BlendMode = true;
 		matInst->BasePropertyOverrides.BlendMode = BLEND_Masked;
 	}
-
-	if ((jsonMat.isTransparentQueue() || jsonMat.isAlphaTestQueue()) && !jsonMat.isGeomQueue()){
-		//material->TranslucencyLightingMode = TLM_SurfacePerPixelLighting;//TLM_Surface;
+	if (jsonMat.isGeomQueue()){
+		matInst->BasePropertyOverrides.bOverride_BlendMode = true;
+		matInst->BasePropertyOverrides.BlendMode = BLEND_Opaque;
 	}
 	*/
-	/*
-	if (fingerprint.isAlphaBlendMode()){
-		matInst->BasePropertyOverrides.bOverride_BlendMode;
-		matInst->BasePropertyOverrides.BlendMode = BLEND_Translucent;
-		//no translucency override, huh.
-		//material->TranslucencyLightingMode = TLM_SurfacePerPixelLighting;//TLM_Surface;
-	}
-	else if (fingerprint.isAlphaTestMode()){
-		matInst->BasePropertyOverrides.bOverride_BlendMode;
-		matInst->BasePropertyOverrides.BlendMode = BLEND_Masked;
-	}
-	*/
-
 }

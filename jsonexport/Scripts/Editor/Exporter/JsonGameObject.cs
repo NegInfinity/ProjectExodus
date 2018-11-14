@@ -107,7 +107,7 @@ namespace SceneExport{
 			light = JsonLight.makeLightArray(obj.GetComponent<Light>());
 			reflectionProbes = 
 				ExportUtility.convertComponents<ReflectionProbe, JsonReflectionProbe>(obj,
-					(c) => new JsonReflectionProbe(c));
+					(c) => new JsonReflectionProbe(c, resMap));
 			terrains = 
 				ExportUtility.convertComponents<Terrain, JsonTerrain>(obj,
 					(c) => new JsonTerrain(c, resMap));
