@@ -24,7 +24,37 @@ void JsonMesh::load(JsonObjPtr data){
 	JSON_GET_VAR(data, uv1);
 	JSON_GET_VAR(data, uv2);
 	JSON_GET_VAR(data, uv3);
+	JSON_GET_VAR(data, uv4);
+	JSON_GET_VAR(data, uv5);
+	JSON_GET_VAR(data, uv6);
+	JSON_GET_VAR(data, uv7);
+
+	JSON_GET_VAR(data, boneWeights);
+	JSON_GET_VAR(data, boneIndexes);
+	JSON_GET_VAR(data, blendShapeCount);
+
+	getJsonObjArray(data, blendShapes, "blendShapes");
+	bindPoses = getMatrixArray(data, "bindPoses");
+	inverseBindPoses = getMatrixArray(data, "inverseBindPoses");
+	//TArray<FMatrix> bindPoses;
+	//TArray<FMatrix> inverseBindPoses;
 
 	JSON_GET_VAR(data, subMeshCount);
 	getJsonObjArray(data, subMeshes, "subMeshes");
+}
+
+void JsonBlendShapeFrame::load(JsonObjPtr data){
+	JSON_GET_VAR(data, index);
+	JSON_GET_VAR(data, weight);
+	JSON_GET_VAR(data, deltaVerts);
+	JSON_GET_VAR(data, deltaTangents);
+	JSON_GET_VAR(data, deltaNormals);
+}
+
+void JsonBlendShape::load(JsonObjPtr data){
+	JSON_GET_VAR(data, name);
+	JSON_GET_VAR(data, index);
+	JSON_GET_VAR(data, numFrames);
+
+	getJsonObjArray(data, frames, "frames");
 }

@@ -19,5 +19,7 @@ using JsonObjectId = JsonId;
 
 using IntArray = TArray<int32>;
 using FloatArray = TArray<float>;
+using ByteArray = TArray<uint8>;
 using StringArray = TArray<FString>;
 using LinearColorArray = TArray<FLinearColor>;
+using MatrixArray = TArray<FMatrix>;

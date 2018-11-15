@@ -1,11 +1,46 @@
 #pragma once
 #include "JsonTypes.h"
+#include <functional>
 
 namespace JsonObjects{
 	template<typename T> TArray<T> getJsonObjArray(JsonObjPtr jsonData, const char* name){
 		TArray<T> result;
 		getJsonObjArray<T>(jsonData, result, name);
 		return result;
+	}
+
+	template<typename T> void getJsonValArray(JsonObjPtr jsonData, TArray<T>& result, const char* name, std::function<T(JsonValPtr, int)> converter){
+		auto arrayVal = jsonData->GetArrayField(name);
+
+		if (arrayVal.Num() <= 0)
+			return;
+		
+		for (int i = 0; i < arrayVal.Num(); i++){
+			auto jsonVal = arrayVal[i];
+			if (converter){
+				result.Add(converter(jsonVal, i));
+			}
+			else{
+				result.Add(T());
+			}
+		}
+	}
+
+	template<typename T> void getJsonObjArray(JsonObjPtr jsonData, TArray<T>& result, const char* name, std::function<T(JsonObjPtr, int)> converter){
+		getJsonValArray<T>(jsonData, result, name, 
+			[&](JsonValPtr val, int idx){
+				auto jsonObj = jsonVal->AsObject();
+				if (!jsonObj.IsValid()){	
+					UE_LOG(JsonLog, Warning, TEXT("Could not retrieve array index %d from \"%s\""), idx, name);
+					return T();
+				}
+				if (!converter){
+					UE_LOG(JsonLog, Warning, TEXT("Converter not assigned to retrieve data[%d] from \"%s\""), idx, name);
+					return T();
+				}
+				return converter(jsonObj, idx);
+			}
+		);
 	}
 
 	template<typename T> void getJsonObjArray(JsonObjPtr jsonData, TArray<T>& result, const char* name){
@@ -51,20 +86,25 @@ namespace JsonObjects{
 	JsonObjPtr getObject(JsonObjPtr data, const char* name);
 
 	IntArray getIntArray(JsonObjPtr data, const char *name);
+	ByteArray getByteArray(JsonObjPtr jsonObj, const char *name);
 	StringArray getStringArray(JsonObjPtr data, const char *name);
 	FloatArray getFloatArray(JsonObjPtr data, const char *name);
 	LinearColorArray getLinearColorArray(JsonObjPtr data, const char *name);
+	MatrixArray getMatrixArray(JsonObjPtr data, const char *name);
 
 	//this needs cleanup
 	FloatArray toFloatArray(const JsonValPtrs &inData);
 	FloatArray toFloatArray(const JsonValPtrs* inData);//two versions?
 	IntArray toIntArray(const JsonValPtrs &inData);
+	ByteArray toByteArray(const JsonValPtrs &inData);
 	StringArray toStringArray(const JsonValPtrs &inData);
 	LinearColorArray toLinearColorArray(const JsonValPtrs &inData);
+	MatrixArray toMatrixArray(const JsonValPtrs &inData);
 
 	FLinearColor toLinearColor(JsonObjPtr data, const FLinearColor &defaultVal = FLinearColor());
 	FLinearColor toLinearColor(const FJsonValue &data, const FLinearColor &defaultVal = FLinearColor());
-
+	FMatrix toMatrix(JsonObjPtr data, const FMatrix &defaultVal = FMatrix());
+	FMatrix toMatrix(const FJsonValue &data, const FMatrix &defaultVal = FMatrix());
 	
 	void getJsonValue(FLinearColor& outValue, JsonObjPtr data, const char*name);
 	void getJsonValue(FMatrix& outValue, JsonObjPtr data, const char *name);
@@ -83,6 +123,8 @@ namespace JsonObjects{
 	void getJsonValue(StringArray &outValue, JsonObjPtr data, const char* name);
 	void getJsonValue(FloatArray &outValue, JsonObjPtr data, const char* name);
 	void getJsonValue(LinearColorArray &outValue, JsonObjPtr data, const char* name);
+	void getJsonValue(ByteArray &outValue, JsonObjPtr data, const char* name);
+	void getJsonValue(MatrixArray &outValue, JsonObjPtr data, const char *name);
 
 	void getJsonValue(FColor& outValue, JsonObjPtr data, const char *name);
 	FColor getRgbColor(JsonObjPtr data, const char *name, const FColor &defaultVal = FColor());
