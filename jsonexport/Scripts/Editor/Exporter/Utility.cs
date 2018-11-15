@@ -2,6 +2,18 @@
 
 namespace SceneExport{
 	public static class Utility{
+		public static string toJsonString<T>(this T arg) where T: IFastJsonValue{
+			if (arg == null)
+				return string.Empty;
+			var writer = new FastJsonWriter();
+			arg.writeRawJsonValue(writer);
+			return writer.getString();
+		}
+		
+		public static void saveToJsonFile<T>(this T arg, string filename) where T: IFastJsonValue{
+			saveStringToFile(filename, arg.toJsonString());
+		}
+		
 		public static Matrix4x4 toMatrix(this Quaternion v){
 			Matrix4x4 result = Matrix4x4.identity;
 			result.SetTRS(Vector3.zero, v, Vector3.one);

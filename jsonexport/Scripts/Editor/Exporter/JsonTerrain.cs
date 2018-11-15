@@ -80,6 +80,15 @@ namespace SceneExport{
 			writer.endObject();
 		}
 		
+		public static void registerLinkedData(Terrain obj, ResourceMapper resMap){
+			if (!obj)
+				return;
+			if (obj.materialType == Terrain.MaterialType.Custom){
+				resMap.getMaterialId(obj.materialTemplate);
+			}
+			resMap.getTerrainId(obj.terrainData);
+		}
+		
 		public JsonTerrain(Terrain srcObj, ResourceMapper resMap){
 			if (!srcObj)
 				throw new System.ArgumentNullException("srcObj");

@@ -19,8 +19,20 @@ namespace SceneExport{
 			writeKeyVal<int>(key, val, writeRawValue);
 		}
 		
+		public void writeKeyVal(string key, byte[] val){
+			writeKeyVal<byte>(key, val, writeRawValue);
+		}
+		
+		public void writeKeyVal(string key, List<float> val){
+			writeKeyVal<float>(key, val, writeRawValue);
+		}
+		
 		public void writeKeyVal(string key, List<int> val){
 			writeKeyVal<int>(key, val, writeRawValue);
+		}
+		
+		public void writeKeyVal(string key, List<Matrix4x4> val){
+			writeKeyVal<Matrix4x4>(key, val, writeRawValue);
 		}
 		
 		public void writeKeyVal(string key, string[] val){

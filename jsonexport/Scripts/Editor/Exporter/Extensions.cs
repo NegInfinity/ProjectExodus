@@ -30,6 +30,21 @@ namespace SceneExport{
 			}
 			return result;
 		}
+		
+		static public byte[] toByteArray(this Color32[] arg){
+			int numValues = 0;
+			if (arg != null)
+				numValues = arg.Length;
+			
+			var result = new byte[numValues * 4];
+			for(int i = 0; i < numValues; i++){
+				result[i*4 + 0] = arg[i].r;
+				result[i*4 + 1] = arg[i].g;
+				result[i*4 + 2] = arg[i].b;
+				result[i*4 + 3] = arg[i].a;
+			}
+			return result;						
+		}
 
 		static public float[] toFloatArray(this Vector3[] arg){
 			int numValues = 0;

@@ -47,7 +47,7 @@ namespace SceneExport{
 			return fromObjects(rootObjects, showGui);
 		}
 		
-		bool checkResourceFolder(string baseFilename, out string targetDir, out string projectPath){
+		bool checkResourceFolder(string baseFilename, out string targetDir, out string projectPath, bool forbidProjectDir){
 			targetDir = System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(baseFilename));
 			if (!Application.isEditor){
 				throw new System.ArgumentException("The application is not running in editor mode");
@@ -57,7 +57,10 @@ namespace SceneExport{
 			projectPath = System.IO.Path.GetDirectoryName(dataPath);
 				
 			if (projectPath == targetDir){
-				Debug.LogWarningFormat("You're saving into project directory, files will not be copied");
+				if (forbidProjectDir)
+					Debug.LogWarningFormat("You're to save files project directory root, this is no longer allowed");
+				else
+					Debug.LogWarningFormat("You're saving into project directory, files will not be copied");
 				return false;
 			}
 			return true;
@@ -117,7 +120,7 @@ namespace SceneExport{
 			Logger.makeValid(ref logger);
 			logger.logFormat("Save resources entered");
 			string targetDir, projectPath;
-			if (!checkResourceFolder(baseFilename, out targetDir, out projectPath))
+			if (!checkResourceFolder(baseFilename, out targetDir, out projectPath, false))
 				return;
 			
 			bool cancelled = false;
@@ -140,6 +143,11 @@ namespace SceneExport{
 			writeRawJsonValue(writer);
 			return writer.getString();
 		}
+		
+		public void saveSeparateFiles(string separateFileDir, bool showGui, Logger logger = null){
+			Logger.makeValid(ref logger);
+			
+		}
 			
 		public void saveToFile(string filename, bool showGui, bool saveResourceFiles, Logger logger = null){
 			if (showGui){
@@ -147,7 +155,19 @@ namespace SceneExport{
 					string.Format("Saving file {0}", System.IO.Path.GetFileName(filename)), 
 					"Writing json data", 0, 1);
 			}
+			string targetDir;
+			string projectPath;
+			
+			checkResourceFolder(filename, out targetDir, out projectPath, true);
+			
+			string baseName = System.IO.Path.GetFileNameWithoutExtension(filename);
+			string filesDir = System.IO.Path.Combine(targetDir, baseName + "_data");
+			System.IO.Directory.CreateDirectory(filesDir);
+			
 			Utility.saveStringToFile(filename, toJsonString());
+			
+			saveSeparateFiles(filesDir, showGui, logger);
+			
 			if (showGui){
 				ExportUtility.hideProgressBar();
 			}

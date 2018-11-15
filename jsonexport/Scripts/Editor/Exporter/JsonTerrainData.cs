@@ -26,6 +26,12 @@ namespace SceneExport{
 		public List<JsonTreePrototype> treePrototypes = new List<JsonTreePrototype>();
 		public List<JsonSplatPrototype> splatPrototypes = new List<JsonSplatPrototype>();
 		
+		public static void registerLinkedData(TerrainData data, ResourceMapper resMap){
+			if (!data)
+				return;
+			//resMap.registerMaterial(data.ma
+		}
+		
 		public void writeRawJsonValue(FastJsonWriter writer){
 			writer.beginRawObject();
 			

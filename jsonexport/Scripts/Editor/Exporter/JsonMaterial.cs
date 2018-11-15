@@ -60,7 +60,7 @@ namespace SceneExport{
 		
 		public float specularHighlights = 1.0f;
 		public float glossyReflections = 1.0f;
-			
+		
 		public void writeRawJsonValue(FastJsonWriter writer){
 			writer.beginRawObject();
 			writer.writeKeyVal("id", id);
@@ -120,6 +120,67 @@ namespace SceneExport{
 			writer.endObject();			
 		}
 
+		public static class TexParamNames{
+			public static readonly string main = "_MainTex";
+			public static readonly string specular = "_SpecGlossMap";
+			public static readonly string metallic= "_MetallicGlossMap";
+			public static readonly string normal = "_BumpMap";
+			public static readonly string occlusion = "_OcclusionMap";
+			public static readonly string parallax = "_ParallaxMap";
+			public static readonly string emission = "_EmissionMap";
+			public static readonly string detailMask = "_DetailMask";
+			public static readonly string detailAlbedo = "_DetailAlbedoMap";
+			public static readonly string detailNormal = "_DetailNormalMap";
+		}
+		
+		public static class ParamNames{
+			public static readonly string metallic = "_Metallic";
+			public static readonly string specularColor = "_SpecColor";
+			public static readonly string emissionColor = "_EmissionColor";
+		}
+		
+		static void registerLinkedTex(Material mat, string paramName, ResourceMapper resMap){
+			if (!mat.HasProperty(paramName))
+				return;
+			var tex = mat.GetTexture(paramName);
+			if (!tex)
+				return;
+			resMap.registerTexture(tex);
+		}
+		
+		public static void registerLinkedData(Material mat, ResourceMapper resMap){
+			if (!mat)
+				return;
+			registerLinkedTex(mat, TexParamNames.main, resMap);	
+			registerLinkedTex(mat, TexParamNames.specular, resMap);	
+			registerLinkedTex(mat, TexParamNames.metallic, resMap);	
+			registerLinkedTex(mat, TexParamNames.normal, resMap);	
+			registerLinkedTex(mat, TexParamNames.occlusion, resMap);	
+			registerLinkedTex(mat, TexParamNames.parallax, resMap);	
+			registerLinkedTex(mat, TexParamNames.emission, resMap);	
+			registerLinkedTex(mat, TexParamNames.detailMask, resMap);	
+			registerLinkedTex(mat, TexParamNames.detailAlbedo, resMap);	
+			registerLinkedTex(mat, TexParamNames.detailNormal, resMap);	
+		}		
+		
+		static int getTexId(Material mat, string texName, ResourceMapper resMap){
+			if (!mat.HasProperty(texName))
+				return -1;
+			return resMap.getTextureId(mat.GetTexture(texName));
+		}
+
+		static float getFloat(Material mat, string paramName, float defaultVal){
+			if (!mat.HasProperty(paramName))
+				return defaultVal;
+			return mat.GetFloat(paramName);
+		}
+		
+		static Color getColor(Material mat, string paramName, Color defaultVal){
+			if (!mat.HasProperty(paramName))
+				return defaultVal;
+			return mat.GetColor(paramName);
+		}
+		
 		public JsonMaterial(Material mat, ResourceMapper resMap){
 			name = mat.name;
 			//TODO: Further investigation shows that this is likely going to return -1 for all new materials.
@@ -134,7 +195,6 @@ namespace SceneExport{
 			color = mat.color;
 
 			useNormalMap = mat.IsKeywordEnabled("_NORMALMAP");
-
 			useAlphaTest = mat.IsKeywordEnabled("_ALPHATEST_ON");
 			useAlphaBlend = mat.IsKeywordEnabled("_ALPHABLEND_ON");
 			useAlphaPremultiply = mat.IsKeywordEnabled("_ALPHAPREMULTIPLY_ON");
@@ -144,61 +204,39 @@ namespace SceneExport{
 			useMetallic = mat.IsKeywordEnabled("_METALLICGLOSSMAP");
 			useSpecular = mat.IsKeywordEnabled("_SPECCGLOSSMAP");
 
-			System.Func<string, int> getTexId = (texName) => {
-				if (!mat.HasProperty(texName))
-					return -1;
-				return resMap.getTextureId(mat.GetTexture(texName));
-			};
-			System.Func<string, float, float> getFloat = (paramName, defaultVal) => {
-				if (!mat.HasProperty(paramName))
-					return defaultVal;
-				return mat.GetFloat(paramName);
-			};
-			System.Func<string, Color, Color> getColor = (paramName, defaultVal) => {
-				if (!mat.HasProperty(paramName))
-					return defaultVal;
-				return mat.GetColor(paramName);
-			};
-				
-			var metallicParamName = "_Metallic";
-			var metallicTexParamName = "_MetallicGlossMap";
-			var specParamName = "_SpecColor";
-			var specTexParamName = "_SpecGlossMap";
-			var emissionTexParamName = "_EmissionMap";
-			var emissionParamName = "_EmissionColor";
-
-			albedoTex = getTexId("_MainTex");
-			specularTex = getTexId(specTexParamName);
-			metallicTex= getTexId(metallicTexParamName);
-			normalMapTex = getTexId("_BumpMap");
-			occlusionTex = getTexId("_OcclusionMap");
-			parallaxTex = getTexId("_ParallaxMap");
-			emissionTex = getTexId(emissionTexParamName);
-			detailMaskTex = getTexId("_DetailMask");
-			detailAlbedoTex = getTexId("_DetailAlbedoMap");
-			detailAlbedoScale = mat.GetTextureScale("_DetailAlbedoMap");
-			detailAlbedoOffset = mat.GetTextureOffset("_DetailAlbedoMap");
-			detailNormalMapTex = getTexId("_DetailNormalMap");
-			detailNormalMapScale = getFloat("_DetailNormalMapScale", 1.0f);
-
-			alphaCutoff = getFloat("_Cutoff", 1.0f);
-			smoothness = getFloat("_Glossiness", 0.5f);
-			specularColor = getColor(specParamName, Color.white);
-			metallic = getFloat(metallicParamName, 0.5f);
-			bumpScale = getFloat("_BumpScale", 1.0f);
-			parallaxScale = getFloat("_Parallax", 1.0f);
-			occlusionStrength = getFloat("_OcclusionStrength", 1.0f);
-			emissionColor = getColor(emissionParamName, Color.black);
-			detailMapScale = getFloat("_DetailNormalMapScale", 1.0f);
-			secondaryUv = getFloat("_UVSec", 1.0f);
+			albedoTex = getTexId(mat, TexParamNames.main, resMap);
+			specularTex = getTexId(mat, TexParamNames.specular, resMap);
+			metallicTex = getTexId(mat, TexParamNames.metallic, resMap);
+			normalMapTex = getTexId(mat, TexParamNames.normal, resMap);
+			occlusionTex = getTexId(mat, TexParamNames.occlusion, resMap);
+			parallaxTex = getTexId(mat, TexParamNames.parallax, resMap);
+			emissionTex = getTexId(mat, TexParamNames.emission, resMap);
+			detailMaskTex = getTexId(mat, TexParamNames.detailMask, resMap);
+			detailAlbedoTex = getTexId(mat, TexParamNames.detailAlbedo, resMap);
+			detailNormalMapTex = getTexId(mat, TexParamNames.detailNormal, resMap);
 			
-			smoothnessMapChannel = (int)getFloat("_SmoothnessTextureChannel", 0.0f);
-			specularHighlights = getFloat("_SpecularHighlights", 1.0f);
-			glossyReflections = getFloat("_GlossyReflections", 1.0f);
+			detailAlbedoScale = mat.GetTextureScale(TexParamNames.detailAlbedo);
+			detailAlbedoOffset = mat.GetTextureOffset(TexParamNames.detailAlbedo);
+			detailNormalMapScale = getFloat(mat, "_DetailNormalMapScale", 1.0f);
+
+			alphaCutoff = getFloat(mat, "_Cutoff", 1.0f);
+			smoothness = getFloat(mat, "_Glossiness", 0.5f);
+			specularColor = getColor(mat, ParamNames.specularColor, Color.white);
+			metallic = getFloat(mat, ParamNames.metallic, 0.5f);
+			bumpScale = getFloat(mat, "_BumpScale", 1.0f);
+			parallaxScale = getFloat(mat, "_Parallax", 1.0f);
+			occlusionStrength = getFloat(mat, "_OcclusionStrength", 1.0f);
+			emissionColor = getColor(mat, ParamNames.emissionColor, Color.black);
+			detailMapScale = getFloat(mat, "_DetailNormalMapScale", 1.0f);
+			secondaryUv = getFloat(mat, "_UVSec", 1.0f);
+			
+			smoothnessMapChannel = (int)getFloat(mat, "_SmoothnessTextureChannel", 0.0f);
+			specularHighlights = getFloat(mat, "_SpecularHighlights", 1.0f);
+			glossyReflections = getFloat(mat, "_GlossyReflections", 1.0f);
 				
-			hasMetallic = mat.HasProperty(metallicParamName) && mat.HasProperty(metallicTexParamName);
-			hasSpecular = mat.HasProperty(specTexParamName) && mat.HasProperty(specParamName);
-			hasEmissionColor = mat.HasProperty(emissionParamName) && (emissionColor.maxColorComponent > 0.01f);
+			hasMetallic = mat.HasProperty(ParamNames.metallic) && mat.HasProperty(TexParamNames.metallic);
+			hasSpecular = mat.HasProperty(TexParamNames.specular) && mat.HasProperty(ParamNames.specularColor);
+			hasEmissionColor = mat.HasProperty(ParamNames.emissionColor) && (emissionColor.maxColorComponent > 0.01f);
 			hasEmission = hasEmissionColor || (emissionTex >= 0);
 		}
 	}

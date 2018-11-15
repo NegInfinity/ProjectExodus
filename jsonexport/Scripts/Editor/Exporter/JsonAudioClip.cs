@@ -8,6 +8,7 @@ namespace SceneExport{
 		public string name;
 		public int id = -1;
 		public string assetPath;
+		public string exportPath;
 		void writeClipData(FastJsonWriter writer){
 			bool initialized = audioClip != null;
 			writer.writeKeyVal("initialized", initialized);
@@ -17,6 +18,7 @@ namespace SceneExport{
 			writer.writeKeyVal("name", name);
 			writer.writeKeyVal("id", id);
 			writer.writeKeyVal("assetPath", assetPath);
+			writer.writeKeyVal("exportPath", exportPath);
 							
 			writer.writeKeyVal("ambisonic", audioClip.ambisonic);
 			writer.writeKeyVal("channels", audioClip.channels);

@@ -38,6 +38,11 @@ namespace SceneExport{
 		public bool prefabModelInstance = false;
 		public string prefabType = "";
 			
+		public static void registerLinkedData(GameObject obj, ResourceMapper resMap){
+			if (!obj)
+				return;
+		}
+			
 		public void writeRawJsonValue(FastJsonWriter writer){
 			writer.beginRawObject();
 			writer.writeKeyVal("name", name);
@@ -107,10 +112,18 @@ namespace SceneExport{
 			light = JsonLight.makeLightArray(obj.GetComponent<Light>());
 			reflectionProbes = 
 				ExportUtility.convertComponents<ReflectionProbe, JsonReflectionProbe>(obj,
-					(c) => new JsonReflectionProbe(c, resMap));
+					(c) => {
+						/* ;*/
+						return new JsonReflectionProbe(c, resMap);
+					}
+				);
 			terrains = 
 				ExportUtility.convertComponents<Terrain, JsonTerrain>(obj,
-					(c) => new JsonTerrain(c, resMap));
+					(c) => {
+						/*JsonTerrain.registerLinkedData(c); */
+						return new JsonTerrain(c, resMap);						
+					}
+				);
 					
 			mesh = resMap.getOrRegMeshId(obj);
 

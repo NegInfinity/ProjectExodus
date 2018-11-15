@@ -74,7 +74,7 @@ namespace SceneExport{
 		public int findMeshId(Mesh obj){
 			return meshes.getId(obj, false);
 		}
-
+		
 		public int getMaterialId(Material obj){
 			return materials.getId(obj, true);
 		}
@@ -85,6 +85,65 @@ namespace SceneExport{
 
 		public void registerResource(string path){
 			resources.Add(path);
+		}
+		
+		public void registerTexture(Texture tex){
+			textures.getId(tex, true, null);
+		}
+		
+		public void registerMaterial(Material mat){
+			materials.getId(mat, true, (newMat) => {
+				JsonMaterial.registerLinkedData(newMat, this);
+				return;
+			});
+		}
+		
+		public void registerGameObjectData(GameObject gameObj){
+			if (!gameObj)
+				return;
+				
+			JsonGameObject.registerLinkedData(gameObj, this);
+			foreach(Transform child in gameObj.transform){
+				if (!child)
+					continue;
+				if (!child.gameObject)
+					registerGameObjectData(child.gameObject);
+			}
+		}
+		
+		public void registerMesh(Mesh mesh, GameObject meshObj){
+			meshes.getId(mesh, true, (newMesh) => {
+				if (meshMaterials.ContainsKey(newMesh))
+					return;
+				var r = meshObj.GetComponent<Renderer>();
+				if (r){
+					var matList = new List<Material>(r.sharedMaterials);					
+					meshMaterials[mesh] = matList;
+					foreach(var cur in matList){
+						registerMaterial(cur);
+					}
+				}
+			});	
+		}
+		
+		public void registerPrefab(GameObject prefab){
+			if (!prefab)
+				return;
+			var prefabType = PrefabUtility.GetPrefabType(prefab);
+			if ((prefabType != PrefabType.Prefab) && (prefabType != PrefabType.ModelPrefab))
+				return;
+				
+			var rootPrefab = PrefabUtility.FindPrefabRoot(prefab);
+			registerGameObjectData(rootPrefab);
+			
+			getPrefabObjectId(prefab, true);
+		}
+		
+		public void registerTerrainData(TerrainData data){
+			terrains.getId(data, true, (newData) => {
+				JsonTerrainData.registerLinkedData(newData, this);
+				return;
+			});
 		}
 		
 		int getOrRegMeshId(GameObject obj, Mesh mesh){
@@ -165,6 +224,35 @@ namespace SceneExport{
 				var dst = new JsonPrefabData(src, this);
 				result.Add(dst);
 			}
+			
+			return result;
+		}
+		
+		static string makeJsonResourcePath(string resourceName, int resourceIndex){
+			return string.Format("{0}{1:D8}.json", resourceName, resourceIndex);
+		}			
+		
+		static List<string> makeResourcePaths(string baseDir, int numResources, string baseName){
+			var result = new List<string>();
+			for(int i = 0; i < numResources; i++){
+				var curPath = System.IO.Path.Combine(baseDir, makeJsonResourcePath(baseName, i));
+				result.Add(curPath);
+			}
+			return result;
+		}
+		
+		public JsonExternResourceList makeExternResourceList(string baseDir){
+			var result = new JsonExternResourceList();
+			
+			result.terrains = makeResourcePaths(baseDir, terrains.objectList.Count, "terrainData");
+			result.meshes = makeResourcePaths(baseDir, meshes.objectList.Count, "mesh");
+			result.materials = makeResourcePaths(baseDir, materials.objectList.Count, "material");
+			result.textures = makeResourcePaths(baseDir, textures.objectList.Count, "texture");
+			result.cubemaps = makeResourcePaths(baseDir, cubemaps.objectList.Count, "cubemap");
+			result.audioClips = makeResourcePaths(baseDir, audioClips.objectList.Count, "audioClip");
+			result.prefabs = makeResourcePaths(baseDir, prefabs.objectMap.Count, "prefab");
+			result.resources = new List<string>(resources);
+			result.resources.Sort();
 			
 			return result;
 		}

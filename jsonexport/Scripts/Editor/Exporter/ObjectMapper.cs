@@ -37,15 +37,41 @@ namespace SceneExport{
 		}
 		
 		//public void registerObj(Resource obj
+		/*
+		public int registerResource(Resource obj, OnNewObjectAdded onAddCallback = null, bool checkRegistration = true){
+			if (Object.Equals(obj, null))
+				throw new System.ArgumentException("At this point parameter cannot be null", "obj");
+			int result = -1;
+			if (objectMap.TryGetValue(obj, out result)){
+				if (checkRegistration)
+					throw new System.InvalidOperationException(string.Format("Multiple object registration for {0}", obj));
+				return result;
+			}
+			result = nextId;
+			objectMap[obj] = result;
+			objectList.Add(obj);
+			nextId++;
+			if (onAddCallback != null)
+				onAddCallback(obj);
+			return result;						
+		}
+		*/
 		
-		public int getId(Resource obj, bool createMissing, OnNewObjectAdded onAddCallback = null){
+		public int getId(Resource obj, bool createMissing, OnNewObjectAdded onAddCallback = null, bool throwIfMissing = false){
 			int result = -1;
 			if (Object.Equals(obj, null))
 				return result;
 			if (objectMap.TryGetValue(obj, out result))
 				return result;
-			if (!createMissing)
+			if (!createMissing){
+				if (throwIfMissing){
+					throw new System.InvalidOperationException(
+						string.Format("Could not find id for resource {0}", obj)
+					);
+				}
 				return -1;
+			}
+			//return registerResource(obj, onAddCallback);
 			result = nextId;
 			objectMap[obj] = result;
 			objectList.Add(obj);
