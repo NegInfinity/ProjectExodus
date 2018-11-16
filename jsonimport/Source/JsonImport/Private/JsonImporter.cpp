@@ -76,6 +76,22 @@ void JsonImporter::loadTerrains(const JsonValPtrs* terrains){
 
 }
 
+void JsonImporter::loadCubemaps(const JsonValPtrs *cubemaps){
+	if (!cubemaps)
+		return;
+
+	FScopedSlowTask texProgress(cubemaps->Num(), LOCTEXT("Importing cubemaps", "Importing cubemaps"));
+	texProgress.MakeDialog();
+	UE_LOG(JsonLog, Log, TEXT("Processing textures"));
+	for(auto cur: *cubemaps){
+		auto obj = cur->AsObject();
+		if (!obj.IsValid())
+			continue;
+		importCubemap(obj, assetRootPath);
+		texProgress.EnterProgressFrame(1.0f);
+	}
+}
+
 void JsonImporter::loadTextures(const JsonValPtrs* textures){
 	if (!textures)
 		return;
@@ -151,7 +167,7 @@ void JsonImporter::loadObjects(const JsonValPtrs* objects, ImportWorkData &impor
 void JsonImporter::importResources(JsonObjPtr jsonData){
 	const JsonValPtrs *resources = 0, *textures = 0, 
 		*materials = 0, *meshes = 0, *prefabs = 0, 
-		*terrains = 0;
+		*terrains = 0,  *cubemaps = 0;
 
 	loadArray(jsonData, resources, TEXT("resources"), TEXT("Resources"));
 	loadArray(jsonData, textures, TEXT("textures"), TEXT("Textures"));
@@ -159,10 +175,12 @@ void JsonImporter::importResources(JsonObjPtr jsonData){
 	loadArray(jsonData, meshes, TEXT("meshes"), TEXT("Meshes"));
 	loadArray(jsonData, prefabs, TEXT("prefabs"), TEXT("Prefabs"));
 	loadArray(jsonData, terrains, TEXT("terrains"), TEXT("Terrains"));
+	loadArray(jsonData, cubemaps, TEXT("cubemaps"), TEXT("Cubemaps"));
 
 	assetCommonPath = findCommonPath(resources);
 
 	loadTextures(textures);
+	loadCubemaps(cubemaps);
 	loadMaterials(materials);
 	loadMeshes(meshes);
 	importPrefabs(prefabs);

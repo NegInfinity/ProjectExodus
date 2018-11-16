@@ -42,7 +42,152 @@ UTextureCube* JsonImporter::loadCubemap(int32 id) const{
 	return staticLoadResourceById<UTextureCube>(cubeIdMap, id, TEXT("cubemap"));
 }
 
+bool loadTextureData(ByteArray &outData, const FString &path){
+	FString fileSystemPath = path;
+	FString ext = FPaths::GetExtension(fileSystemPath);
+
+	if (ext.ToLower() == FString("tif")){
+		UE_LOG(JsonLog, Warning, TEXT("TIF image extension found! Fixing it to png: %s. Image will fail to load if no png file is present."), *fileSystemPath);
+		ext = FString("png");
+		
+		FString pathPart, namePart, extPart;
+		FPaths::Split(fileSystemPath, pathPart, namePart, extPart);
+		FString newBaseName = FString::Printf(TEXT("%s.%s"), *namePart, *ext);
+		fileSystemPath = FPaths::Combine(*pathPart, *newBaseName);
+		UE_LOG(JsonLog, Warning, TEXT("New path: %s"), *fileSystemPath);
+	}
+
+	if (!FFileHelper::LoadFileToArray(outData, *fileSystemPath)){
+		UE_LOG(JsonLog, Warning, TEXT("Could not load file \"%s\""), *fileSystemPath);
+		return false;
+	}
+
+	if (outData.Num() <= 0){
+		UE_LOG(JsonLog, Warning, TEXT("No binary data in \"%s\""), *fileSystemPath);
+		return false;
+	}
+
+	return true;
+}
+
+struct SrcPixel32{
+	uint8 r, g, b, a;
+};
+
+struct SrcPixel32F{
+	float r, g, b, a;
+};
+
+struct DstPixel16F{
+	FFloat16 b, g, r, a;
+};
+
 void JsonImporter::importCubemap(JsonObjPtr data, const FString &rootPath){
+	JsonCubemap jsonCube(data);
+	UE_LOG(JsonLog, Log, TEXT("Cubemap: %d, %s, %s (%s), %dx%d"), 
+		jsonCube.id, *jsonCube.name, *jsonCube.assetPath, *jsonCube.exportPath, 
+		jsonCube.texParams.width, jsonCube.texParams.height);
+
+	UTextureCube* existingTexture = 0;
+	FString ext = FPaths::GetExtension(jsonCube.exportPath);
+	UE_LOG(JsonLog, Log, TEXT("filename: %s, ext: %s, assetRootPath: %s"), *jsonCube.assetPath, *ext, *rootPath);
+
+	FString textureName;
+	FString packageName;
+	UPackage *texturePackage = createPackage(jsonCube.name, jsonCube.assetPath, rootPath, FString("TextureCube"), 
+		&packageName, &textureName, &existingTexture);
+
+	if (existingTexture){
+		cubeIdMap.Add(jsonCube.id, existingTexture->GetPathName());
+		UE_LOG(JsonLog, Warning, TEXT("Cube texture %s already exists, package %s"), *textureName, *packageName);
+		return;
+	}
+
+	ByteArray binaryData; 
+	//well, unreal can't load 2d images for cubemaps. So, raw data is the way to go
+	/*
+	if (loadTextureData(binaryData, FPaths::Combine(*assetRootPath, *jsonTex.path))){
+		UE_LOG(JsonLog, Error, TEXT("Could not load data for texture %s(%d)"), *jsonCube.name, jsonCube.id);
+		return;
+	}
+
+	UE_LOG(JsonLog, Log, TEXT("Loading tex data: %s (%d bytes)"), *jsonTex.name, binaryData.Num());	
+	*/
+
+	auto fullRawPath = FPaths::Combine(*assetRootPath, *jsonCube.rawPath);
+	if (!FFileHelper::LoadFileToArray(binaryData, *fullRawPath)){
+		UE_LOG(JsonLog, Error, TEXT("Could not load data from \"%s\""), *fullRawPath);
+		return;
+	}
+
+	auto texFab = makeFactoryRootPtr<UTextureFactory>();
+	texFab->SuppressImportOverwriteDialog();
+	//const uint8* data = binaryData.GetData();
+
+	auto cubeSize = jsonCube.texParams.width;
+
+	UE_LOG(JsonLog, Log, TEXT("Attempting to create package: texName %s"), *jsonCube.name);
+	UTextureCube *cubeTex = texFab->CreateTextureCube(texturePackage, *textureName, RF_Standalone|RF_Public);
+
+	ETextureSourceFormat sourceFormat = jsonCube.isHdr ? TSF_RGBA16F: TSF_BGRA8;
+
+//	cubeTex->Source.Init(cubeSize, cubeSize, 6, 1, sourceFormat);
+	cubeTex->Source.Init(cubeSize, cubeSize, 6, 1, sourceFormat);
+	if (jsonCube.isHdr){
+		cubeTex->CompressionSettings = TC_HDR;
+	}
+
+	auto* lockedMip = cubeTex->Source.LockMip(0);
+	const auto numSlices = 6;
+	if (jsonCube.isHdr){
+		const SrcPixel32F *srcData = (SrcPixel32F*)binaryData.GetData();
+		DstPixel16F *dstData = (DstPixel16F*)lockedMip;
+		for(int slice = 0; slice < numSlices; slice++){
+			auto srcSlice = srcData + cubeSize * cubeSize * slice;
+			auto dstSlice = dstData + cubeSize * cubeSize * slice;
+			for(int y = 0; y < cubeSize; y++){
+				auto srcScan = srcSlice + y * cubeSize;
+				auto dstScan = dstSlice + y * cubeSize;
+				for(int x = 0; x < cubeSize; x++){
+					dstScan[x].r.Set(srcScan[x].r);
+					dstScan[x].g.Set(srcScan[x].g);
+					dstScan[x].b.Set(srcScan[x].b);
+					dstScan[x].a.Set(srcScan[x].a);
+					//dstScan[x] = srcScan[x];
+				}
+			}
+		}
+	}
+	else{
+		const SrcPixel32 *srcData = (SrcPixel32*)binaryData.GetData();
+		SrcPixel32 *dstData = (SrcPixel32*)lockedMip;
+		auto sliceSize = cubeSize * cubeSize;
+		for(int slice = 0; slice < numSlices; slice++){
+			auto srcSlice = srcData + sliceSize * slice;
+			auto dstSlice = dstData + sliceSize * slice;
+			for(int y = 0; y < cubeSize; y++){
+				auto srcScan = srcSlice + y * cubeSize;
+				auto dstScan = dstSlice + y * cubeSize;
+				for(int x = 0; x < cubeSize; x++){
+					dstScan[x] = srcScan[x];
+				}
+			}
+		}
+	}
+
+	cubeTex->SRGB = jsonCube.texImportParams.initialized && jsonCube.texImportParams.sRGBTexture;
+	//texture mipmap generation is not supported for cubemaps?
+	cubeTex->Source.UnlockMip(0);
+
+	cubeTex->MipGenSettings = TMGS_NoMipmaps;//TMGS_LeaveExistingMips;
+	//cubeTex->Source.
+
+	if (cubeTex){
+		cubeIdMap.Add(jsonCube.id, cubeTex->GetPathName());
+		cubeTex->PostEditChange();
+		FAssetRegistryModule::AssetCreated(cubeTex);
+		texturePackage->SetDirtyFlag(true);
+	}
 }
 
 UTexture* JsonImporter::getTexture(int32 id) const{

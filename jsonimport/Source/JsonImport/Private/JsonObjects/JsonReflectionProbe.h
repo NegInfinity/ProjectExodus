@@ -18,6 +18,9 @@ public:
 	FString mode;
 	FString refreshMode;
 
+	int customCubemapId = -1;
+	int customTex2dId = -1;
+
 	void load(JsonObjPtr jsonData);
 	JsonReflectionProbe() = default;
 	JsonReflectionProbe(JsonObjPtr jsonData);

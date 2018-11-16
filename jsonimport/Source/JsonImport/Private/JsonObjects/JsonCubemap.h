@@ -10,7 +10,10 @@ public:
 	FString name;
 	FString exportPath;
 	FString assetPath;
+	FString rawPath;
 	bool needConversion;
+	FString format;
+	bool isHdr = false;
 
 	JsonTextureParams texParams;
 	JsonTextureImportParams texImportParams;

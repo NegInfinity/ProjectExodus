@@ -17,6 +17,9 @@ void JsonReflectionProbe::load(JsonObjPtr jsonData){
 	JSON_GET_PARAM(jsonData, resolution, getInt);
 	JSON_GET_PARAM(jsonData, mode, getString);
 	JSON_GET_PARAM(jsonData, refreshMode, getString);
+
+	JSON_GET_PARAM(jsonData, customCubemapId, getInt);
+	JSON_GET_PARAM(jsonData, customTex2dId, getInt);
 }
 
 JsonReflectionProbe::JsonReflectionProbe(JsonObjPtr jsonData){

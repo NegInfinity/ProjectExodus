@@ -12,6 +12,7 @@ namespace SceneExport{
 		public float mipMapBias = 0.0f;
 		public int width = 0;
 		public int height = 0;
+		public string format = "";
 		public string wrapMode;
 		public bool isTex2D = false;
 		public bool isRenderTarget = false;
@@ -23,8 +24,8 @@ namespace SceneExport{
 		public string textureType = "default";
 		public bool normalMapFlag = false;
 		
-		public JsonTextureParameters textureParams = new JsonTextureParameters();
-		public JsonTextureImportParameters textureImportParams = new JsonTextureImportParameters();
+		public JsonTextureParameters texParams = new JsonTextureParameters();
+		public JsonTextureImportParameters texImportParams = new JsonTextureImportParameters();
 
 		public Texture textureRef = null;
 			
@@ -37,6 +38,7 @@ namespace SceneExport{
 			writer.writeKeyVal("mipMapBias", mipMapBias);
 			writer.writeKeyVal("width", width);
 			writer.writeKeyVal("height", height);
+			writer.writeKeyVal("format", format);
 			writer.writeKeyVal("wrapMode", wrapMode);
 			writer.writeKeyVal("isTex2D", isTex2D);
 			writer.writeKeyVal("isRenderTarget", isRenderTarget);
@@ -46,8 +48,8 @@ namespace SceneExport{
 			writer.writeKeyVal("normalMapFlag", normalMapFlag);
 			writer.writeKeyVal("importDataFound", importDataFound);
 			
-			writer.writeKeyVal("textureParams", textureParams);
-			writer.writeKeyVal("textureImportParams", textureImportParams);
+			writer.writeKeyVal("texParams", texParams);
+			writer.writeKeyVal("texImportParams", texImportParams);
 			
 			writer.endObject();
 		}
@@ -70,6 +72,7 @@ namespace SceneExport{
 			var texImporter = importer as TextureImporter;//(TextureImporter)importer;
 			if (isTex2D){
 				alphaTransparency = tex2D.alphaIsTransparency;
+				format = tex2D.format.ToString();
 			}
 			if (isRenderTarget){
 				anisoLevel = rendTarget.anisoLevel;
@@ -81,8 +84,8 @@ namespace SceneExport{
 				normalMapFlag = (texImporter.textureType == TextureImporterType.NormalMap);
 			}
 			
-			textureParams = new JsonTextureParameters(tex);
-			textureImportParams = new JsonTextureImportParameters(texImporter);
+			texParams = new JsonTextureParameters(tex);
+			texImportParams = new JsonTextureImportParameters(texImporter);
 			
 			textureRef = tex;
 		}

@@ -9,9 +9,12 @@ void JsonCubemap::load(JsonObjPtr data){
 	JSON_GET_VAR(data, name);
 	JSON_GET_VAR(data, exportPath);
 	JSON_GET_VAR(data, assetPath);
+	JSON_GET_VAR(data, rawPath);
 	JSON_GET_VAR(data, needConversion);
+	JSON_GET_VAR(data, isHdr);
+	JSON_GET_VAR(data, format);
 
-	getJsonObj(data, texParams, "textureParams");
-	getJsonObj(data, texImportParams, "textureImportParams");
+	getJsonObj(data, texParams, "texParams");
+	getJsonObj(data, texImportParams, "texImportParams");
 }
 	

@@ -8,8 +8,11 @@ namespace SceneExport{
 		public int id = -1;
 		public string name;
 		public string exportPath;
+		public string rawPath;
 		public string assetPath;
 		public bool needConversion = false;
+		public string format = "";
+		public bool isHdr = false;
 		
 		public JsonTextureParameters texParams = new JsonTextureParameters();
 		public JsonTextureImportParameters texImportParams = new JsonTextureImportParameters();
@@ -19,8 +22,11 @@ namespace SceneExport{
 			writer.writeKeyVal("id", id);
 			writer.writeKeyVal("name", name);
 			writer.writeKeyVal("exportPath", exportPath);
+			writer.writeKeyVal("rawPath", rawPath);
 			writer.writeKeyVal("assetPath", assetPath);
 			writer.writeKeyVal("needConversion", needConversion);
+			writer.writeKeyVal("isHdr", isHdr);
+			writer.writeKeyVal("format", format);
 			
 			writer.writeKeyVal("texParams", texParams);
 			writer.writeKeyVal("texImportParams", texImportParams);
@@ -54,9 +60,15 @@ namespace SceneExport{
 				//huh.... I don't really have a way to get original texture dimensiosn, it looks like it. Oh well?
 			}
 			*/
+			
+			format = cubemap.format.ToString();
+			isHdr = TextureUtility.isHdrFormat(cubemap.format);
+			
 			exportPath = assetPath;
+			rawPath = "";
 			if (needConversion){
-				exportPath = System.IO.Path.ChangeExtension(assetPath, ".png");				
+				exportPath = System.IO.Path.ChangeExtension(assetPath, ".png");
+				rawPath = System.IO.Path.ChangeExtension(assetPath, ".raw");
 			}
 		}
 		

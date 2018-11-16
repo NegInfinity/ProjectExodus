@@ -17,7 +17,7 @@ public:
 	int maxTextureSize;
 	int mipmapFadeDistanceEnd;
 	int mipmapFadeDistanceStart;
-	bool mipmapPreserveCoverage;
+	bool mipmapsPreserveCoverage;
 	float heightmapScale;
 	FString npotScale;
 	bool qualifiesForSpritePacking;

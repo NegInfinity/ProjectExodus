@@ -312,7 +312,14 @@ void JsonImporter::processReflectionProbes(ImportWorkData &workData, const JsonG
 			reflComponent->ReflectionSourceType = EReflectionSourceType::CapturedScene;
 			if (probe.mode == "Custom"){
 				reflComponent->ReflectionSourceType = EReflectionSourceType::SpecifiedCubemap;
-				UE_LOG(JsonLog, Warning, TEXT("Cubemaps are not yet fully supported: %s(%d)"), *gameObj.ueName, objId);
+				auto cube = getCubemap(probe.customCubemapId);
+				if (!cube){
+					UE_LOG(JsonLog, Warning, TEXT("Custom cubemap not set on reflection probe on object \"%s\"(%d)"),
+						*gameObj.ueName, objId);
+				}
+				else
+					reflComponent->Cubemap = cube;
+				//UE_LOG(JsonLog, Warning, TEXT("Cubemaps are not yet fully supported: %s(%d)"), *gameObj.ueName, objId);
 			}
 			if (probe.mode == "Realtime"){
 				UE_LOG(JsonLog, Warning, TEXT("Realtime reflection probes are not support: %s(%d)"), *gameObj.ueName, objId);

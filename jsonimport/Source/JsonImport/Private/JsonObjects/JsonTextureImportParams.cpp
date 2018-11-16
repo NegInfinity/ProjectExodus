@@ -18,7 +18,7 @@ void JsonTextureImportParams::load(JsonObjPtr data){
 	JSON_GET_VAR(data, maxTextureSize);
 	JSON_GET_VAR(data, mipmapFadeDistanceEnd);
 	JSON_GET_VAR(data, mipmapFadeDistanceStart);
-	JSON_GET_VAR(data, mipmapPreserveCoverage);
+	JSON_GET_VAR2(data, mipmapsPreserveCoverage, mipMapsPreserveCoverage);
 	JSON_GET_VAR(data, heightmapScale);
 	JSON_GET_VAR(data, npotScale);
 	JSON_GET_VAR(data, qualifiesForSpritePacking);

@@ -92,6 +92,7 @@ public:
 	void importProject(const FString& path);
 
 	void importResources(JsonObjPtr jsonNode);
+	void loadCubemaps(const JsonValPtrs *cubemaps);
 	void loadTextures(const JsonValPtrs* textures);
 	void loadMaterials(const JsonValPtrs* materials);
 	void loadMeshes(const JsonValPtrs* meshes);
