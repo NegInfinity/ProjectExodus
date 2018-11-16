@@ -12,6 +12,48 @@ class JsonImporter;
 class UStaticMesh;
 
 namespace UnrealUtilities{
+	template<typename Factory> auto makeFactoryRootPtr(){
+		auto factory = NewObject<Factory>();
+		factory ->AddToRoot();
+		return TSharedPtr<Factory>(
+			factory , 
+			[](Factory* p){
+				if (p) 
+					p->RemoveFromRoot();
+			}
+		);
+	}
+
+	template<typename Res> Res* loadResourceById(
+			const IdNameMap &idMap, int32 id, 
+			std::function<Res*(const FString &path)> loader, 
+			const FString& resType = TEXT("Unspecified")){
+		check(loader);
+		UE_LOG(JsonLog, Log, TEXT("Looking for resource: %s; id: %d"), *resType, id);
+		if (id < 0){
+			UE_LOG(JsonLog, Log, TEXT("Invalid id %d"), id);
+			return 0;
+		}
+		auto foundPath = idMap.Find(id);
+		if (!foundPath){
+			UE_LOG(JsonLog, Log, TEXT("Id %d is not in the map"), id);
+			return 0;
+		}
+		auto resPath = *foundPath;
+		Res* result = loader(resPath);
+		UE_LOG(JsonLog, Log, TEXT("Resource type located: %s"), *resType);
+		return result;
+	}
+
+	template<typename Res> Res* staticLoadResourceById(
+			const IdNameMap &idMap, int32 id, const FString& resType = TEXT("Unspecified")){
+		return loadResourceById<Res>(idMap, id, 
+			[](const FString &path) -> auto{
+				return Cast<Res>(StaticLoadObject(Res::StaticClass(), 0, *path));
+			}, TEXT("cubemap")
+		);
+	}
+
 	//using StaticMeshCallback = std::function<void(UStaticMesh* mesh)>;
 	using StaticMeshBuildCallback = std::function<void(UStaticMesh* mesh, FStaticMeshSourceModel& model)>;
 	using RawMeshFillCallback = std::function<void(FRawMesh& rawMesh, int lod)>;

@@ -7,27 +7,8 @@ namespace SceneExport{
 	public class JsonTextureImportParameters: IFastJsonValue{
 		public bool initialized = false;
 		
-		TextureImporter importer = null;
-		List<JsonSpriteMetaData> spritesheet = new List<JsonSpriteMetaData>();
-		
-		//public string assetPath;
-		//public bool borderMipmap;
-		
-		/*
-		static string wrapModeToString(TextureWrapMode wrapMode){
-			switch(wrapMode){
-				case(TextureWrapMode.Clamp):
-					return "Clamp";
-				case(TextureWrapMode.Mirror):
-					return "Mirror";
-				case(TextureWrapMode.MirrorOnce):
-					return "MirrorOnce";
-				case(TextureWrapMode.Repeat):
-					return "Repeat";
-			}
-			return "";
-		}
-		*/
+		public TextureImporter importer = null;
+		public List<JsonSpriteMetaData> spritesheet = new List<JsonSpriteMetaData>();
 		
 		void writeImporterData(FastJsonWriter writer){
 			if (!importer)

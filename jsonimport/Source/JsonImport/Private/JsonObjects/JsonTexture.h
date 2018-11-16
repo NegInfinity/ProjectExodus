@@ -1,6 +1,8 @@
 #pragma once
 
 #include "JsonTypes.h"
+#include "JsonTextureParams.h"
+#include "JsonTextureImportParams.h"
 
 class JsonTexture{
 public:
@@ -21,6 +23,9 @@ public:
 	bool sRGB;
 	FString textureType;// = "default";
 	bool normalMapFlag = false;
+
+	JsonTextureParams textureParams;
+	JsonTextureImportParams textureImportParams;
 
 	void load(JsonObjPtr data);
 	JsonTexture() = default;

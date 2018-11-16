@@ -17,3 +17,7 @@
 #include "JsonObjects/getters.h"
 #include "JsonObjects/converters.h"
 #include "JsonObjects/utilities.h"
+
+#include "JsonObjects/JsonTexture.h"
+#include "JsonObjects/JsonCubemap.h"
+#include "JsonObjects/JsonMesh.h"

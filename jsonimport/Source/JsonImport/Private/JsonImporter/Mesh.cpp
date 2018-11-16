@@ -25,61 +25,39 @@
 	
 #include "RawMesh.h"
 
+#include "JsonObjects/JsonMesh.h"
+#include "UnrealUtilities.h"
+#include "JsonObjects/converters.h"
+
 #include "DesktopPlatformModule.h"
 
+using namespace UnrealUtilities;
+using namespace JsonObjects;
+
+static FVector2D getIdxVector2(const TArray<float>& floats, int32 idx){
+	if (floats.Num() <= (idx*2 + 1))
+		return FVector2D();
+	return FVector2D(floats[idx*2], floats[idx*2+1]);
+};
+
+static FVector getIdxVector3(const TArray<float>& floats, int32 idx){
+	if (floats.Num() <= (idx*3 + 2))
+		return FVector();
+	return FVector(floats[idx*3], floats[idx*3+1], floats[idx*3+2]);
+};
 
 void JsonImporter::importMesh(JsonObjPtr obj, int32 meshId){
 	UE_LOG(JsonLog, Log, TEXT("Importing mesh %d"), meshId);
-#define GETPARAM(name, op) auto name = op(obj, #name); logValue(#name, name);
-	GETPARAM(id, getInt)
-	GETPARAM(vertexCount, getInt)
-	GETPARAM(path, getString)
-	GETPARAM(name, getString)
-	GETPARAM(subMeshCount, getInt)
-#undef GETPARAM
-	//auto verts = getObject(obj, "verts");
-	//auto materials = getObject(obj, "materials");
 
-	const JsonValPtrs *verts = 0, *materials = 0, *colors = 0, *normals = 0, *uv0 = 0, *uv1 = 0, *uv2 = 0, *uv3 = 0, *subMeshes = 0;
+	JsonMesh jsonMesh(obj);
 
-	loadArray(obj, verts, TEXT("verts"));
-	if (verts){
-		UE_LOG(JsonLog, Log, TEXT("Verts: %d"), verts->Num());
-	}
-	loadArray(obj, subMeshes, TEXT("submeshes"));
-	if (subMeshes){
-		UE_LOG(JsonLog, Log, TEXT("submeshes: %d"), subMeshes->Num());
-	}
-	loadArray(obj, materials, TEXT("materials"));
-	if (materials){
-		UE_LOG(JsonLog, Log, TEXT("Materials: %d"), materials->Num());
-	}
-	loadArray(obj, colors, TEXT("colors"));
-	if (colors){
-		UE_LOG(JsonLog, Log, TEXT("Colors: %d"), colors->Num());
-	}
-	loadArray(obj, normals, TEXT("normals"));
-	if (normals){
-		UE_LOG(JsonLog, Log, TEXT("Normals: %d"), normals->Num());
-	}
-	loadArray(obj, uv0, TEXT("uv0"));
-	if (uv0){
-		UE_LOG(JsonLog, Log, TEXT("uv0: %d"), uv0->Num());
-	}
-	loadArray(obj, uv1, TEXT("uv1"));
-	if (uv1){
-		UE_LOG(JsonLog, Log, TEXT("uv1: %d"), uv1->Num());
-	}
-	loadArray(obj, uv2, TEXT("uv2"));
-	if (uv2){
-		UE_LOG(JsonLog, Log, TEXT("uv2: %d"), uv2->Num());
-	}
-	loadArray(obj, uv3, TEXT("uv3"));
-	if (uv3){
-		UE_LOG(JsonLog, Log, TEXT("uv3: %d"), uv3->Num());
-	}
-
-	if (!verts){
+	UE_LOG(JsonLog, Log, TEXT("Mesh data: Verts: %d; submeshes: %d; materials: %d; colors %d; normals: %d"), 
+		jsonMesh.verts.Num(), jsonMesh.subMeshes.Num(), jsonMesh.colors.Num(), jsonMesh.normals.Num());
+	UE_LOG(JsonLog, Log, TEXT("Mesh data: uv0: %d; uv1: %d; uv2: %d; uv3: %d; uv4: %d; uv5: %d; uv6: %d; uv7: %d;"),
+		jsonMesh.uv0.Num(), jsonMesh.uv1.Num(), jsonMesh.uv2.Num(), jsonMesh.uv3.Num(), 
+		jsonMesh.uv4.Num(), jsonMesh.uv5.Num(), jsonMesh.uv6.Num(), jsonMesh.uv7.Num());
+	
+	if (jsonMesh.verts.Num() <= 0){
 		UE_LOG(JsonLog, Warning, TEXT("No verts, cannot create mesh!"));
 		return;
 	}
@@ -89,10 +67,10 @@ void JsonImporter::importMesh(JsonObjPtr obj, int32 meshId){
 
 	UStaticMesh *existingMesh = nullptr;
 	UPackage *meshPackage = createPackage(
-		name, path, assetRootPath, FString("Mesh"), 
+		jsonMesh.name, jsonMesh.path, assetRootPath, FString("Mesh"), 
 		&sanitizedPackageName, &sanitizedMeshName, &existingMesh);
 	if (existingMesh){
-		meshIdMap.Add(id, existingMesh->GetPathName());
+		meshIdMap.Add(jsonMesh.id, existingMesh->GetPathName());
 		UE_LOG(JsonLog, Log, TEXT("Found existing mesh: %s (package %s)"), *sanitizedMeshName, *sanitizedPackageName);
 		return;
 	}
@@ -123,33 +101,31 @@ void JsonImporter::importMesh(JsonObjPtr obj, int32 meshId){
 	srcModel.RawMeshBulkData->LoadRawMesh(newRawMesh);
 	newRawMesh.VertexPositions.SetNum(0);
 
-	bool hasNormals = false;
 	{
 		UE_LOG(JsonLog, Log, TEXT("Generating mesh"));
-		auto vertFloats = toFloatArray(verts);
-		UE_LOG(JsonLog, Log, TEXT("Num vert floats: %d"), vertFloats.Num());
-		float scale = 100.0f;
-		for(int i = 0; (i + 2) < vertFloats.Num(); i += 3){
-			FVector pos(vertFloats[i], vertFloats[i+1], vertFloats[i+2]);
-			newRawMesh.VertexPositions.Add(unityToUe(pos * scale));
+		UE_LOG(JsonLog, Log, TEXT("Num vert floats: %d"), jsonMesh.verts.Num());//vertFloats.Num());
+		for(int i = 0; (i + 2) < jsonMesh.verts.Num(); i += 3){
+			FVector unityPos(jsonMesh.verts[i], jsonMesh.verts[i+1], jsonMesh.verts[i+2]);
+			newRawMesh.VertexPositions.Add(unityPosToUe(unityPos));
 		}
 		UE_LOG(JsonLog, Log, TEXT("Num verts: %d"), newRawMesh.VertexPositions.Num());
 
-		int32 faceIndex = 0;
-
-		auto normalFloats = toFloatArray(normals);
-		UE_LOG(JsonLog, Log, TEXT("Num normal floats: %d"), vertFloats.Num());
-		hasNormals = normalFloats.Num() != 0;
+		//const auto &normalFloats = jsonMesh.normals;
+		UE_LOG(JsonLog, Log, TEXT("Num normal floats: %d"), jsonMesh.verts.Num());
+		bool hasNormals = jsonMesh.normals.Num() != 0;
 		UE_LOG(JsonLog, Log, TEXT("has normals: %d"), (int)hasNormals);
-		const int32 maxUvs = 4;
+		bool hasColors = jsonMesh.colors.Num() > 0;
 
-		TArray<float> uvFloats[maxUvs] = {
-			toFloatArray(uv0), toFloatArray(uv1), toFloatArray(uv2), toFloatArray(uv3)
+		const int32 maxUvs = 8;
+		const TArray<float>* uvFloats[maxUvs] = {
+			&jsonMesh.uv0, &jsonMesh.uv1, &jsonMesh.uv2, &jsonMesh.uv3, 
+			&jsonMesh.uv4, &jsonMesh.uv5, &jsonMesh.uv6, &jsonMesh.uv7
 		};
+
 		bool hasUvs[maxUvs];
 		for(int32 i = 0; i < maxUvs; i++){
-			hasUvs[i] = uvFloats[i].Num() != 0;
-			UE_LOG(JsonLog, Log, TEXT("Uv floats[%d]: %d, hasUvs: %d"), i, uvFloats[i].Num(), (int)hasUvs[i]);
+			hasUvs[i] = uvFloats[i]->Num() != 0;
+			UE_LOG(JsonLog, Log, TEXT("Uv floats[%d]: %d, hasUvs: %d"), i, uvFloats[i]->Num(), (int)hasUvs[i]);
 		}
 
 		//submesh generation
@@ -161,60 +137,64 @@ void JsonImporter::importMesh(JsonObjPtr obj, int32 meshId){
 		newRawMesh.WedgeColors.SetNum(0);
 		newRawMesh.WedgeTangentZ.SetNum(0);
 
-		UE_LOG(JsonLog, Log, TEXT("Sub meshes: %d"), (int)(subMeshes? subMeshes->Num(): 0));
-
-		if (subMeshes){
+		UE_LOG(JsonLog, Log, TEXT("Sub meshes: %d"), jsonMesh.subMeshes.Num());
+		if (jsonMesh.subMeshes.Num() > 0){
 			UE_LOG(JsonLog, Log, TEXT("Processing submeshes"));
 			int32 nextMatIndex = 0;
-			auto getIdxVector2 = [](TArray<float>& floats, int32 idx){
-				if (floats.Num() <= (idx*2 + 1))
-					return FVector2D();
-				return FVector2D(floats[idx*2], floats[idx*2+1]);
-			};
 
-			auto getIdxVector3 = [](TArray<float>& floats, int32 idx){
-				if (floats.Num() <= (idx*3 + 2))
-					return FVector();
-				return FVector(floats[idx*3], floats[idx*3+1], floats[idx*3+2]);
-			};
+			for(int subMeshIndex = 0; subMeshIndex < jsonMesh.subMeshes.Num(); subMeshIndex++){
+				const auto& curSubMesh = jsonMesh.subMeshes[subMeshIndex];
 
-			for(auto cur: *subMeshes){
-				auto matIndex = nextMatIndex;
-				nextMatIndex++;				
-				UE_LOG(JsonLog, Log, TEXT("Processing submesh %d"), matIndex);
-				auto trigJson = cur->AsObject();
-				if (!trigJson.IsValid())
-					continue;
-				const JsonValPtrs* trigObj = 0;
-				loadArray(trigJson, trigObj, "Triangles");
-				if (!trigObj)
-					continue;
-				auto trigs = toIntArray(*trigObj);
+				const auto& trigs = curSubMesh.triangles;
 				UE_LOG(JsonLog, Log, TEXT("Num triangle verts %d"), trigs.Num());
 
-				auto processIndex = [&](int32 trigVertIdx){
+				auto processTriangleIndex = [&](int32 trigVertIdx){
 					auto origIndex = trigs[trigVertIdx];
 					newRawMesh.WedgeIndices.Add(origIndex);
-					if (hasNormals)
-						newRawMesh.WedgeTangentZ.Add(unityToUe(getIdxVector3(normalFloats, origIndex)));
+
+					if (hasNormals){
+						newRawMesh.WedgeTangentZ.Add(
+							unityToUe(
+								getIdxVector3(jsonMesh.normals, origIndex)
+							)
+						);
+					}
+
 					for(int32 uvIndex = 0; uvIndex < maxUvs; uvIndex++){
 						if (!hasUvs[uvIndex])
 							continue;
-						auto tmpUv = getIdxVector2(uvFloats[uvIndex], origIndex);
+
+						auto tmpUv = getIdxVector2(*uvFloats[uvIndex], origIndex);
 						tmpUv.Y = 1.0f - tmpUv.Y;
 						newRawMesh.WedgeTexCoords[uvIndex].Add(tmpUv);
 					}
+
+					if (hasColors){
+						FColor col32(
+							jsonMesh.colors[trigVertIdx * 4], 
+							jsonMesh.colors[trigVertIdx * 4 + 1], 
+							jsonMesh.colors[trigVertIdx * 4 + 2], 
+							jsonMesh.colors[trigVertIdx * 4 + 3]
+						);
+
+						//srgb conversion, though?
+						newRawMesh.WedgeColors.Add(
+							col32
+						);
+					}
+
 					if ((trigVertIdx % 3) == 0){
-						newRawMesh.FaceMaterialIndices.Add(matIndex);
+						newRawMesh.FaceMaterialIndices.Add(subMeshIndex);
 						newRawMesh.FaceSmoothingMasks.Add(0);
 					}
 				};
 
 				for(int32 trigVertIndex = 0; (trigVertIndex + 2) < trigs.Num(); trigVertIndex += 3){
-					processIndex(trigVertIndex);
-					processIndex(trigVertIndex + 2);
-					processIndex(trigVertIndex + 1);
+					processTriangleIndex(trigVertIndex);
+					processTriangleIndex(trigVertIndex + 2);
+					processTriangleIndex(trigVertIndex + 1);
 				}
+
 				UE_LOG(JsonLog, Log, TEXT("New wedge indices %d"), newRawMesh.WedgeIndices.Num());
 				UE_LOG(JsonLog, Log, TEXT("Face mat indices: %d"), newRawMesh.FaceMaterialIndices.Num());
 				for(int32 i = 0; i < MAX_MESH_TEXTURE_COORDS; i++){
@@ -238,14 +218,9 @@ void JsonImporter::importMesh(JsonObjPtr obj, int32 meshId){
 	}
 
 	mesh->StaticMaterials.Empty();
-	if (materials){
-		auto matIds = toIntArray(*materials);
-		for(auto matId: matIds){
-			UMaterialInterface *material = loadMaterialInterface(matId);
-			//UMaterial *material = loadMaterialInterface(matId);
-			//mesh->Materials.Add(material);
-			mesh->StaticMaterials.Add(material);
-		}
+	for(auto matId: jsonMesh.materials){
+		UMaterialInterface *material = loadMaterialInterface(matId);
+		mesh->StaticMaterials.Add(material);
 	}
 
 	srcModel.RawMeshBulkData->SaveRawMesh(newRawMesh);
@@ -258,10 +233,9 @@ void JsonImporter::importMesh(JsonObjPtr obj, int32 meshId){
 	for(FText& err: buildErrors){
 		UE_LOG(JsonLog, Error, TEXT("MeshBuildError: %s"), *(err.ToString()));
 	}
-	//srcModel.BuildSettings
 
 	if (mesh){
-		meshIdMap.Add(id, mesh->GetPathName());
+		meshIdMap.Add(jsonMesh.id, mesh->GetPathName());
 		FAssetRegistryModule::AssetCreated(mesh);
 		meshPackage->SetDirtyFlag(true);
 	}

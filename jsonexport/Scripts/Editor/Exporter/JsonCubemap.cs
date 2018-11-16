@@ -21,6 +21,9 @@ namespace SceneExport{
 			writer.writeKeyVal("exportPath", exportPath);
 			writer.writeKeyVal("assetPath", assetPath);
 			writer.writeKeyVal("needConversion", needConversion);
+			
+			writer.writeKeyVal("texParams", texParams);
+			writer.writeKeyVal("texImportParams", texImportParams);
 
 			writer.endObject();
 		}
@@ -32,12 +35,29 @@ namespace SceneExport{
 			}
 			id = resMap.findCubemapId(cubemap);
 			assetPath = AssetDatabase.GetAssetPath(cubemap);
+			name = cubemap.name;
 			
 			var importer = AssetImporter.GetAtPath(assetPath);
 			var texImporter = importer as TextureImporter;
 
 			texParams = new JsonTextureParameters(cubemap);
 			texImportParams = new JsonTextureImportParameters(texImporter);
+			
+			needConversion = true;
+			/*
+			if (TextureUtility.isSupportedTexExtension(assetPath))
+				needConversion = true;
+			if (texImportParams.initialized && texImportParams.importer){
+				if (texImportParams.importer.generateCubemap != TextureImporterGenerateCubemap.FullCubemap){
+					needConversion = true;
+				}
+				//huh.... I don't really have a way to get original texture dimensiosn, it looks like it. Oh well?
+			}
+			*/
+			exportPath = assetPath;
+			if (needConversion){
+				exportPath = System.IO.Path.ChangeExtension(assetPath, ".png");				
+			}
 		}
 		
 		public JsonCubemap(){

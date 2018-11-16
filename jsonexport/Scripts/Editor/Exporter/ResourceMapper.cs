@@ -239,8 +239,66 @@ namespace SceneExport{
 				result.Add(curPath);
 			}
 			return result;
+		}		
+		
+		static List<string> saveResourcesToPath<ClassType, ObjType>(string baseDir, 
+				List<ObjType> objects, System.Func<ObjType, ClassType> converter, string baseName, bool showGui) 
+				where ClassType: IFastJsonValue{
+				
+			if (converter == null)
+				throw new System.ArgumentNullException("converter");
+				
+			try{
+				var result = new List<string>();
+				for(int i = 0; i < objects.Count; i++){
+					var fileName = makeJsonResourcePath(baseName, i);	
+					if (showGui){
+						ExportUtility.showProgressBar(
+							string.Format("Saving file {0} for resource type {1}", fileName, baseName), 
+							"Writing json data", i, objects.Count);
+					}
+					var fullPath = System.IO.Path.Combine(baseDir, fileName);
+				
+					var jsonObj = converter(objects[i]);
+					jsonObj.saveToJsonFile(fullPath);				
+					result.Add(fileName);
+				}
+				return result;		
+			}
+			finally{
+				if (showGui){
+					ExportUtility.hideProgressBar();
+				}
+			}
 		}
 		
+		public JsonExternResourceList saveResourceToFolder(string baseDir, bool showGui){
+			var result = new JsonExternResourceList();
+			
+			result.terrains = saveResourcesToPath(baseDir, terrains.objectList, 
+				(objData) => new JsonTerrainData(objData, this), "terrainData", showGui);
+			result.meshes = saveResourcesToPath(baseDir, meshes.objectList, 
+				(objData) => new JsonMesh(objData, this),  "mesh", showGui);
+			result.materials = saveResourcesToPath(baseDir, materials.objectList, 
+				(objData) => new JsonMaterial(objData, this), "material", showGui);
+			result.textures = saveResourcesToPath(baseDir, textures.objectList, 
+				(objData) => new JsonTexture(objData, this), "texture", showGui);
+			result.cubemaps = saveResourcesToPath(baseDir, cubemaps.objectList, 
+				(objData) => new JsonCubemap(objData, this), "cubemap", showGui);
+			result.audioClips = saveResourcesToPath(baseDir, audioClips.objectList, 
+				(objData) => new JsonAudioClip(objData, this), "audioClip", showGui);
+				
+			var prefabList = makePrefabList();
+			result.prefabs = saveResourcesToPath(baseDir, prefabList, (objData) => objData, "prefab", showGui);
+			/*result.prefabs = saveResourcesToPath(baseDir, prefabs.objectMap, 
+				(objData) => new JsonPref"prefab");*/
+			result.resources = new List<string>(resources);
+			result.resources.Sort();
+			
+			return result;
+		}
+
+		/*		
 		public JsonExternResourceList makeExternResourceList(string baseDir){
 			var result = new JsonExternResourceList();
 			
@@ -256,6 +314,7 @@ namespace SceneExport{
 			
 			return result;
 		}
+		*/
 		
 		public JsonResourceList makeResourceList(){
 			var result = new JsonResourceList();

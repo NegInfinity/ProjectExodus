@@ -11,11 +11,13 @@ namespace SceneExport{
 		public JsonProjectConfig config = new JsonProjectConfig();
 		public List<JsonScene> scenes = new List<JsonScene>();
 		public JsonResourceList resourceList = new JsonResourceList();
+		public JsonExternResourceList externResourceList = new JsonExternResourceList();
 		public ResourceMapper resourceMapper = new ResourceMapper();
 		public override void writeJsonObjectFields(FastJsonWriter writer){
 			writer.writeKeyVal("config", config);
 			writer.writeKeyVal("scenes", scenes);
 			//var resourceList = resourceMapper.makeResourceList();
+			writer.writeKeyVal("externResources", externResourceList);
 			writer.writeKeyVal("resources", resourceList);
 		}
 		
@@ -66,75 +68,84 @@ namespace SceneExport{
 			return true;
 		}
 		
-		bool saveTextures(string baseFilename, string targetDir, string projectPath, bool showGui, Logger logger = null){
+		bool saveResourceType<T>(List<T> resourceList, string baseFilename, string targetDir, string projectPath, bool showGui, Logger logger,
+				System.Action<T, bool, Logger> callback, string singular, string plural){
 			Logger.makeValid(ref logger);
+			logger.logFormat("Saving {2} to {0}, {1}", targetDir, projectPath, plural);
 			
-			var texIndex = 0;
-			var numTextures = resourceList.textures.Count;
-			var title = string.Format("Saving textures for {0}",
-				baseFilename);
-			foreach(var curTex in resourceList.textures){
+			var resourceIndex = 0;
+			var numResources = resourceList.Count;
+			var title = string.Format("Saving {1} for {0}",
+				baseFilename, plural);
+			foreach(var curResource in resourceList){
 				if (showGui){
 					if (ExportUtility.showCancellableProgressBar(title, 
-							string.Format("Saving texture {0}/{1}", texIndex, numTextures),
-							texIndex, numTextures)){
+							string.Format("Saving {2} {0}/{1}", resourceIndex, numResources, singular),
+							resourceIndex, numResources)){
 						logger.logErrorFormat("Resource copying cancelled by the user.");
 						return false;
 						//break;
 					}				
 				}
 				
-				TextureUtility.copyTexture(curTex, targetDir, projectPath, logger);
-				texIndex++;
+				if (callback != null)
+					callback(curResource, true, logger);
+				resourceIndex++;
 			}
-			return true;
+			return true;			
+		}
+		
+		bool saveCubemaps(string baseFilename, string targetDir, string projectPath, bool showGui, Logger logger = null){
+			return saveResourceType(resourceList.cubemaps, baseFilename, targetDir, projectPath, showGui, logger,
+				(curTex, showGui_, logger_) => {
+					TextureUtility.copyCubemap(curTex, targetDir, projectPath, logger);
+					//TextureUtility.copyTexture(curTex, targetDir, projectPath, logger);
+				}, "cubemap", "cubemaps"
+			);
+		}
+		
+		bool saveTextures(string baseFilename, string targetDir, string projectPath, bool showGui, Logger logger = null){
+			return saveResourceType(resourceList.textures, baseFilename, targetDir, projectPath, showGui, logger,
+				(curTex, showGui_, logger_) => {
+					TextureUtility.copyTexture(curTex, targetDir, projectPath, logger);
+				}, "texture", "textures"
+			);
 		}
 		
 		bool saveTerrains(string baseFilename, string targetDir, string projectPath, bool showGui, Logger logger = null){
-			Logger.makeValid(ref logger);
-			logger.logFormat("Saving terrains to {0}, {1}", targetDir, projectPath);
-			
-			var terrainIndex = 0;
-			var numTerrains = resourceList.textures.Count;
-			var title = string.Format("Saving terrains for {0}",
-				baseFilename);
-			foreach(var curTerrain in resourceList.terrains){
-				if (showGui){
-					if (ExportUtility.showCancellableProgressBar(title, 
-							string.Format("Saving terrain {0}/{1}", terrainIndex, numTerrains),
-							terrainIndex, numTerrains)){
-						logger.logErrorFormat("Resource copying cancelled by the user.");
-						return false;
-						//break;
-					}				
-				}
-				
-				TerrainUtility.saveTerrain(curTerrain, targetDir, projectPath, true, logger);
-				//TextureUtility.copyTexture(curTex, targetDir, projectPath, logger);
-				terrainIndex++;
-			}
-			return true;
+			return saveResourceType(resourceList.terrains, baseFilename, targetDir, projectPath, showGui, logger,
+				(curTerrain, showGui_, logger_) => {
+					TerrainUtility.saveTerrain(curTerrain, targetDir, projectPath, showGui_, logger_);				
+				}, "terrain", "terrains"
+			);;
 		}
 		
 		void saveResources(string baseFilename, bool showGui, Logger logger = null){
-			Logger.makeValid(ref logger);
-			logger.logFormat("Save resources entered");
-			string targetDir, projectPath;
-			if (!checkResourceFolder(baseFilename, out targetDir, out projectPath, false))
-				return;
+			try{
+				Logger.makeValid(ref logger);
+				logger.logFormat("Save resources entered");
+				string targetDir, projectPath;
+				if (!checkResourceFolder(baseFilename, out targetDir, out projectPath, false))
+					return;
 			
-			bool cancelled = false;
-			if (!cancelled){
-				if (!saveTerrains(baseFilename, targetDir, projectPath, showGui, logger))
-					cancelled = true;
+				bool cancelled = false;
+				if (!cancelled){
+					if (!saveTerrains(baseFilename, targetDir, projectPath, showGui, logger))
+						cancelled = true;
+				}
+				if (!cancelled){
+					if (!saveCubemaps(baseFilename, targetDir, projectPath, showGui, logger))
+						cancelled = true;
+				}
+				if (!cancelled){
+					if (!saveTextures(baseFilename, targetDir, projectPath, showGui, logger))
+						cancelled = true;
+				}
 			}
-			if (!cancelled){
-				if (!saveTextures(baseFilename, targetDir, projectPath, showGui, logger))
-					cancelled = true;
-			}
-
-			if (showGui){
-				ExportUtility.hideProgressBar();
+			finally{
+				if (showGui){
+					ExportUtility.hideProgressBar();
+				}
 			}
 		}
 		
@@ -144,11 +155,6 @@ namespace SceneExport{
 			return writer.getString();
 		}
 		
-		public void saveSeparateFiles(string separateFileDir, bool showGui, Logger logger = null){
-			Logger.makeValid(ref logger);
-			
-		}
-			
 		public void saveToFile(string filename, bool showGui, bool saveResourceFiles, Logger logger = null){
 			if (showGui){
 				ExportUtility.showProgressBar(
@@ -161,12 +167,12 @@ namespace SceneExport{
 			checkResourceFolder(filename, out targetDir, out projectPath, true);
 			
 			string baseName = System.IO.Path.GetFileNameWithoutExtension(filename);
-			string filesDir = System.IO.Path.Combine(targetDir, baseName + "_data");
+			string filesDir = System.IO.Path.Combine(targetDir, baseName);// + "_data");
 			System.IO.Directory.CreateDirectory(filesDir);
 			
-			Utility.saveStringToFile(filename, toJsonString());
+			externResourceList = resourceMapper.saveResourceToFolder(filesDir, showGui);
 			
-			saveSeparateFiles(filesDir, showGui, logger);
+			Utility.saveStringToFile(filename, toJsonString());
 			
 			if (showGui){
 				ExportUtility.hideProgressBar();
@@ -290,48 +296,52 @@ namespace SceneExport{
 		}
 		
 		bool loadCurrentProject(bool showGui, Logger logger){
-			var projectName = Application.productName;
-			var title = string.Format("Processing proejct \"{0}\"",
-				projectName);
-			if (showGui){
-				ExportUtility.showProgressBar(title, "Gathering all assets", 0, 1);
+			try{
+				var projectName = Application.productName;
+				var title = string.Format("Processing proejct \"{0}\"",
+					projectName);
+				if (showGui){
+					ExportUtility.showProgressBar(title, "Gathering all assets", 0, 1);
+				}
+			
+				var allAssets = AssetDatabase.FindAssets("t:object").ToList();
+				logger.logFormat("{0} assets found", allAssets.Count);
+			
+				title = string.Format("Enumerating assets for \"{0}\"", projectName);
+				var numAssets = allAssets.Count;
+				var assetList = new ProjectAssetList();
+			
+				if (!processDataList(allAssets, showGui, "Enumerating assets for", "Processing asset", 
+						(data_, gui_, log_) => {assetList.addAssetFromGuid(data_, log_); return true; }, logger))
+					return false;
+			
+				logger.logFormat("Asset information: textures: {0}; materials: {1}; gameObjects: {2}; "
+					+ "terrains: {3}; scenes: {4}; defaultAssets: {5}; unsupported: {6};",
+					assetList.textures.Count, assetList.materials.Count, assetList.gameObjects.Count, 
+					assetList.terrains.Count, assetList.scenes.Count, 
+					assetList.defaultAssets.Count, assetList.unsupportedAssets.Count);
+				
+				if (!processDataList(assetList.terrains, showGui, "Registering terrains for", "Processing terrain", addTerrainAsset, logger))
+					return false;
+				if (!processDataList(assetList.textures, showGui, "Registering textures for", "Processing texture", addTextureAsset, logger))
+					return false;
+				if (!processDataList(assetList.materials, showGui, "Registering materials for", "Processing material", addMaterialAsset, logger))
+					return false;
+				if (!processDataList(assetList.gameObjects, showGui, "Registering prefabs for", "Processing prefab", addGameObjectAsset, logger))
+					return false;
+				
+				var sceneSetup = UnityEditor.SceneManagement.EditorSceneManager.GetSceneManagerSetup();
+				var processResult = processDataList(assetList.scenes, showGui, "Registering scenes for", "Processing scene", addSceneAsset, logger);
+				UnityEditor.SceneManagement.EditorSceneManager.RestoreSceneManagerSetup(sceneSetup);
+				if (!processResult)
+					return false;
+			}
+			finally{
+				if (showGui){
+					ExportUtility.hideProgressBar();
+				}
 			}
 			
-			var allAssets = AssetDatabase.FindAssets("t:object").ToList();
-			logger.logFormat("{0} assets found", allAssets.Count);
-			
-			title = string.Format("Enumerating assets for \"{0}\"", projectName);
-			var numAssets = allAssets.Count;
-			var assetList = new ProjectAssetList();
-			
-			if (!processDataList(allAssets, showGui, "Enumerating assets for", "Processing asset", 
-					(data_, gui_, log_) => {assetList.addAssetFromGuid(data_, log_); return true; }, logger))
-				return false;
-			
-			logger.logFormat("Asset information: textures: {0}; materials: {1}; gameObjects: {2}; "
-				+ "terrains: {3}; scenes: {4}; defaultAssets: {5}; unsupported: {6};",
-				assetList.textures.Count, assetList.materials.Count, assetList.gameObjects.Count, 
-				assetList.terrains.Count, assetList.scenes.Count, 
-				assetList.defaultAssets.Count, assetList.unsupportedAssets.Count);
-				
-			if (!processDataList(assetList.terrains, showGui, "Registering terrains for", "Processing terrain", addTerrainAsset, logger))
-				return false;
-			if (!processDataList(assetList.textures, showGui, "Registering textures for", "Processing texture", addTextureAsset, logger))
-				return false;
-			if (!processDataList(assetList.materials, showGui, "Registering materials for", "Processing material", addMaterialAsset, logger))
-				return false;
-			if (!processDataList(assetList.gameObjects, showGui, "Registering prefabs for", "Processing prefab", addGameObjectAsset, logger))
-				return false;
-				
-			var sceneSetup = UnityEditor.SceneManagement.EditorSceneManager.GetSceneManagerSetup();
-			var processResult = processDataList(assetList.scenes, showGui, "Registering scenes for", "Processing scene", addSceneAsset, logger);
-			UnityEditor.SceneManagement.EditorSceneManager.RestoreSceneManagerSetup(sceneSetup);
-			if (!processResult)
-				return false;
-			
-			if (showGui){
-				ExportUtility.hideProgressBar();
-			}
 			generateResourceList();
 			return true;
 		}
@@ -354,7 +364,6 @@ namespace SceneExport{
 				logger.logErrorFormat("Could not get path of asset \"{0}\'", guid);
 				return;
 			}
-			
 		}
 	}	
 }

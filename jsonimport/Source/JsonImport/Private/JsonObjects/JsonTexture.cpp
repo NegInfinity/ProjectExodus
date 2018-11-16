@@ -21,4 +21,9 @@ void JsonTexture::load(JsonObjPtr data){
 	JSON_GET_VAR(data, sRGB);
 	JSON_GET_VAR(data, textureType);
 	JSON_GET_VAR(data, normalMapFlag);
+
+	getJsonObj(data, textureParams, "textureParams");
+	//JsonTextureParams textureParams;
+	//JsonTextureImportParams textureImportParams;
+	getJsonObj(data, textureImportParams, "textureImportParams");
 }

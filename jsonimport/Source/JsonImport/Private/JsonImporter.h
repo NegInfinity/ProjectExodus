@@ -12,6 +12,7 @@ class UMaterialExpressionVectorParameter;
 class UMaterialExpressionConstant;
 class UMaterialExpressionTextureSample;
 class UTexture;
+class UTextureCube;
 class UMaterial;
 class ALandscape;
 class ULandscapeLayerInfoObject;
@@ -24,6 +25,7 @@ protected:
 	FString sourceBaseName;
 	IdNameMap meshIdMap;
 	IdNameMap texIdMap;
+	IdNameMap cubeIdMap;
 	IdNameMap matMasterIdMap;
 	IdNameMap matInstIdMap;
 
@@ -70,6 +72,10 @@ public:
 	const FString& getAssetCommonPath() const{
 		return assetCommonPath;
 	}
+
+	UTextureCube* getCubemap(int32 id) const;
+	UTextureCube* loadCubemap(int32 id) const;
+	void importCubemap(JsonObjPtr data, const FString &rootPath);
 
 	//UMaterialInstanceConstant* getMaterialInstance(int32 id) const;
 	UTexture *getTexture(int32 id) const;
