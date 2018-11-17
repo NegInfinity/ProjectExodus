@@ -234,6 +234,142 @@ namespace SceneExport{
 			}
 		}
 		
+		static void copyStream(System.IO.Stream outStream, System.IO.Stream inStream){
+			var buffer = new byte[4096];
+			while(true){
+				var numRead = inStream.Read(buffer, 0, buffer.Length);
+				if (numRead <= 0)
+					break;
+				outStream.Write(buffer, 0, numRead);
+			}			
+		}
+		
+		static byte[] compressBytes(byte[] src){
+			using(var outMem = new System.IO.MemoryStream())
+			using(var inMem = new System.IO.MemoryStream(src)){
+				using(var outStream = new System.IO.Compression.DeflateStream(
+					outMem, System.IO.Compression.CompressionMode.Compress)){
+					copyStream(outStream, inMem);
+				}
+				return outMem.ToArray();
+			}
+		}
+		
+		/*
+		///Nope. It doesn't work.
+		static byte[] compressBytesZlib(byte[] src){
+			var adler = computeAdler32(src);
+			using(var outMem = new System.IO.MemoryStream())
+			using(var inMem = new System.IO.MemoryStream(src))
+			using(var outStream = new System.IO.Compression.DeflateStream(
+				outMem, System.IO.Compression.CompressionMode.Compress)){
+				outMem.WriteByte(0x78);
+				outMem.WriteByte(0x9c);
+				
+				copyStream(outStream, inMem);
+				
+				outMem.WriteByte((byte)(adler & 0xff));
+				outMem.WriteByte((byte)((adler >> 8) & 0xff));
+				outMem.WriteByte((byte)((adler >> 16) & 0xff));
+				outMem.WriteByte((byte)((adler >> 24) & 0xff));
+				return outMem.ToArray();
+			}
+		}
+		*/
+		static byte[] compressBytesGzip(byte[] src){
+			using(var outMem = new System.IO.MemoryStream())
+			using(var inMem = new System.IO.MemoryStream(src)){
+				using(var outStream = new System.IO.Compression.GZipStream(
+					outMem, System.IO.Compression.CompressionMode.Compress)){
+					copyStream(outStream, inMem);
+				}
+				return outMem.ToArray();
+			}
+		}
+		
+		static uint updateAdler32(byte[] buffer, int first, int count, uint prevAdler){
+			const uint baseVal = 65521;
+			uint s1 = prevAdler & 0xffff;
+			uint s2 = (prevAdler >> 16) & 0xffff;
+			for(int i = 0; i < count; i++){
+				var curByte = buffer[first + i];
+				s1 = (s1 + curByte) % baseVal;
+				s2 = (s2 + s1) % baseVal;
+			}
+			return (s2 << 16) | s1;
+		}
+		
+		static uint computeAdler32(byte[] buffer){
+			uint result = 1;
+			result = updateAdler32(buffer, 0, buffer.Length, result);
+			return result;
+		}
+		
+		public static void saveRawCubemap(System.IO.Stream outStream, JsonCubemap jsonCube, Logger logger = null){
+			Logger.makeValid(ref logger);
+			var cubeSize = jsonCube.texParams.width;
+			
+			var hdr = jsonCube.isHdr;
+			using(var writer = new System.IO.BinaryWriter(outStream)){
+				var faces = new List<CubemapFace>(){
+					CubemapFace.PositiveZ,
+					CubemapFace.NegativeZ,
+					CubemapFace.PositiveX,
+					CubemapFace.NegativeX,
+					CubemapFace.PositiveY,
+					CubemapFace.NegativeY
+				};
+				
+				var rotations = new List<SquareTransformDesc>(){
+					new SquareTransformDesc(new Vector2Int(1, 0), new Vector2Int(0, 0), new Vector2Int(1, 1)),
+					new SquareTransformDesc(new Vector2Int(0, 1), new Vector2Int(1, 1), new Vector2Int(0, 0)),
+					new SquareTransformDesc(new Vector2Int(1, 1), new Vector2Int(1, 0), new Vector2Int(0, 1)),
+					new SquareTransformDesc(new Vector2Int(0, 0), new Vector2Int(0, 1), new Vector2Int(1, 0)),
+					new SquareTransformDesc(new Vector2Int(1, 0), new Vector2Int(0, 0), new Vector2Int(1, 1)),
+					new SquareTransformDesc(new Vector2Int(1, 0), new Vector2Int(0, 0), new Vector2Int(1, 1))
+				};
+				
+				for(int i = 0; i < faces.Count; i++){
+					var curFace = faces[i];
+					var curRotation = rotations[i];
+					if (hdr){
+						var data = getCubemapFace(curFace, jsonCube);						
+						data = transformSquareArray(data, cubeSize, curRotation);
+						writeColorArray(writer, data);
+					}
+					else{
+						var data = getCubemapFace32(curFace, jsonCube);
+						data = transformSquareArray(data, cubeSize, curRotation);
+						writeColorArray(writer, data);
+					}
+				}
+			}
+		}
+		
+		public static void saveRawCubemap(JsonCubemap jsonCube, string filename, Logger logger = null){
+			using(var file = System.IO.File.Open(filename, System.IO.FileMode.Create)){
+				saveRawCubemap(file, jsonCube, logger);
+			}
+		}
+		
+		public static void saveRawCompressedCubemap(JsonCubemap jsonCube, string filename, Logger logger = null){
+			byte[] mem = null;
+			byte[] compressed = null;
+			using(var memData = new System.IO.MemoryStream()){
+				saveRawCubemap(memData, jsonCube, logger);
+				mem = memData.ToArray();
+			}
+			var dataSize = mem.Length;
+			compressed = compressBytesGzip(mem);
+			
+			using(var writer = new System.IO.BinaryWriter(
+				System.IO.File.Open(filename, System.IO.FileMode.Create))){
+				writer.Write(mem.Length);
+				writer.Write(compressed, 0, compressed.Length);
+			}
+		}
+		
+		#if false
 		public static void saveRawCubemap(JsonCubemap jsonCube, string filename, Logger logger = null){
 			Logger.makeValid(ref logger);
 			var cubeSize = jsonCube.texParams.width;
@@ -241,8 +377,12 @@ namespace SceneExport{
 			
 			var hdr = jsonCube.isHdr;
 			//compression?
+			//byte[] memData = null;
+			//using(var outData = new System.IO.MemoryStream())
 			using(var writer = new System.IO.BinaryWriter(
-				System.IO.File.Open(filename, System.IO.FileMode.Create))){
+				//outData
+				System.IO.File.Open(filename, System.IO.FileMode.Create)
+				)){
 				
 				var faces = new List<CubemapFace>(){
 					CubemapFace.PositiveZ,
@@ -276,8 +416,21 @@ namespace SceneExport{
 						writeColorArray(writer, data);
 					}
 				}
-			}			
+				
+				//memData = outData.ToArray();
+			}
+			
+			/*
+			var memDataSize = memData.Length;
+			var compressedData = compressBytesZlib(memData);
+			
+			using(var writer = new System.IO.BinaryWriter(System.IO.File.Open(filename, System.IO.FileMode.Create))){
+				writer.Write(memDataSize);
+				writer.Write(compressedData, 0, compressedData.Length);
+			}
+			*/
 		}
+		#endif
 		
 		public static void saveHorizontalStripCubemap(JsonCubemap jsonCube, string targetPath){
 			var cubeSize = jsonCube.texParams.width;
@@ -343,7 +496,8 @@ namespace SceneExport{
 			
 			if (!string.IsNullOrEmpty(jsonCube.rawPath)){
 				var targetRaw = System.IO.Path.Combine(targetDir, jsonCube.rawPath);
-				saveRawCubemap(jsonCube, targetRaw);
+				saveRawCompressedCubemap(jsonCube, targetRaw);
+				//saveRawCubemap(jsonCube, targetRaw);
 			}
 			/*
 			jsonCube.cubemap.GetPixels(CubemapFace.

@@ -82,6 +82,29 @@ struct DstPixel16F{
 	FFloat16 b, g, r, a;
 };
 
+//Well, this doesn't work so I give up.
+static bool loadCompressedBinary(ByteArray &outData, const FString &filename){
+	ByteArray tmpData;
+	if (!FFileHelper::LoadFileToArray(tmpData, *filename)){
+		UE_LOG(JsonLog, Error, TEXT("Could not load data from \"%s\""), *filename);
+		return false;
+	}
+
+	const auto dataPtr = tmpData.GetData();
+	int32 dstSize = *((int32*)dataPtr);
+	auto headerSize = sizeof(dstSize);
+	int32 srcSize = tmpData.Num() - headerSize;
+	outData.SetNumUninitialized(dstSize );
+	const auto srcPtr = dataPtr + headerSize;
+	auto dstPtr = outData.GetData();
+
+	return FCompression::UncompressMemory(COMPRESS_ZLIB, dstPtr, dstSize, srcPtr, srcSize, false, 
+		DEFAULT_ZLIB_BIT_WINDOW|32 //This is black magic needed to make FCompression treat the stream as gzip stream.
+	);
+
+	//return true;
+}
+
 void JsonImporter::importCubemap(JsonObjPtr data, const FString &rootPath){
 	JsonCubemap jsonCube(data);
 	UE_LOG(JsonLog, Log, TEXT("Cubemap: %d, %s, %s (%s), %dx%d"), 
@@ -105,20 +128,17 @@ void JsonImporter::importCubemap(JsonObjPtr data, const FString &rootPath){
 
 	ByteArray binaryData; 
 	//well, unreal can't load 2d images for cubemaps. So, raw data is the way to go
-	/*
-	if (loadTextureData(binaryData, FPaths::Combine(*assetRootPath, *jsonTex.path))){
-		UE_LOG(JsonLog, Error, TEXT("Could not load data for texture %s(%d)"), *jsonCube.name, jsonCube.id);
+	auto fullRawPath = FPaths::Combine(*assetRootPath, *jsonCube.rawPath);
+	if (!loadCompressedBinary(binaryData, fullRawPath)){
+		UE_LOG(JsonLog, Error, TEXT("Could not load compressed data from \"%s\""), *fullRawPath);
 		return;
 	}
-
-	UE_LOG(JsonLog, Log, TEXT("Loading tex data: %s (%d bytes)"), *jsonTex.name, binaryData.Num());	
-	*/
-
-	auto fullRawPath = FPaths::Combine(*assetRootPath, *jsonCube.rawPath);
+	/*
 	if (!FFileHelper::LoadFileToArray(binaryData, *fullRawPath)){
 		UE_LOG(JsonLog, Error, TEXT("Could not load data from \"%s\""), *fullRawPath);
 		return;
 	}
+	*/
 
 	auto texFab = makeFactoryRootPtr<UTextureFactory>();
 	texFab->SuppressImportOverwriteDialog();
@@ -172,7 +192,7 @@ void JsonImporter::importCubemap(JsonObjPtr data, const FString &rootPath){
 					dstScan[x] = srcScan[x];
 				}
 			}
-		}
+		} 
 	}
 
 	cubeTex->SRGB = jsonCube.texImportParams.initialized && jsonCube.texImportParams.sRGBTexture;
