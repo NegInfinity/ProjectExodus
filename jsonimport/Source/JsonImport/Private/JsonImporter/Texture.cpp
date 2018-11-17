@@ -199,7 +199,7 @@ void JsonImporter::importCubemap(JsonObjPtr data, const FString &rootPath){
 	//texture mipmap generation is not supported for cubemaps?
 	cubeTex->Source.UnlockMip(0);
 
-	cubeTex->MipGenSettings = TMGS_NoMipmaps;//TMGS_LeaveExistingMips;
+	cubeTex->MipGenSettings = TMGS_Blur1;//TMGS_NoMipmaps;//TMGS_LeaveExistingMips;
 	//cubeTex->Source.
 
 	if (cubeTex){
