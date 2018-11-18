@@ -78,7 +78,9 @@ UStaticMesh* TerrainBuilder::createBillboardMesh(const FString &baseName, const 
 	};
 
 	MaterialBuilder matBuilder;
-	auto billboardMaterial = matBuilder.createBillboardMaterial(&detPrototype, layerIndex, this, terrainDataPath);
+	auto billboardMaterial = 
+		matBuilder.createBillboardMatInstance(&detPrototype, layerIndex, this, terrainDataPath);
+		//matBuilder.createBillboardMaterial(&detPrototype, layerIndex, this, terrainDataPath);
 
 	auto result = createAssetObject<UStaticMesh>(baseName, &terrainDataPath, importer, 
 		[&](UStaticMesh *mesh){

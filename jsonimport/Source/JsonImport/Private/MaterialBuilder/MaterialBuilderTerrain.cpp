@@ -102,7 +102,9 @@ UMaterialExpression* createDetailControl(UMaterial* material, const TerrainBuild
 		auto layerName = terrData.getGrassLayerName(i);
 
 		auto &grassTypes = grassControl->GrassTypes;
-		auto& dstGrass = grassTypes.Num() > 0 ? grassTypes[0]: grassTypes.AddDefaulted_GetRef();
+		//what the hell.
+		//auto& dstGrass = grassTypes.Num() > 0 ? grassTypes[0]: grassTypes.AddDefaulted_GetRef();
+		auto& dstGrass = (grassTypes.Num() >= (i + 1)) ? grassTypes[i]: grassTypes.AddDefaulted_GetRef();
 		dstGrass.Name = *layerName;
 		dstGrass.GrassType = terrainBuilder->grassTypes[i];
 

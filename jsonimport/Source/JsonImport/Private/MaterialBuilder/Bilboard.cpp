@@ -1,6 +1,13 @@
 #include "JsonImportPrivatePCH.h"
 #include "MaterialExpressionBuilder.h"
 #include "MaterialBuilder.h"
+#include "Factories/MaterialInstanceConstantFactoryNew.h"
+
+#include "UnrealUtilities.h"
+#include "MaterialTools.h"
+
+using namespace UnrealUtilities;
+using namespace MaterialTools;
 
 auto makeMaterialFactoryNew(){
 	auto matFactory = NewObject<UMaterialFactoryNew>();
@@ -134,3 +141,90 @@ UMaterial* MaterialBuilder::createBillboardMaterial(const JsonTerrainDetailProto
 	return mat;
 }
 
+void  MaterialBuilder::setupBillboardMatInstance(UMaterialInstanceConstant *matInst, const JsonTerrainDetailPrototype *detailPrototype, 
+		int layerIndex, const TerrainBuilder *terrainBuilder){
+	check(detailPrototype);
+	check(terrainBuilder);
+
+	auto importer = terrainBuilder->getImporter();
+	//check(importer);
+
+	//dryColor
+	//healthyColor
+	//enableBillboarding
+	//landscapeCellScale
+	//mainTexture
+	//noiseSpread
+	FStaticParameterSet outParams;
+	matInst->GetStaticParameterValues(outParams);
+
+	setVectorParam(matInst, "dryColor", detailPrototype->dryColor);
+	setVectorParam(matInst, "healthyColor", detailPrototype->healthyColor);
+	setStaticSwitch(outParams, "enableBillboarding", detailPrototype->billboardFlag);
+	setStaticSwitch(outParams, "enableNoiseColor", true);
+	setScalarParam(matInst, "noiseSpread", detailPrototype->noiseSpread);
+
+	auto tex = importer->getTexture(detailPrototype->textureId);
+	if (tex){
+		setTexParam(matInst, "mainTexture", tex);
+	}
+
+	matInst->UpdateStaticPermutation(outParams);
+	matInst->PostEditChange();
+}
+
+UMaterialInstanceConstant* MaterialBuilder::createBillboardMatInstance(const JsonTerrainDetailPrototype * detailPrototype, 
+		int layerIndex, const TerrainBuilder *terrainBuilder, const FString &terrainDataPath){
+	check(detailPrototype);
+	check(terrainBuilder);
+
+	auto baseName = terrainBuilder->terrainData.getGrassLayerName(layerIndex) + TEXT("_MaterialInstance");
+	/*
+	FString pkgName = sanitizeObjectName(baseName + TEXT("_MatInstnace"));
+	FString matName = sanitizeObjectName(baseName);
+	FString packagePath = buildPackagePath(
+		matName, terrainDataPath, terrainBuilder->getImporter()
+	);
+	*/
+
+	auto matName = baseName + TEXT("_MatInstance");
+	FString baseMaterialPath = TEXT("/JsonImport/exodusGrass");
+	auto *baseMaterial = LoadObject<UMaterial>(nullptr, *baseMaterialPath);
+	if (!baseMaterial){
+		UE_LOG(JsonLog, Warning, TEXT("Could not load default material \"%s\""));
+	}
+
+	//createPackage(
+	auto matFactory = makeFactoryRootGuard<UMaterialInstanceConstantFactoryNew>();
+	auto matInst = createAssetObject<UMaterialInstanceConstant>(matName, &terrainDataPath, terrainBuilder->getImporter(), 
+		[&](UMaterialInstanceConstant* inst){
+			inst->PreEditChange(0);
+			inst->PostEditChange();
+			inst->MarkPackageDirty();
+		}, 
+		[&](UPackage* pkg) -> auto{
+			matFactory->InitialParent = baseMaterial;
+			auto result = (UMaterialInstanceConstant*)matFactory->FactoryCreateNew(
+				UMaterialInstanceConstant::StaticClass(), pkg, 
+				*matName,
+				//*sanitizeObjectName(matName), 
+				RF_Standalone|RF_Public, 0, GWarn
+			);
+
+			setupBillboardMatInstance(result, detailPrototype, layerIndex, terrainBuilder);
+			//setupMaterialInstance(result, jsonMat, importer, matId);
+
+			return result;
+		}, RF_Standalone|RF_Public
+	);
+	
+	if (!matInst){
+		UE_LOG(JsonLog, Warning, TEXT("Could not create grass material instance %d for \"%s\""), 
+			layerIndex, *terrainDataPath);
+		return matInst;
+	}
+
+	auto fullPath = matInst->GetPathName();
+
+	return matInst;
+}

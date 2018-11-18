@@ -65,9 +65,19 @@ void JsonImporter::importMesh(JsonObjPtr obj, int32 meshId){
 	FString sanitizedMeshName;
 	FString sanitizedPackageName;
 
+	FString meshName = jsonMesh.name;
+	auto pathBaseName = FPaths::GetBaseFilename(jsonMesh.path);
+	if (!pathBaseName.IsEmpty()){
+		//Well, I've managed to create a level with two meshes named "cube". So...
+		meshName = FString::Printf(TEXT("%s_%s_%d"), *pathBaseName, *meshName, meshId);
+	}
+	else{
+		meshName = FString::Printf(TEXT("%s_%d"), *meshName, meshId);
+	}
+
 	UStaticMesh *existingMesh = nullptr;
 	UPackage *meshPackage = createPackage(
-		jsonMesh.name, jsonMesh.path, assetRootPath, FString("Mesh"), 
+		meshName, jsonMesh.path, assetRootPath, FString("Mesh"), 
 		&sanitizedPackageName, &sanitizedMeshName, &existingMesh);
 	if (existingMesh){
 		meshIdMap.Add(jsonMesh.id, existingMesh->GetPathName());
@@ -235,7 +245,8 @@ void JsonImporter::importMesh(JsonObjPtr obj, int32 meshId){
 	}
 
 	if (mesh){
-		meshIdMap.Add(jsonMesh.id, mesh->GetPathName());
+		auto meshPath = mesh->GetPathName();
+		meshIdMap.Add(jsonMesh.id, meshPath);
 		FAssetRegistryModule::AssetCreated(mesh);
 		meshPackage->SetDirtyFlag(true);
 	}

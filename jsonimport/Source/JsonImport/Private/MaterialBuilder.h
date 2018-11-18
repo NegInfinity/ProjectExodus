@@ -72,6 +72,7 @@ public:
 		const FIntPoint &terrainVertSize, const FString &terrainDataPath);
 
 	UMaterial *createBillboardMaterial(const JsonTerrainDetailPrototype * detailPrototype, int layerIndex, const TerrainBuilder *terrainBuilder, const FString &terrainDataPath);
+	UMaterialInstanceConstant* createBillboardMatInstance(const JsonTerrainDetailPrototype * detailPrototype, int layerIndex, const TerrainBuilder *terrainBuilder, const FString &terrainDataPath);
 
 	MaterialBuilder() = default;
 protected:
@@ -86,6 +87,8 @@ protected:
 		const char *switchName, const char *texParamName, const JsonImporter *importer) const;
 
 	void setupMaterialInstance(UMaterialInstanceConstant *matInst, const JsonMaterial &jsonMat, JsonImporter *importer, JsonMaterialId matId);
+	void  setupBillboardMatInstance(UMaterialInstanceConstant *result, const JsonTerrainDetailPrototype *detailPrototype, 
+		int layerIndex, const TerrainBuilder *terrainBuilder);
 
 	void createBillboardTransformNodes(UMaterial *material);
 	void fillBillboardMaterial(UMaterial* material, const JsonTerrainDetailPrototype * detailPrototype, int layerIndex, const TerrainBuilder *terrainBuilder);
