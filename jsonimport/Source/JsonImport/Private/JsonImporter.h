@@ -65,9 +65,9 @@ protected:
 	void registerMaterialInstancePath(int32 id, FString path);
 	void registerMasterMaterialPath(int32 id, FString path);
 
-	UWorld* importScene(const JsonScene &scene, bool createWorld) const;
-
+	//UWorld* importScene(const JsonScene &scene, bool createWorld) const;
 public:
+	JsonMesh loadJsonMesh(int32 id) const;
 	const JsonMaterial* getJsonMaterial(int32 id) const;
 
 	void registerEmissiveMaterial(int32 id);
@@ -109,8 +109,9 @@ public:
 
 	void importTexture(JsonObjPtr obj, const FString &rootPath);
 
+	void importTexture(const JsonTexture &tex, const FString &rootPath);
+
 	void importMesh(JsonObjPtr obj, int32 meshId);
-	void importObject(JsonObjPtr obj, int32 objId, ImportWorkData &importData);
 	void importObject(const JsonGameObject &jsonGameObj , int32 objId, ImportWorkData &importData);
 
 	static int findMatchingLength(const FString& arg1, const FString& arg2);

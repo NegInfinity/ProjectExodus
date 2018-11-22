@@ -6,6 +6,7 @@
 #include "JsonImporter.h"
 //#include "JsonObjects/.h"
 #include "UnrealUtilities.h"
+#include "MeshBuilder.h"
 #include "Materials/Material.h"
 
 #include "Runtime/Foliage/Public/InstancedFoliageActor.h"
@@ -19,79 +20,19 @@ TerrainBuilder::TerrainBuilder(ImportWorkData &workData_, JsonImporter *importer
 :workData(workData_), importer(importer_), jsonGameObj(gameObj_), jsonTerrain(jsonTerrain_), terrainData(terrainData_){
 }
 
+UStaticMesh* TerrainBuilder::createGrassMesh(const FString &baseName, const JsonTerrainDetailPrototype &detPrototype, int layerIndex, const FString &terrainDataPath){
+	return nullptr;
+}
+
 UStaticMesh* TerrainBuilder::createBillboardMesh(const FString &baseName, const JsonTerrainDetailPrototype &detPrototype, int layerIndex, const FString &terrainDataPath){
-	//return nullptr;
-	auto meshBuilder = [&](FRawMesh& rawMesh, int lod) -> void{
-		float defSize = 50.0f;
-		TArray<FVector> verts = {
-			FVector(0.0f, -defSize, defSize * 2.0f),
-			FVector(0.0f, defSize, defSize * 2.0f),
-			FVector(0.0f, defSize, 0.0f),
-			FVector(0.0f, -defSize, 0.0f)
-		};
-		TArray<FVector2D> uvs = {
-			FVector2D(0.0f, 0.0f),
-			FVector2D(1.0f, 0.0f),
-			FVector2D(1.0f, 1.0f),
-			FVector2D(0.0f, 1.0f)
-		};
-		FVector n(-1.0f, 0.0f, 0.0f);
-		TArray<FVector> normals = {
-			n, n, n, n
-		};
-		//IntArray indices = {0, 2, 1, 0, 3, 2};
-		IntArray indices = {0, 2, 1, 0, 3, 2, 0, 1, 2, 0, 2, 3};
-
-		rawMesh.VertexPositions.SetNum(0);
-		rawMesh.WedgeColors.SetNum(0);
-		rawMesh.WedgeIndices.SetNum(0);
-		for(int i = 0; i < MAX_MESH_TEXTURE_COORDS; i++)
-			rawMesh.WedgeTexCoords[i].SetNum(0);
-		rawMesh.WedgeColors.SetNum(0);
-		rawMesh.WedgeTangentZ.SetNum(0);
-
-		auto addIdx = [&](int32 idx) -> void{
-			rawMesh.WedgeIndices.Add(idx);
-			rawMesh.WedgeTangentZ.Add(normals[idx]);
-			rawMesh.WedgeTexCoords[0].Add(uvs[idx]);
-		};
-
-		for(auto cur: verts){
-			rawMesh.VertexPositions.Add(cur);
-		}
-
-		for(auto idx: indices){
-			addIdx(idx);
-		}
-
-		rawMesh.FaceMaterialIndices.Add(0);
-		rawMesh.FaceMaterialIndices.Add(0);
-
-		rawMesh.FaceSmoothingMasks.Add(0);
-		rawMesh.FaceSmoothingMasks.Add(0);
-
-		rawMesh.FaceMaterialIndices.Add(0);
-		rawMesh.FaceMaterialIndices.Add(0);
-
-		rawMesh.FaceSmoothingMasks.Add(0);
-		rawMesh.FaceSmoothingMasks.Add(0);
-	};
-
 	MaterialBuilder matBuilder;
 	auto billboardMaterial = 
 		matBuilder.createBillboardMatInstance(&detPrototype, layerIndex, this, terrainDataPath);
 
 	auto result = createAssetObject<UStaticMesh>(baseName, &terrainDataPath, importer, 
 		[&](UStaticMesh *mesh){
-			generateStaticMesh(mesh, meshBuilder, nullptr, 
-				[&](UStaticMesh* mesh, FStaticMeshSourceModel &model){
-					mesh->StaticMaterials.Empty();
-					mesh->StaticMaterials.Add(billboardMaterial);
-
-					model.BuildSettings.bRecomputeNormals = false;
-					model.BuildSettings.bRecomputeTangents = true;
-				}
-			);
+			MeshBuilder builder;
+			builder.generateBillboardMesh(mesh, billboardMaterial);
 		},
 		[&](auto pkg){
 			return NewObject<UStaticMesh>(pkg, FName(*baseName), RF_Standalone|RF_Public);
@@ -108,6 +49,7 @@ ULandscapeGrassType* TerrainBuilder::createGrassType(int layerIndex, const FStri
 		grassTypeName, &terrainDataPath, importer, 
 		[&](ULandscapeGrassType* obj){
 			auto& dstType = obj->GrassVarieties.AddDefaulted_GetRef();
+			float scaleFactor = 1.0f;
 			if (srcType.usePrototypeMesh){
 				auto mesh = importer->loadStaticMeshById(srcType.detailMeshId);
 				if (!mesh){
@@ -130,14 +72,14 @@ ULandscapeGrassType* TerrainBuilder::createGrassType(int layerIndex, const FStri
 				dstType.GrassMesh = mesh;
 
 				dstType.Scaling = EGrassScaling::Uniform;
-				auto scaleInterval = FFloatInterval(srcType.minHeight * 0.5f, srcType.maxHeight * 0.5f);
+				auto scaleInterval = FFloatInterval(srcType.minHeight * scaleFactor, srcType.maxHeight * scaleFactor);
 				dstType.ScaleX = scaleInterval;
 				dstType.ScaleY = scaleInterval;
 				dstType.ScaleZ = scaleInterval;
 			}
 			else{
 				dstType.Scaling = EGrassScaling::Uniform;
-				auto scaleInterval = FFloatInterval(srcType.minHeight * 0.5f, srcType.maxHeight * 0.5f);
+				auto scaleInterval = FFloatInterval(srcType.minHeight * scaleFactor, srcType.maxHeight * scaleFactor);
 				dstType.ScaleX = scaleInterval;
 				dstType.ScaleY = scaleInterval;
 				dstType.ScaleZ = scaleInterval;

@@ -43,4 +43,5 @@ protected:
 	void processFoliageTreeActors(ALandscape *landscape);
 
 	UStaticMesh* createBillboardMesh(const FString &baseName, const JsonTerrainDetailPrototype &detPrototype, int layerIndex, const FString &terrainDataPath);
+	UStaticMesh* createGrassMesh(const FString &baseName, const JsonTerrainDetailPrototype &detPrototype, int layerIndex, const FString &terrainDataPath);
 };

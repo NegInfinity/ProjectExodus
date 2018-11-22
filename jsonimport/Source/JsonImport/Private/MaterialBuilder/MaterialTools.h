@@ -76,7 +76,6 @@ namespace MaterialTools{
 	UMaterialExpressionComponentMask* createComponentMask(UMaterial *material, UMaterialExpression* src, bool r, bool g, bool b, bool a, const TCHAR* name = 0);
 
 
-
 	UMaterialExpressionAdd* createAddExpression(UMaterial *material, UMaterialExpression *arg1, UMaterialExpression *arg2, const TCHAR *name = 0);
 	UMaterialExpressionMultiply* createMulExpression(UMaterial *material, UMaterialExpression *arg1, UMaterialExpression *arg2, const TCHAR *name = 0);
 

@@ -51,11 +51,6 @@ static void setParentAndFolder(AActor *actor, AActor *parentActor, const FString
 	workData.registerActor(actor, parentActor);
 }
 
-void JsonImporter::importObject(JsonObjPtr obj, int32 objId, ImportWorkData &workData){
-	auto jsonGameObj = JsonGameObject(obj);
-	importObject(jsonGameObj, objId, workData);
-}
-
 void JsonImporter::importObject(const JsonGameObject &jsonGameObj , int32 objId, ImportWorkData &workData){
 	UE_LOG(JsonLog, Log, TEXT("Importing object %d"), objId);
 
