@@ -37,6 +37,11 @@ public:
 	}
 	//TerrainBuilder& operator=(const TerrainBuileder& other) = delete;
 protected:
+	UStaticMesh* createClonedMesh(const JsonMesh &jsonMesh, const FString &baseName, const FString &terrainDataPath, 
+		const IntArray &matIds, 
+		std::function<void(UMaterialInstanceConstant *matInst, FStaticParameterSet &statParams)> matInstCallback
+	);
+
 	ULandscapeGrassType* TerrainBuilder::createGrassType(int layerIndex, const FString &terrainDataPth);
 	ULandscapeLayerInfoObject* TerrainBuilder::createTerrainLayerInfo(int layerIndex, bool grassLayer, 
 		const FString &terrainDataPath);

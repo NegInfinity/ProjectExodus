@@ -60,6 +60,9 @@ public:
 
 	UMaterialInstanceConstant* importMaterialInstance(const JsonMaterial& jsonMat, JsonImporter *importer);
 
+	UMaterialInstanceConstant* createMaterialInstance(const FString& name, const FString *dirPath, UMaterial* baseMaterial, JsonImporter *importer, 
+		std::function<void(UMaterialInstanceConstant* matInst)> postConfig);
+
 	using MaterialCallbackFunc = std::function<void(UMaterial*)>;
 
 	UMaterial *createMaterial(const FString& name, const FString &path, JsonImporter *importer, 
@@ -73,10 +76,11 @@ public:
 	UMaterialInstanceConstant* createBillboardMatInstance(const JsonTerrainDetailPrototype * detailPrototype, int layerIndex, const TerrainBuilder *terrainBuilder, const FString &terrainDataPath);
 
 	FString getBaseMaterialPath(const JsonMaterial &mat) const;
+	UMaterial* getBaseMaterial(const JsonMaterial &mat) const;
 	void setupMaterialInstance(UMaterialInstanceConstant *matInst, const JsonMaterial &jsonMat, JsonImporter *importer);
 
 	MaterialBuilder() = default;
-protected:
+
 	void setScalarParam(UMaterialInstanceConstant *matInst, const char *paramName, float val) const;	
 	void setVectorParam(UMaterialInstanceConstant *matInst, const char *paramName, FVector2D val) const;
 	void setVectorParam(UMaterialInstanceConstant *matInst, const char *paramName, FVector val) const;
@@ -86,6 +90,7 @@ protected:
 	bool setStaticSwitch(FStaticParameterSet &paramSet, const char *switchName, bool newValue) const;
 	bool setTexParams(UMaterialInstanceConstant *matInst,  FStaticParameterSet &paramSet, int32 texId, 
 		const char *switchName, const char *texParamName, const JsonImporter *importer) const;
+protected:
 
 	void  setupBillboardMatInstance(UMaterialInstanceConstant *result, const JsonTerrainDetailPrototype *detailPrototype, 
 		int layerIndex, const TerrainBuilder *terrainBuilder);

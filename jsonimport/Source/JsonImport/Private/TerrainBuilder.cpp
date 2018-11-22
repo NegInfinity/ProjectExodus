@@ -20,8 +20,149 @@ TerrainBuilder::TerrainBuilder(ImportWorkData &workData_, JsonImporter *importer
 :workData(workData_), importer(importer_), jsonGameObj(gameObj_), jsonTerrain(jsonTerrain_), terrainData(terrainData_){
 }
 
+UStaticMesh* TerrainBuilder::createClonedMesh(const JsonMesh &jsonMesh, const FString &baseName, const FString &terrainDataPath, 
+		const IntArray &matIds, 
+		std::function<void(UMaterialInstanceConstant *matInst, FStaticParameterSet &statParams)> matInstCallback){
+	MaterialBuilder matBuilder;
+	TArray<UMaterialInterface*> matInstances;
+
+	//duplicating materials and making them tint
+	const auto& meshMatIds = matIds;//detPrototype.detailMeshMaterials;
+	for(int i = 0; i < meshMatIds.Num(); i++){
+		auto matId = meshMatIds[i];
+		auto jsonMat = importer->getJsonMaterial(matId);
+		if (!jsonMat){
+			matInstances.Add(nullptr);
+			continue;
+		}
+
+		auto matName = FString::Printf(TEXT("%s_mat%d"), *baseName, i);
+		matName = sanitizePackageName(matName);
+		auto baseMat = matBuilder.getBaseMaterial(*jsonMat);
+
+		auto matInst = matBuilder.createMaterialInstance(matName, &terrainDataPath, baseMat, importer, 
+			[&](UMaterialInstanceConstant* newInst){
+				if (!newInst)
+					return;
+				if (!matInstCallback)
+					return;
+				FStaticParameterSet statParams;
+				newInst->GetStaticParameterValues(statParams);
+				matInstCallback(newInst, statParams);
+				newInst->UpdateStaticPermutation(statParams);
+			}
+		);
+		
+		matInstances.Add(matInst);
+	}
+
+	//auto jsonMesh = importer->loadJsonMesh(detPrototype.detailMeshId);
+	auto meshName = sanitizePackageName(baseName);
+
+	auto result = createAssetObject<UStaticMesh>(meshName, &terrainDataPath, importer, 
+		[&](UStaticMesh *mesh){
+			MeshBuilder builder;
+			builder.setupMesh(mesh, jsonMesh, 
+				[&](TArray<FStaticMaterial> &meshMaterials){
+					meshMaterials.Empty();
+					for(auto cur: matInstances){
+						meshMaterials.Add(cur);
+					}
+				}
+			);
+		},
+		[&](auto pkg){
+			return NewObject<UStaticMesh>(pkg, FName(*meshName), RF_Standalone|RF_Public);
+		}
+	);
+	return result;
+}
+
 UStaticMesh* TerrainBuilder::createGrassMesh(const FString &baseName, const JsonTerrainDetailPrototype &detPrototype, int layerIndex, const FString &terrainDataPath){
-	return nullptr;
+	auto jsonMesh = importer->loadJsonMesh(detPrototype.detailMeshId);
+	auto meshName = FString::Printf(TEXT("layer%d_mesh"), layerIndex);
+
+	return createClonedMesh(jsonMesh, meshName, terrainDataPath, detPrototype.detailMeshMaterials, 
+		[&](UMaterialInstanceConstant *matInst, FStaticParameterSet &statParams){
+			MaterialBuilder matBuilder;
+			matBuilder.setStaticSwitch(statParams, "enableLandscapeColorBlending", true);
+			//landscapeCellScale = scaleFactor, default 0.01
+			//healthyColor
+			matBuilder.setVectorParam(matInst, "healthyColor", detPrototype.healthyColor);
+			//dryColor
+			matBuilder.setVectorParam(matInst, "dryColor", detPrototype.dryColor);
+			//noiseSpread
+			matBuilder.setScalarParam(matInst, "noiseSpread", detPrototype.noiseSpread);
+		}
+	);
+#if 0
+	MaterialBuilder matBuilder;
+	//MeshBuilder meshBuilder;
+
+	TArray<UMaterialInterface*> matInstances;
+
+	//duplicating materials and making them tint
+	const auto& meshMatIds = detPrototype.detailMeshMaterials;
+	for(int i = 0; i < meshMatIds.Num(); i++){
+		auto matId = meshMatIds[i];
+		auto jsonMat = importer->getJsonMaterial(matId);
+		if (!jsonMat){
+			matInstances.Add(nullptr);
+			continue;
+		}
+
+		auto matName = FString::Printf(TEXT("detailLayer%dmat%d"), layerIndex, i);
+		auto baseMat = matBuilder.getBaseMaterial(*jsonMat);
+
+		auto matInst = matBuilder.createMaterialInstance(matName, &terrainDataPath, baseMat, importer, 
+			[&](UMaterialInstanceConstant* newInst){
+				if (!newInst)
+					return;
+				FStaticParameterSet statParams;
+				newInst->GetStaticParameterValues(statParams);
+
+				//enableLandscapeColorBlending - static bool
+				matBuilder.setStaticSwitch(statParams, "enableLandscapeColorBlending", true);//detPrototype.noiseSpread
+				
+				//landscapeCellScale = scaleFactor, default 0.01
+				//???
+
+				//healthyColor
+				matBuilder.setVectorParam(newInst, "healthyColor", detPrototype.healthyColor);
+				//dryColor
+				matBuilder.setVectorParam(newInst, "dryColor", detPrototype.dryColor);
+				//noiseSpread
+				matBuilder.setScalarParam(newInst, "noiseSpread", detPrototype.noiseSpread);
+
+				//cellsize?
+				//matBuilder.setVectorParam(newinst, "landscapeCellScale", detPrototype.cell
+
+				newInst->UpdateStaticPermutation(statParams);
+			}
+		);
+	}
+
+	auto jsonMesh = importer->loadJsonMesh(detPrototype.detailMeshId);
+	auto meshName = FString::Printf(TEXT("detailLayer%d"), layerIndex);
+
+	auto result = createAssetObject<UStaticMesh>(baseName, &terrainDataPath, importer, 
+		[&](UStaticMesh *mesh){
+			MeshBuilder builder;
+			builder.setupMesh(mesh, jsonMesh, 
+				[&](TArray<FStaticMaterial> &meshMaterials){
+					meshMaterials.Empty();
+					for(auto cur: matInstances){
+						meshMaterials.Add(cur);
+					}
+				}
+			);
+		},
+		[&](auto pkg){
+			return NewObject<UStaticMesh>(pkg, FName(*baseName), RF_Standalone|RF_Public);
+		}
+	);
+	return result;
+#endif
 }
 
 UStaticMesh* TerrainBuilder::createBillboardMesh(const FString &baseName, const JsonTerrainDetailPrototype &detPrototype, int layerIndex, const FString &terrainDataPath){
@@ -51,11 +192,15 @@ ULandscapeGrassType* TerrainBuilder::createGrassType(int layerIndex, const FStri
 			auto& dstType = obj->GrassVarieties.AddDefaulted_GetRef();
 			float scaleFactor = 1.0f;
 			if (srcType.usePrototypeMesh){
-				auto mesh = importer->loadStaticMeshById(srcType.detailMeshId);
+				//auto mesh = createGrassMesh
+				auto meshName = grassTypeName + TEXT("mesh");
+				auto mesh = createGrassMesh(meshName, srcType, layerIndex, terrainDataPath);
+				//auto mesh = importer->loadStaticMeshById(srcType.detailMeshId);
 				if (!mesh){
 					UE_LOG(JsonLogTerrain, Warning, TEXT("Could not load mesh %d used by detail layer %d"), srcType.detailMeshId, layerIndex);
 					return;
 				}
+				/*
 				else{
 					//check and fix materials
 					for(auto &cur: mesh->StaticMaterials){
@@ -69,6 +214,7 @@ ULandscapeGrassType* TerrainBuilder::createGrassType(int layerIndex, const FStri
 						//if (mat && mat->
 					}
 				}
+				*/
 				dstType.GrassMesh = mesh;
 
 				dstType.Scaling = EGrassScaling::Uniform;

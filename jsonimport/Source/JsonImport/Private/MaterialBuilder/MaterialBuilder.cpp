@@ -109,6 +109,15 @@ UMaterial* MaterialBuilder::loadDefaultMaterial(){
 	return nullptr;
 }
 
+UMaterial* MaterialBuilder::getBaseMaterial(const JsonMaterial &jsonMat) const{
+	auto baseMaterialPath = getBaseMaterialPath(jsonMat);
+	auto *baseMaterial = LoadObject<UMaterial>(nullptr, *baseMaterialPath);
+	if (!baseMaterial){
+		UE_LOG(JsonLog, Error, TEXT("Could not load default material \"%s\""));
+	}
+	return baseMaterial;
+}	
+
 FString MaterialBuilder::getBaseMaterialPath(const JsonMaterial &jsonMat) const{
 	FString defaultMatPath = TEXT("/JsonImport/exodusSolidMaterial");
 	FString transparentMatPath = TEXT("/JsonImport/exodusBlendMaterial");
@@ -124,9 +133,62 @@ FString MaterialBuilder::getBaseMaterialPath(const JsonMaterial &jsonMat) const{
 	return baseMaterialPath;
 }
 
+UMaterialInstanceConstant* MaterialBuilder::createMaterialInstance(const FString& name, const FString *dirPath, UMaterial* baseMaterial, JsonImporter *importer, 
+		std::function<void(UMaterialInstanceConstant* matInst)> postConfig){
+	check(baseMaterial);
+
+	FString matName = sanitizeObjectName(name);
+	FString pkgName = sanitizeObjectName(name + TEXT("_MatInstnace"));
+
+	auto pkgPath = dirPath? *dirPath: FString();
+	auto matPath = FPaths::GetPath(pkgPath);
+
+	auto matFactory = makeFactoryRootGuard<UMaterialInstanceConstantFactoryNew>();
+	auto matInst = createAssetObject<UMaterialInstanceConstant>(pkgName, &matPath, importer, 
+		[&](UMaterialInstanceConstant* inst){
+			inst->PreEditChange(0);
+			inst->PostEditChange();
+			inst->MarkPackageDirty();
+		}, 
+		[&](UPackage* pkg) -> auto{
+			matFactory->InitialParent = baseMaterial;
+			auto result = (UMaterialInstanceConstant*)matFactory->FactoryCreateNew(
+				UMaterialInstanceConstant::StaticClass(), pkg, 
+				*matName,
+				//*sanitizeObjectName(matName), 
+				RF_Standalone|RF_Public, 0, GWarn
+			);
+
+			if (postConfig)
+				postConfig(result);
+
+			return result;
+		}, RF_Standalone|RF_Public
+	);
+	
+	if (!matInst){
+		UE_LOG(JsonLog, Warning, TEXT("Could not load create material instance \"%s\""), *name);
+		return matInst;
+	}
+
+	return matInst;
+}
+
 UMaterialInstanceConstant* MaterialBuilder::importMaterialInstance(const JsonMaterial& jsonMat, JsonImporter *importer){
 	MaterialFingerprint fingerprint(jsonMat);
 
+	auto baseMaterialPath = getBaseMaterialPath(jsonMat);
+	auto *baseMaterial = LoadObject<UMaterial>(nullptr, *baseMaterialPath);
+	if (!baseMaterial){
+		UE_LOG(JsonLog, Warning, TEXT("Could not load default material \"%s\""));
+	}
+
+	return createMaterialInstance(jsonMat.name, &jsonMat.path, baseMaterial, importer, 
+		[&](auto newInst){
+			setupMaterialInstance(newInst, jsonMat, importer);
+		}
+	);
+#if 0
 	FString matName = sanitizeObjectName(jsonMat.name);
 	FString pkgName = sanitizeObjectName(jsonMat.name + TEXT("_MatInstnace"));
 
@@ -135,21 +197,6 @@ UMaterialInstanceConstant* MaterialBuilder::importMaterialInstance(const JsonMat
 		matName, matPath, importer
 	);
 
-	/*FString defaultMaterial = TEXT("/JsonImport/exodusMaterial");
-	auto baseMaterialPath = defaultMaterial;*/
-	/*
-	FString defaultMatPath = TEXT("/JsonImport/exodusSolidMaterial");
-	FString transparentMatPath = TEXT("/JsonImport/exodusBlendMaterial");
-	FString maskedMatPath = TEXT("/JsonImport/exodusMaskMaterial");
-
-	auto baseMaterialPath = defaultMatPath;
-	if (jsonMat.isTransparentQueue()){
-		baseMaterialPath = transparentMatPath;
-	}
-	if (jsonMat.isAlphaTestQueue()){
-		baseMaterialPath = maskedMatPath;
-	}
-	*/
 	auto baseMaterialPath = getBaseMaterialPath(jsonMat);
 
 	auto *baseMaterial = LoadObject<UMaterial>(nullptr, *baseMaterialPath);
@@ -186,6 +233,7 @@ UMaterialInstanceConstant* MaterialBuilder::importMaterialInstance(const JsonMat
 	}
 
 	return matInst;
+#endif
 }
 
 void MaterialBuilder::setScalarParam(UMaterialInstanceConstant *matInst, const char *paramName, float val) const{
@@ -453,3 +501,10 @@ void MaterialBuilder::setupMaterialInstance(UMaterialInstanceConstant *matInst, 
 	}
 	*/
 }
+
+/*
+UMaterialInstanceConstant* MaterialBuilder::createMaterialInstnace(const FString& name, const FString *dirPath, UMaterial* baseMaterial, JsonImporter *importer, 
+		std::function<void(UMaterialInstanceConstant* matInst)> postConfig){
+	return nullptr;
+}
+*/

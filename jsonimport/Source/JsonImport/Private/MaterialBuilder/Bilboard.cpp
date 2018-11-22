@@ -179,13 +179,6 @@ UMaterialInstanceConstant* MaterialBuilder::createBillboardMatInstance(const Jso
 	check(terrainBuilder);
 
 	auto baseName = terrainBuilder->terrainData.getGrassLayerName(layerIndex) + TEXT("_MaterialInstance");
-	/*
-	FString pkgName = sanitizeObjectName(baseName + TEXT("_MatInstnace"));
-	FString matName = sanitizeObjectName(baseName);
-	FString packagePath = buildPackagePath(
-		matName, terrainDataPath, terrainBuilder->getImporter()
-	);
-	*/
 
 	auto matName = baseName + TEXT("_MatInstance");
 	FString baseMaterialPath = TEXT("/JsonImport/exodusGrass");
