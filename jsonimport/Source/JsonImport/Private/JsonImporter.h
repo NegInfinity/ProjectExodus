@@ -21,6 +21,7 @@ class ULandscapeGrassType;
 class JsonImporter{
 protected:
 	FString assetRootPath;//TODO: rename to srcAssetRootPath. Points to json file folder.
+	FString sourceExternDataPath;
 	FString assetCommonPath;
 	FString sourceBaseName;
 	IdNameMap meshIdMap;
@@ -28,6 +29,7 @@ protected:
 	IdNameMap cubeIdMap;
 	IdNameMap matMasterIdMap;
 	IdNameMap matInstIdMap;
+	JsonExternResourceList externResources;
 
 	TArray<JsonMaterial> jsonMaterials;
 
@@ -40,7 +42,7 @@ protected:
 	ALandscape* createDefaultLandscape(ImportWorkData &workData, const JsonGameObject &jsonGameObj);
 	ALandscape* createDefaultLandscape(UWorld *world);
 
-	UWorld* importSceneObjectsAsWorld(const JsonValPtrs *sceneObjects, const FString &sceneName, const FString &scenePath);
+	UWorld* importSceneObjectsAsWorld(const TArray<JsonGameObject> &sceneObjects, const FString &sceneName, const FString &scenePath);
 	void processReflectionProbes(ImportWorkData &workData, const JsonGameObject &gameObj, int32 objId, AActor *parentActor, const FString &folderPath);
 	void processLight(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonLight &light, AActor *parentActor, const FString& folderPath);
 	void processLights(ImportWorkData &workData, const JsonGameObject &gameObj, AActor *parentActor, const FString& folderPath);
@@ -49,24 +51,22 @@ protected:
 	void processTerrain(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonTerrain &jsonTerrain, AActor *parentActor, const FString& folderPath);
 	void processTerrains(ImportWorkData &workData, const JsonGameObject &gameObj, AActor *parentActor, const FString& folderPath);
 
-	/*ULandscapeLayerInfoObject* createTerrainLayerInfo(ImportWorkData &workData, const JsonGameObject &jsonGameObj, 
-		const JsonTerrainData &terrData,int layerIndex, bool detailLayer, const FString &terrainDataPath);*/
+	UWorld* importScene(const JsonScene &scene, bool createWorld);
 
-	//UWorld *createWorldForScene(const FString &sceneName, const FString &scenePath);
-	//bool saveLoadedWorld(UWorld *world, const FString &sceneName, const FString &sceneAssetPath);
-	UWorld* importScene(JsonObjPtr sceneData, bool createWorld);
-
-	void importPrefabs(const JsonValPtrs *prefabs);
 	void importPrefab(const JsonPrefabData& prefab);
+	void importPrefabs(const StringArray &prefabs);
 
 	void importTerrainData(JsonObjPtr jsonData, JsonId terrainId, const FString &rootPath);
-	void loadTerrains(const JsonValPtrs* terrains);
+	void loadTerrains(const StringArray &terrains);
 
 	ULandscapeGrassType* createGrassType(ImportWorkData &workData, const JsonGameObject &jsonGameObj, const JsonTerrainData &terrainData, 
 		int layerIndex, const FString &terrainDataPth);
 
 	void registerMaterialInstancePath(int32 id, FString path);
 	void registerMasterMaterialPath(int32 id, FString path);
+
+	UWorld* importScene(const JsonScene &scene, bool createWorld) const;
+
 public:
 	const JsonMaterial* getJsonMaterial(int32 id) const;
 
@@ -93,32 +93,29 @@ public:
 	FString getMeshPath(JsonId id) const;
 	UStaticMesh *loadStaticMeshById(JsonId id) const;
 
-	void importScene(const FString& path);
 	void importProject(const FString& path);
 
-	void importResources(JsonObjPtr jsonNode);
-	void loadCubemaps(const JsonValPtrs *cubemaps);
-	void loadTextures(const JsonValPtrs* textures);
-	void loadMaterials(const JsonValPtrs* materials);
-	void loadMeshes(const JsonValPtrs* meshes);
-	void loadObjects(const JsonValPtrs* objects, ImportWorkData &importData);
+	void importResources(const JsonExternResourceList &resources);
+	void loadCubemaps(const StringArray &cubemaps);
+	void loadTextures(const StringArray & textures);
+	void loadMaterials(const StringArray &materials);
+	void loadMeshes(const StringArray &meshes);
+
+	void loadObjects(const TArray<JsonGameObject> &objects, ImportWorkData &importData);
 
 	void setupAssetPaths(const FString &jsonFilename);
 
-	JsonObjPtr loadJsonFromFile(const FString &filename);
+	JsonObjPtr loadExternResourceFromFile(const FString &filename) const;
 
 	void importTexture(JsonObjPtr obj, const FString &rootPath);
 
-	/*
-	void importMasterMaterial(JsonObjPtr obj, int32 matId);
-	void importMaterialInstance(JsonObjPtr obj, int32 matId);
-	*/
 	void importMesh(JsonObjPtr obj, int32 meshId);
 	void importObject(JsonObjPtr obj, int32 objId, ImportWorkData &importData);
 	void importObject(const JsonGameObject &jsonGameObj , int32 objId, ImportWorkData &importData);
 
 	static int findMatchingLength(const FString& arg1, const FString& arg2);
-	FString findCommonPath(const JsonValPtrs* resources);
+	FString findCommonPath(const JsonValPtrs* resources) const;
+	FString findCommonPath(const StringArray &resources) const;
 	FString getProjectImportPath() const;
 
 	/*

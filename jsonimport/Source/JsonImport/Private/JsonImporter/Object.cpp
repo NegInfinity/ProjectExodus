@@ -36,24 +36,6 @@
 
 #include "DesktopPlatformModule.h"
 
-/**
-#include "JsonObjects/JsonBinaryTerrain.h"
-
-#include "Landscape.h"
-#include "LandscapeInfo.h"
-#include "LandscapeLayerInfoObject.h"
-
-#include "JsonObjects/DataPlane2D.h"
-#include "JsonObjects/DataPlane3D.h"
-#include "JsonObjects/utilities.h"
-#include "JsonObjects/converters.h"
-#include "ImportWorkData.h"
-*/
-
-//#include "LandscapeEditor/Private/ActorFactoryLandscape.h"
-//#include "LandscapeEditor/Public/LandscapeEditorUtils.h"
-//#include "LandscapeEditor/Public/LandscapeEditorModule.h"
-
 using namespace JsonObjects;
 
 static void setParentAndFolder(AActor *actor, AActor *parentActor, const FString& folderPath, ImportWorkData &workData){
@@ -63,8 +45,6 @@ static void setParentAndFolder(AActor *actor, AActor *parentActor, const FString
 		actor->AttachToActor(parentActor, FAttachmentTransformRules::KeepWorldTransform);
 	}
 	else{
-		//workData.addRootActor(actor);
-		//actor->AddToRoot();
 		if (folderPath.Len())
 			actor->SetFolderPath(*folderPath);
 	}

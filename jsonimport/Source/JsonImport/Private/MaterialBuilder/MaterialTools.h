@@ -42,25 +42,6 @@
 #include "Materials/MaterialExpressionLandscapeVisibilityMask.h"
 #include "Materials/MaterialExpressionLandscapeGrassOutput.h"
 
-
-/*
-//proper forward declarations are nice and all, but ghaving to include all the expression multiple times is annoying.
-
-class UMaterialExpression;
-class UMaterialExpressionParameter;
-class UMaterialExpressionVectorParameter;
-class UMaterialExpressionScalarParameter;
-class UMaterialExpressionConstant;
-class UMaterialExpressionTextureSample;
-class UMaterialExpressionComponentMask;
-class UMaterialExpressionAppendVector;
-class UTexture;
-class UMaterial;
-class UMaterialExpressionConstant2Vector;
-class UMaterialExpressionConstant3Vector
-class UMaterialExpressionConstant4Vector
-*/
-
 namespace MaterialTools{
 	UMaterialExpression* createMaterialInput(UMaterial *material, UTexture *texture, 
 		const FLinearColor *matColor, FExpressionInput &matInput, bool normalMap, const TCHAR* paramName, UMaterialExpressionTextureSample ** outTexNode = 0,

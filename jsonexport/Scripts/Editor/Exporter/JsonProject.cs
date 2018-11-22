@@ -15,10 +15,10 @@ namespace SceneExport{
 		public ResourceMapper resourceMapper = new ResourceMapper();
 		public override void writeJsonObjectFields(FastJsonWriter writer){
 			writer.writeKeyVal("config", config);
-			writer.writeKeyVal("scenes", scenes);
+			//writer.writeKeyVal("scenes", scenes);
 			//var resourceList = resourceMapper.makeResourceList();
 			writer.writeKeyVal("externResources", externResourceList);
-			writer.writeKeyVal("resources", resourceList);
+			//writer.writeKeyVal("resources", resourceList);
 		}
 		
 		public void clear(){
@@ -170,7 +170,7 @@ namespace SceneExport{
 			string filesDir = System.IO.Path.Combine(targetDir, baseName);// + "_data");
 			System.IO.Directory.CreateDirectory(filesDir);
 			
-			externResourceList = resourceMapper.saveResourceToFolder(filesDir, showGui);
+			externResourceList = resourceMapper.saveResourceToFolder(filesDir, showGui, scenes);
 			
 			Utility.saveStringToFile(filename, toJsonString());
 			

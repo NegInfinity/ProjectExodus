@@ -80,7 +80,6 @@ UStaticMesh* TerrainBuilder::createBillboardMesh(const FString &baseName, const 
 	MaterialBuilder matBuilder;
 	auto billboardMaterial = 
 		matBuilder.createBillboardMatInstance(&detPrototype, layerIndex, this, terrainDataPath);
-		//matBuilder.createBillboardMaterial(&detPrototype, layerIndex, this, terrainDataPath);
 
 	auto result = createAssetObject<UStaticMesh>(baseName, &terrainDataPath, importer, 
 		[&](UStaticMesh *mesh){
@@ -129,8 +128,20 @@ ULandscapeGrassType* TerrainBuilder::createGrassType(int layerIndex, const FStri
 					}
 				}
 				dstType.GrassMesh = mesh;
+
+				dstType.Scaling = EGrassScaling::Uniform;
+				auto scaleInterval = FFloatInterval(srcType.minHeight * 0.5f, srcType.maxHeight * 0.5f);
+				dstType.ScaleX = scaleInterval;
+				dstType.ScaleY = scaleInterval;
+				dstType.ScaleZ = scaleInterval;
 			}
 			else{
+				dstType.Scaling = EGrassScaling::Uniform;
+				auto scaleInterval = FFloatInterval(srcType.minHeight * 0.5f, srcType.maxHeight * 0.5f);
+				dstType.ScaleX = scaleInterval;
+				dstType.ScaleY = scaleInterval;
+				dstType.ScaleZ = scaleInterval;
+
 				//billboard?
 				auto mesh = createBillboardMesh(grassTypeName + TEXT("_Mesh"), srcType, layerIndex, terrainDataPath);
 				if (!mesh){
@@ -189,9 +200,7 @@ void TerrainBuilder::processFoliageTreeActors(ALandscape *landscape){
 
 	TMap<int32, UFoliageType*> foliageTypes;
 	TMap<int32, FFoliageMeshInfo*> foliageMeshInfos;
-	//TMap<int32, UFoliageType*> foliages;
 
-	//TMap<JsonId, 
 	int prototypeIndex = 0;
 	for(const auto& curProtoTree: terrainData.treePrototypes){
 		auto curProtoIdx = prototypeIndex++;
@@ -239,7 +248,6 @@ void TerrainBuilder::processFoliageTreeActors(ALandscape *landscape){
 		FFoliageInstance dstInst;
 
 		auto scale = FVector(srcInst.widthScale, srcInst.widthScale, srcInst.heightScale);
-		//FVector unityScale(srcInst.widthScale, srcInst.he
 
 		dstInst.DrawScale3D = scale * 0.1f; //??why??
 

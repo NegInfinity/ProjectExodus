@@ -36,16 +36,11 @@ int JsonImporter::findMatchingLength(const FString& arg1, const FString& arg2){
 	return result;
 }
 
-FString JsonImporter::findCommonPath(const JsonValPtrs* resources){
+FString JsonImporter::findCommonPath(const StringArray &resources) const{
 	FString result;
-	if (!resources)
-		return result;
-	UE_LOG(JsonLog, Log, TEXT("Listing files"));
 	bool first = true;
 	int minCommonLength = 0;
-
-	for(auto cur: *resources){
-		auto resPath = cur->AsString();
+	for(auto resPath: resources){
 		UE_LOG(JsonLog, Log, TEXT("Resource %s is found"), *resPath);
 		auto curPath = FPaths::GetPath(resPath);
 		auto curLen = curPath.Len();
@@ -70,5 +65,19 @@ FString JsonImporter::findCommonPath(const JsonValPtrs* resources){
 			return FString();
 	}
 	return result;
+}
+
+FString JsonImporter::findCommonPath(const JsonValPtrs* resources) const{
+	if (!resources)
+		return FString();
+	UE_LOG(JsonLog, Log, TEXT("Listing files"));
+
+	StringArray resList;
+	for(auto cur: *resources){
+		auto resPath = cur->AsString();
+		resList.Add(resPath);
+	}
+
+	return findCommonPath(resList);
 }
 

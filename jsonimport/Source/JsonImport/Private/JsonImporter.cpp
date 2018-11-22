@@ -56,15 +56,12 @@ void JsonImporter::importTerrainData(JsonObjPtr jsonData, JsonId terrainId, cons
 	//binTerrainIdMap.Add(terrainData
 }
 
-void JsonImporter::loadTerrains(const JsonValPtrs* terrains){
-	if (!terrains)
-		return;
-
-	FScopedSlowTask terProgress(terrains->Num(), LOCTEXT("Importing terrains", "Importing terrains"));
+void JsonImporter::loadTerrains(const StringArray &terrains){
+	FScopedSlowTask terProgress(terrains.Num(), LOCTEXT("Importing terrains", "Importing terrains"));
 	terProgress.MakeDialog();
 	JsonId id = 0;
-	for(auto cur: *terrains){
-		auto obj = cur->AsObject();
+	for(auto curFilename: terrains){
+		auto obj = loadExternResourceFromFile(curFilename);//cur->AsObject();
 		auto curId= id;
 		id++;
 		if (!obj.IsValid())
@@ -76,15 +73,12 @@ void JsonImporter::loadTerrains(const JsonValPtrs* terrains){
 
 }
 
-void JsonImporter::loadCubemaps(const JsonValPtrs *cubemaps){
-	if (!cubemaps)
-		return;
-
-	FScopedSlowTask texProgress(cubemaps->Num(), LOCTEXT("Importing cubemaps", "Importing cubemaps"));
+void JsonImporter::loadCubemaps(const StringArray &cubemaps){
+	FScopedSlowTask texProgress(cubemaps.Num(), LOCTEXT("Importing cubemaps", "Importing cubemaps"));
 	texProgress.MakeDialog();
 	UE_LOG(JsonLog, Log, TEXT("Processing textures"));
-	for(auto cur: *cubemaps){
-		auto obj = cur->AsObject();
+	for(auto curFilename: cubemaps){
+		auto obj = loadExternResourceFromFile(curFilename);
 		if (!obj.IsValid())
 			continue;
 		importCubemap(obj, assetRootPath);
@@ -92,15 +86,12 @@ void JsonImporter::loadCubemaps(const JsonValPtrs *cubemaps){
 	}
 }
 
-void JsonImporter::loadTextures(const JsonValPtrs* textures){
-	if (!textures)
-		return;
-
-	FScopedSlowTask texProgress(textures->Num(), LOCTEXT("Importing textures", "Importing textures"));
+void JsonImporter::loadTextures(const StringArray & textures){
+	FScopedSlowTask texProgress(textures.Num(), LOCTEXT("Importing textures", "Importing textures"));
 	texProgress.MakeDialog();
 	UE_LOG(JsonLog, Log, TEXT("Processing textures"));
-	for(auto cur: *textures){
-		auto obj = cur->AsObject();
+	for(auto curFilename: textures){
+		auto obj = loadExternResourceFromFile(curFilename);
 		if (!obj.IsValid())
 			continue;
 		importTexture(obj, assetRootPath);
@@ -108,18 +99,16 @@ void JsonImporter::loadTextures(const JsonValPtrs* textures){
 	}
 }
 
-void JsonImporter::loadMaterials(const JsonValPtrs* materials){
-	if (!materials)
-		return;
-	FScopedSlowTask matProgress(materials->Num(), LOCTEXT("Importing materials", "Importing materials"));
+void JsonImporter::loadMaterials(const StringArray &materials){
+	FScopedSlowTask matProgress(materials.Num(), LOCTEXT("Importing materials", "Importing materials"));
 	matProgress.MakeDialog();
 	UE_LOG(JsonLog, Log, TEXT("Processing materials"));
 	jsonMaterials.Empty();
 	int32 matId = 0;
-	for(auto cur: *materials){
-		auto obj = cur->AsObject();
+	for(auto curFilename: materials){
+		auto obj = loadExternResourceFromFile(curFilename);
 		auto curId = matId;
-		matId++;
+		matId++;//hmm.... I should probably axe this?
 		if (!obj.IsValid())
 			continue;
 
@@ -137,17 +126,15 @@ void JsonImporter::loadMaterials(const JsonValPtrs* materials){
 	}
 }
 
-void JsonImporter::loadMeshes(const JsonValPtrs* meshes){
-	if (!meshes)
-		return;
-	FScopedSlowTask meshProgress(meshes->Num(), LOCTEXT("Importing materials", "Importing meshes"));
+void JsonImporter::loadMeshes(const StringArray &meshes){
+	FScopedSlowTask meshProgress(meshes.Num(), LOCTEXT("Importing materials", "Importing meshes"));
 	meshProgress.MakeDialog();
 	UE_LOG(JsonLog, Log, TEXT("Processing meshes"));
 	int32 meshId = 0;
-	for(auto cur: *meshes){
-		auto obj = cur->AsObject();
+	for(auto curFilename: meshes){
+		auto obj = loadExternResourceFromFile(curFilename);
 		auto curId = meshId;
-		meshId++;
+		meshId++;//and this one too...
 		if (!obj.IsValid())
 			continue;
 		importMesh(obj, curId);
@@ -155,69 +142,39 @@ void JsonImporter::loadMeshes(const JsonValPtrs* meshes){
 	}
 }
 
-void JsonImporter::loadObjects(const JsonValPtrs* objects, ImportWorkData &importData){
-	if (!objects)
-		return;
-	FScopedSlowTask objProgress(objects->Num(), LOCTEXT("Importing objects", "Importing objects"));
+void JsonImporter::loadObjects(const TArray<JsonGameObject> &objects, ImportWorkData &importData){
+	FScopedSlowTask objProgress(objects.Num(), LOCTEXT("Importing objects", "Importing objects"));
 	objProgress.MakeDialog();
 	UE_LOG(JsonLog, Log, TEXT("Import objects"));
 	int32 objId = 0;
-	for(auto cur: *objects){
-		auto obj = cur->AsObject();
+	for(const auto &curObj: objects){
 		auto curId = objId;
 		objId++;
-		if (!obj.IsValid())
-			continue;
-		importObject(obj, objId, importData);
+		importObject(curObj, objId, importData);
 		objProgress.EnterProgressFrame(1.0f);
 	}
 }
 
+void JsonImporter::importResources(const JsonExternResourceList &externRes){
+	assetCommonPath = findCommonPath(externRes.resources);
 
-void JsonImporter::importResources(JsonObjPtr jsonData){
-	const JsonValPtrs *resources = 0, *textures = 0, 
-		*materials = 0, *meshes = 0, *prefabs = 0, 
-		*terrains = 0,  *cubemaps = 0;
-
-	loadArray(jsonData, resources, TEXT("resources"), TEXT("Resources"));
-	loadArray(jsonData, textures, TEXT("textures"), TEXT("Textures"));
-	loadArray(jsonData, materials, TEXT("materials"), TEXT("Materials"));
-	loadArray(jsonData, meshes, TEXT("meshes"), TEXT("Meshes"));
-	loadArray(jsonData, prefabs, TEXT("prefabs"), TEXT("Prefabs"));
-	loadArray(jsonData, terrains, TEXT("terrains"), TEXT("Terrains"));
-	loadArray(jsonData, cubemaps, TEXT("cubemaps"), TEXT("Cubemaps"));
-
-	assetCommonPath = findCommonPath(resources);
-
-	loadTextures(textures);
-	loadCubemaps(cubemaps);
-	loadMaterials(materials);
-	loadMeshes(meshes);
-	importPrefabs(prefabs);
-	loadTerrains(terrains);
+	loadTextures(externRes.textures);
+	loadCubemaps(externRes.cubemaps);
+	loadMaterials(externRes.materials);
+	loadMeshes(externRes.meshes);
+	importPrefabs(externRes.prefabs);
+	loadTerrains(externRes.terrains);
 }
 
-JsonObjPtr JsonImporter::loadJsonFromFile(const FString &filename){
-	FString jsonString;
-	if (!FFileHelper::LoadFileToString(jsonString, *filename)){
-		UE_LOG(JsonLog, Warning, TEXT("Could not load json file \"%s\""), *filename);
-		return 0;
-	}
-
-	UE_LOG(JsonLog, Log, TEXT("Loaded json file \"%s\""), *filename);
-	JsonReaderRef reader = TJsonReaderFactory<>::Create(jsonString);
-
-	JsonObjPtr jsonData = MakeShareable(new FJsonObject());
-	if (!FJsonSerializer::Deserialize(reader, jsonData)){
-		UE_LOG(JsonLog, Warning, TEXT("Could not parse json file \"%s\""), *filename);
-		return 0;
-	}
-	return jsonData;
+JsonObjPtr JsonImporter::loadExternResourceFromFile(const FString &filename) const{
+	auto fullPath = FPaths::Combine(sourceExternDataPath, filename);
+	return loadJsonFromFile(fullPath);
 }
 
 void JsonImporter::setupAssetPaths(const FString &jsonFilename){
 	assetRootPath = FPaths::GetPath(jsonFilename);
 	sourceBaseName = FPaths::GetBaseFilename(jsonFilename);
+	sourceExternDataPath = FPaths::Combine(*assetRootPath, *sourceBaseName);
 }
 
 void JsonImporter::registerMasterMaterialPath(int32 id, FString path){
@@ -254,6 +211,5 @@ void JsonImporter::registerMaterialInstancePath(int32 id, FString path){
 }
 
 UMaterialInterface* JsonImporter::loadMaterialInterface(int32 id) const{
-	//return loadMasterMaterial(id);
 	return loadMaterialInstance(id);
 }

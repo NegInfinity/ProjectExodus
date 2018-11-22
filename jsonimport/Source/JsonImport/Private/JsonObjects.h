@@ -21,3 +21,10 @@
 #include "JsonObjects/JsonTexture.h"
 #include "JsonObjects/JsonCubemap.h"
 #include "JsonObjects/JsonMesh.h"
+#include "JsonObjects/JsonExternResourceList.h"
+#include "JsonObjects/JsonProject.h"
+#include "JsonObjects/JsonScene.h"
+
+namespace JsonObjects{
+	JsonObjPtr loadJsonFromFile(const FString &filename);
+}

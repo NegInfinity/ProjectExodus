@@ -64,7 +64,7 @@ namespace SceneExport{
 			writer.writeKeyVal("name", name);
 			writer.writeKeyVal("path", path);
 			writer.writeKeyVal("buildIndex", buildIndex);
-			writeJsonObjectFields(writer);
+			writeJsonObjectFields(writer);//the hell? Why?
 			writer.endObject();
 		}
 

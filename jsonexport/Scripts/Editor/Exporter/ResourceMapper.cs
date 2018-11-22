@@ -250,18 +250,20 @@ namespace SceneExport{
 				
 			try{
 				var result = new List<string>();
-				for(int i = 0; i < objects.Count; i++){
-					var fileName = makeJsonResourcePath(baseName, i);	
-					if (showGui){
-						ExportUtility.showProgressBar(
-							string.Format("Saving file {0} for resource type {1}", fileName, baseName), 
-							"Writing json data", i, objects.Count);
-					}
-					var fullPath = System.IO.Path.Combine(baseDir, fileName);
+				if (objects != null){
+					for(int i = 0; i < objects.Count; i++){
+						var fileName = makeJsonResourcePath(baseName, i);	
+						if (showGui){
+							ExportUtility.showProgressBar(
+								string.Format("Saving file {0} for resource type {1}", fileName, baseName), 
+								"Writing json data", i, objects.Count);
+						}
+						var fullPath = System.IO.Path.Combine(baseDir, fileName);
 				
-					var jsonObj = converter(objects[i]);
-					jsonObj.saveToJsonFile(fullPath);				
-					result.Add(fileName);
+						var jsonObj = converter(objects[i]);
+						jsonObj.saveToJsonFile(fullPath);				
+						result.Add(fileName);
+					}
 				}
 				return result;		
 			}
@@ -272,9 +274,11 @@ namespace SceneExport{
 			}
 		}
 		
-		public JsonExternResourceList saveResourceToFolder(string baseDir, bool showGui){
+		public JsonExternResourceList saveResourceToFolder(string baseDir, bool showGui, List<JsonScene> scenes){		
 			var result = new JsonExternResourceList();
 			
+			result.scenes = saveResourcesToPath(baseDir, scenes, 
+				(objData) => objData, "scene", showGui);
 			result.terrains = saveResourcesToPath(baseDir, terrains.objectList, 
 				(objData) => new JsonTerrainData(objData, this), "terrainData", showGui);
 			result.meshes = saveResourcesToPath(baseDir, meshes.objectList, 

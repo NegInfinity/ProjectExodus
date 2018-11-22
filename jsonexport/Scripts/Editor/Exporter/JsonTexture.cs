@@ -47,6 +47,7 @@ namespace SceneExport{
 			writer.writeKeyVal("sRGB", sRGB);
 			writer.writeKeyVal("normalMapFlag", normalMapFlag);
 			writer.writeKeyVal("importDataFound", importDataFound);
+			writer.writeKeyVal("textureType", textureType);
 			
 			writer.writeKeyVal("texParams", texParams);
 			writer.writeKeyVal("texImportParams", texImportParams);

@@ -185,20 +185,18 @@ void JsonImporter::importPrefab(const JsonPrefabData& prefab){
 	}
 }
 
-void JsonImporter::importPrefabs(const JsonValPtrs *prefabs){
+void JsonImporter::importPrefabs(const StringArray &prefabs){
 #ifdef JSON_DISABLE_PREFAB_IMPORT
 	UE_LOG(JsonLog, Warning, TEXT("Prefab import is currently disabled"));
 	return;
 #endif
 
-	if (!prefabs)
-		return;
-	FScopedSlowTask progress(prefabs->Num(), LOCTEXT("Importing prefabs", "Importing prefabs"));
+	FScopedSlowTask progress(prefabs.Num(), LOCTEXT("Importing prefabs", "Importing prefabs"));
 	progress.MakeDialog();
 	UE_LOG(JsonLog, Log, TEXT("Import prefabs"));
 	int32 objId = 0;
-	for(auto cur: *prefabs){
-		auto obj = cur->AsObject();
+	for(auto curFilename: prefabs){
+		auto obj = loadExternResourceFromFile(curFilename);
 		auto curId = objId;
 		objId++;
 		if (!obj.IsValid())
@@ -208,10 +206,6 @@ void JsonImporter::importPrefabs(const JsonValPtrs *prefabs){
 
 		importPrefab(prefab);
 
-		//importObject(obj, objId, importData);
 		progress.EnterProgressFrame(1.0f);
-
-		//break
 	}
 }
-
