@@ -20,7 +20,7 @@ DEFINE_LOG_CATEGORY(JsonLogMatNodeSort);
 using namespace MaterialTools;
 using namespace UnrealUtilities;
 
-UMaterial* MaterialBuilder::importMasterMaterial(const JsonMaterial& jsonMat, JsonImporter *importer, JsonMaterialId matId){
+UMaterial* MaterialBuilder::importMasterMaterial(const JsonMaterial& jsonMat, JsonImporter *importer){
 	MaterialFingerprint fingerprint(jsonMat);
 
 	FString sanitizedMatName;
@@ -32,7 +32,7 @@ UMaterial* MaterialBuilder::importMasterMaterial(const JsonMaterial& jsonMat, Js
 		&sanitizedPackageName, &sanitizedMatName, &existingMaterial);
 
 	if (existingMaterial){
-		importer->registerMasterMaterialPath(jsonMat.id, existingMaterial->GetPathName());
+		//importer->registerMasterMaterialPath(jsonMat.id, existingMaterial->GetPathName());
 		UE_LOG(JsonLog, Log, TEXT("Found existing material: %s (package %s)"), *sanitizedMatName, *sanitizedPackageName);
 		return existingMaterial;
 	}
@@ -45,14 +45,15 @@ UMaterial* MaterialBuilder::importMasterMaterial(const JsonMaterial& jsonMat, Js
 		0, GWarn);
 
 	//stuff
-	MaterialBuildData buildData(matId, importer);
+	//MaterialBuildData buildData(matId, importer);
+	MaterialBuildData buildData(jsonMat.id, importer);
 	buildMaterial(material, jsonMat, fingerprint, buildData);
 
 	if (material){
 		material->PreEditChange(0);
 		material->PostEditChange();
 
-		importer->registerMasterMaterialPath(jsonMat.id, material->GetPathName());
+		//importer->registerMasterMaterialPath(jsonMat.id, material->GetPathName());
 		FAssetRegistryModule::AssetCreated(material);
 		matPackage->SetDirtyFlag(true);
 	}
@@ -61,23 +62,6 @@ UMaterial* MaterialBuilder::importMasterMaterial(const JsonMaterial& jsonMat, Js
 
 	return material;
 }
-
-UMaterial* MaterialBuilder::importMasterMaterial(JsonObjPtr obj, JsonImporter *importer, JsonMaterialId matId){
-	UE_LOG(JsonLog, Log, TEXT("Importing material %d"), matId);
-
-	JsonMaterial jsonMat(obj);
-
-	return importMasterMaterial(jsonMat, importer, matId);
-}
-
-UMaterialInstanceConstant* MaterialBuilder::importMaterialInstance(JsonObjPtr obj, JsonImporter *importer, JsonMaterialId matId){
-	UE_LOG(JsonLog, Log, TEXT("Importing material instance %d"), matId);
-
-	JsonMaterial jsonMat(obj);
-
-	return importMaterialInstance(jsonMat, importer, matId);
-}
-
 
 UMaterial* MaterialBuilder::createMaterial(const FString& name, const FString &path, JsonImporter *importer, 
 		MaterialCallbackFunc newCallback, MaterialCallbackFunc existingCallback, MaterialCallbackFunc postEditCallback){
@@ -125,7 +109,22 @@ UMaterial* MaterialBuilder::loadDefaultMaterial(){
 	return nullptr;
 }
 
-UMaterialInstanceConstant* MaterialBuilder::importMaterialInstance(const JsonMaterial& jsonMat, JsonImporter *importer, JsonMaterialId matId){
+FString MaterialBuilder::getBaseMaterialPath(const JsonMaterial &jsonMat) const{
+	FString defaultMatPath = TEXT("/JsonImport/exodusSolidMaterial");
+	FString transparentMatPath = TEXT("/JsonImport/exodusBlendMaterial");
+	FString maskedMatPath = TEXT("/JsonImport/exodusMaskMaterial");
+
+	auto baseMaterialPath = defaultMatPath;
+	if (jsonMat.isTransparentQueue()){
+		baseMaterialPath = transparentMatPath;
+	}
+	if (jsonMat.isAlphaTestQueue()){
+		baseMaterialPath = maskedMatPath;
+	}
+	return baseMaterialPath;
+}
+
+UMaterialInstanceConstant* MaterialBuilder::importMaterialInstance(const JsonMaterial& jsonMat, JsonImporter *importer){
 	MaterialFingerprint fingerprint(jsonMat);
 
 	FString matName = sanitizeObjectName(jsonMat.name);
@@ -138,6 +137,7 @@ UMaterialInstanceConstant* MaterialBuilder::importMaterialInstance(const JsonMat
 
 	/*FString defaultMaterial = TEXT("/JsonImport/exodusMaterial");
 	auto baseMaterialPath = defaultMaterial;*/
+	/*
 	FString defaultMatPath = TEXT("/JsonImport/exodusSolidMaterial");
 	FString transparentMatPath = TEXT("/JsonImport/exodusBlendMaterial");
 	FString maskedMatPath = TEXT("/JsonImport/exodusMaskMaterial");
@@ -149,6 +149,8 @@ UMaterialInstanceConstant* MaterialBuilder::importMaterialInstance(const JsonMat
 	if (jsonMat.isAlphaTestQueue()){
 		baseMaterialPath = maskedMatPath;
 	}
+	*/
+	auto baseMaterialPath = getBaseMaterialPath(jsonMat);
 
 	auto *baseMaterial = LoadObject<UMaterial>(nullptr, *baseMaterialPath);
 	if (!baseMaterial){
@@ -172,7 +174,7 @@ UMaterialInstanceConstant* MaterialBuilder::importMaterialInstance(const JsonMat
 				RF_Standalone|RF_Public, 0, GWarn
 			);
 
-			setupMaterialInstance(result, jsonMat, importer, matId);
+			setupMaterialInstance(result, jsonMat, importer);
 
 			return result;
 		}, RF_Standalone|RF_Public
@@ -182,10 +184,6 @@ UMaterialInstanceConstant* MaterialBuilder::importMaterialInstance(const JsonMat
 		UE_LOG(JsonLog, Warning, TEXT("Could not load mat instance \"%s\""), *jsonMat.name);
 		return matInst;
 	}
-
-	auto fullPath = matInst->GetPathName();
-
-	importer->registerMaterialInstancePath(matId, fullPath);
 
 	return matInst;
 }
@@ -312,7 +310,7 @@ bool MaterialBuilder::setTexParams(UMaterialInstanceConstant *matInst,  FStaticP
 	return true;
 }
 
-void MaterialBuilder::setupMaterialInstance(UMaterialInstanceConstant *matInst, const JsonMaterial &jsonMat, JsonImporter *importer, JsonMaterialId matId){
+void MaterialBuilder::setupMaterialInstance(UMaterialInstanceConstant *matInst, const JsonMaterial &jsonMat, JsonImporter *importer){
 	if (!matInst){
 		UE_LOG(JsonLog, Warning, TEXT("Mat instance is null!"));
 		return;

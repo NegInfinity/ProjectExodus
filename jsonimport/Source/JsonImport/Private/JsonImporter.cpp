@@ -114,6 +114,7 @@ void JsonImporter::loadMaterials(const JsonValPtrs* materials){
 	FScopedSlowTask matProgress(materials->Num(), LOCTEXT("Importing materials", "Importing materials"));
 	matProgress.MakeDialog();
 	UE_LOG(JsonLog, Log, TEXT("Processing materials"));
+	jsonMaterials.Empty();
 	int32 matId = 0;
 	for(auto cur: *materials){
 		auto obj = cur->AsObject();
@@ -121,8 +122,17 @@ void JsonImporter::loadMaterials(const JsonValPtrs* materials){
 		matId++;
 		if (!obj.IsValid())
 			continue;
+
+		JsonMaterial jsonMat(obj);
+		jsonMaterials.Add(jsonMat);
 		//importMasterMaterial(obj, curId);
-		importMaterialInstance(obj, curId);
+		auto matInst = materialBuilder.importMaterialInstance(jsonMat, this);
+		if (matInst){
+			//registerMaterialInstancePath(curId, matInst->GetPathName());
+			registerMaterialInstancePath(jsonMat.id, matInst->GetPathName());
+		}
+
+		//importMaterialInstance(jsonMat, curId);
 		matProgress.EnterProgressFrame(1.0f);
 	}
 }
@@ -238,7 +248,7 @@ UStaticMesh* JsonImporter::loadStaticMeshById(JsonId id) const{
 
 void JsonImporter::registerMaterialInstancePath(int32 id, FString path){
 	if (matInstIdMap.Contains(id)){
-		UE_LOG(JsonLog, Warning, TEXT("DUplicate material registration for id %d, path \"%s\""), id, *path);
+		UE_LOG(JsonLog, Warning, TEXT("Duplicate material registration for id %d, path \"%s\""), id, *path);
 	}
 	matInstIdMap.Add(id, path);
 }

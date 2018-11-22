@@ -56,11 +56,9 @@ class MaterialBuilder{
 public:
 	UMaterial* loadDefaultMaterial();
 
-	UMaterial *importMasterMaterial(const JsonMaterial& jsonMat, JsonImporter *importer, JsonMaterialId matId);
-	UMaterial *importMasterMaterial(JsonObjPtr obj, JsonImporter *importer, JsonMaterialId matId);
+	UMaterial *importMasterMaterial(const JsonMaterial& jsonMat, JsonImporter *importer);
 
-	UMaterialInstanceConstant* importMaterialInstance(const JsonMaterial& jsonMat, JsonImporter *importer, JsonMaterialId matId);
-	UMaterialInstanceConstant* importMaterialInstance(JsonObjPtr obj, JsonImporter *importer, JsonMaterialId matId);
+	UMaterialInstanceConstant* importMaterialInstance(const JsonMaterial& jsonMat, JsonImporter *importer);
 
 	using MaterialCallbackFunc = std::function<void(UMaterial*)>;
 
@@ -74,6 +72,9 @@ public:
 	UMaterial *createBillboardMaterial(const JsonTerrainDetailPrototype * detailPrototype, int layerIndex, const TerrainBuilder *terrainBuilder, const FString &terrainDataPath);
 	UMaterialInstanceConstant* createBillboardMatInstance(const JsonTerrainDetailPrototype * detailPrototype, int layerIndex, const TerrainBuilder *terrainBuilder, const FString &terrainDataPath);
 
+	FString getBaseMaterialPath(const JsonMaterial &mat) const;
+	void setupMaterialInstance(UMaterialInstanceConstant *matInst, const JsonMaterial &jsonMat, JsonImporter *importer);
+
 	MaterialBuilder() = default;
 protected:
 	void setScalarParam(UMaterialInstanceConstant *matInst, const char *paramName, float val) const;	
@@ -86,7 +87,6 @@ protected:
 	bool setTexParams(UMaterialInstanceConstant *matInst,  FStaticParameterSet &paramSet, int32 texId, 
 		const char *switchName, const char *texParamName, const JsonImporter *importer) const;
 
-	void setupMaterialInstance(UMaterialInstanceConstant *matInst, const JsonMaterial &jsonMat, JsonImporter *importer, JsonMaterialId matId);
 	void  setupBillboardMatInstance(UMaterialInstanceConstant *result, const JsonTerrainDetailPrototype *detailPrototype, 
 		int layerIndex, const TerrainBuilder *terrainBuilder);
 

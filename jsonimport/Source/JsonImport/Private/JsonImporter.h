@@ -29,6 +29,8 @@ protected:
 	IdNameMap matMasterIdMap;
 	IdNameMap matInstIdMap;
 
+	TArray<JsonMaterial> jsonMaterials;
+
 	TMap<JsonId, JsonTerrainData> terrainDataMap;
 
 	//This data should be reset between scenes. Otherwise thingsb ecome bad.
@@ -62,9 +64,12 @@ protected:
 
 	ULandscapeGrassType* createGrassType(ImportWorkData &workData, const JsonGameObject &jsonGameObj, const JsonTerrainData &terrainData, 
 		int layerIndex, const FString &terrainDataPth);
-public:
+
 	void registerMaterialInstancePath(int32 id, FString path);
 	void registerMasterMaterialPath(int32 id, FString path);
+public:
+	const JsonMaterial* getJsonMaterial(int32 id) const;
+
 	void registerEmissiveMaterial(int32 id);
 	const FString& getAssetRootPath() const{
 		return assetRootPath;
@@ -103,8 +108,11 @@ public:
 	JsonObjPtr loadJsonFromFile(const FString &filename);
 
 	void importTexture(JsonObjPtr obj, const FString &rootPath);
+
+	/*
 	void importMasterMaterial(JsonObjPtr obj, int32 matId);
 	void importMaterialInstance(JsonObjPtr obj, int32 matId);
+	*/
 	void importMesh(JsonObjPtr obj, int32 meshId);
 	void importObject(JsonObjPtr obj, int32 objId, ImportWorkData &importData);
 	void importObject(const JsonGameObject &jsonGameObj , int32 objId, ImportWorkData &importData);

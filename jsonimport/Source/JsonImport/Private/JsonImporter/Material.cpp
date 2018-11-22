@@ -68,10 +68,9 @@ UMaterial* JsonImporter::loadMasterMaterial(int32 id) const{
 	return mat;
 }
 
-void JsonImporter::importMasterMaterial(JsonObjPtr obj, int32 matId){
-	materialBuilder.importMasterMaterial(obj, this, matId);
-}
+const JsonMaterial* JsonImporter::getJsonMaterial(int32 id) const{
+	if ((id >= 0) && (id < jsonMaterials.Num()))
+		return &jsonMaterials[id];
 
-void JsonImporter::importMaterialInstance(JsonObjPtr obj, int32 matId){
-	materialBuilder.importMaterialInstance(obj, this, matId);
+	return nullptr;
 }
