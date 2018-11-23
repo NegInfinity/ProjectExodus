@@ -1,6 +1,25 @@
 #include "JsonImportPrivatePCH.h"
 #include "LandscapeTest.h"
 #include "JsonLog.h"
+/*
+This demonstrates landscape crash I've experienced. The problematic part is this:
+
+--------
+	landProxy->Import(FGuid::NewGuid(),
+		0, 0, xSize - 1, ySize - 1, sectionsPerComp, quadsPerSection, hMap.GetData(), 
+		TEXT(""), importLayers, ELandscapeImportAlphamapType::Additive);
+--------
+
+And is located at the line 130 at the time of writing.The rest is simply configuration of the test landscape.
+
+Symptoms: After calling "Import()" the engine triggers shader recompilation, which then proceeds seemingly normally.
+In the middle of compilation landscape appears black, and once that happen, the editor crashes with a failed assert once shader recompilation is done.
+
+The cause of the issue is unknown, but multithreaded nature is suspected.
+
+The only way to avoid the problem is not to render the landscape. That means either turning the camera away from it, or 
+spawning landscape in an external UWorld, that is not currently being displayed.
+*/
 
 #include "Landscape.h"
 #include "LandscapeInfo.h"
@@ -112,11 +131,21 @@ ALandscape* createTestLandscape(UWorld *world, const TArray<FString> &layerNames
 		0, 0, xSize - 1, ySize - 1, sectionsPerComp, quadsPerSection, hMap.GetData(), 
 		TEXT(""), importLayers, ELandscapeImportAlphamapType::Additive);
 
+	/*
+	Following lines are meant to trigger shader recompilation (when needed), but upon completion the editor crashes with a failed assert.
+	PreEditChange/PostEditChange produce similar effect.
+	*/
+
 	ULandscapeInfo *landscapeInfo  = result->CreateLandscapeInfo();
 	landscapeInfo->UpdateLayerInfoMap(result);
 
 	result->MarkComponentsRenderStateDirty();
 	result->PostLoad();
+
+	/*
+	result->PreEditChange(0);
+	result->PostEditChange();
+	*/
 
 	return result;
 }
