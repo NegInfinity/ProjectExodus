@@ -113,7 +113,7 @@ UWorld* JsonImporter::importSceneObjectsAsWorld(const TArray<JsonGameObject> &sc
 		auto contentPath = FPaths::ProjectContentDir();
 		auto fullpath = FPackageName::LongPackageNameToFilename(outPackageName, FPackageName::GetAssetPackageExtension());
 
-		//UPackage::Save(worldPackage, newWorld, RF_Standalone|RF_Public, *fullpath);
+		UPackage::Save(worldPackage, newWorld, RF_Standalone|RF_Public, *fullpath);
 	}
 	return newWorld;
 }
