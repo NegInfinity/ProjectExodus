@@ -99,6 +99,12 @@ UMaterialExpression* createDetailControl(UMaterial* material, const TerrainBuild
 	auto numDetailLayers = terrData.detailPrototypes.Num();
 	auto grassControl = createExpression<UMaterialExpressionLandscapeGrassOutput>(material, TEXT("Grass control"));
 
+	auto grassEnabled = createExpression<UMaterialExpressionStaticBoolParameter>(material, TEXT("enableGrass"));
+	grassEnabled->DefaultValue = terrainBuilder->jsonTerrain.drawTreesAndFoliage;
+
+	auto zeroConst = createExpression<UMaterialExpressionConstant>(material, TEXT("Zero"));
+	zeroConst->R = 0.0f;
+
 	for(int i = 0; i < numDetailLayers; i++){
 		auto layerName = terrData.getGrassLayerName(i);
 
@@ -112,7 +118,13 @@ UMaterialExpression* createDetailControl(UMaterial* material, const TerrainBuild
 		auto layerSample = createExpression<UMaterialExpressionLandscapeLayerSample>(material, *layerName);
 		layerSample->ParameterName = *layerName;
 		layerSample->PreviewWeight = 1.0f;
-		dstGrass.Input.Expression = layerSample;
+
+		auto grassSwitch = createExpression<UMaterialExpressionStaticSwitch>(material);
+		grassSwitch->Value.Expression = grassEnabled;
+		grassSwitch->B.Expression = zeroConst;
+		grassSwitch->A.Expression = layerSample;
+
+		dstGrass.Input.Expression = grassSwitch;//layerSample;
 	}
 
 	return grassControl;
@@ -123,6 +135,8 @@ void MaterialBuilder::buildTerrainMaterial(UMaterial* material,
 		const FIntPoint &terrainVertSize, const FString &terrainDataPath){
 
 	checkf(terrainBuilder, TEXT("Terrain builder cannot be null"));
+
+	material->BlendMode = BLEND_Masked;
 
 	const auto &terrData = terrainBuilder->terrainData;
 
@@ -232,6 +246,24 @@ void MaterialBuilder::buildTerrainMaterial(UMaterial* material,
 	material->Roughness.Expression = roughnessExpr;
 
 	createDetailControl(material, terrainBuilder);
+
+	//if (!terrainBuilder->jsonTerrain.drawHeightmap){
+		//auto statBool = createExpression<UMaterialExpressionStaticBool>(material, TEXT("terrainDrawEnabled"));
+		auto statBool = createExpression<UMaterialExpressionStaticBoolParameter>(material, TEXT("terrainDrawEnabled"));
+		//statBool->Value = terrainBuilder->jsonTerrain.drawHeightmap;
+		statBool->DefaultValue = terrainBuilder->jsonTerrain.drawHeightmap;
+		auto statSwitch = createExpression<UMaterialExpressionStaticSwitch>(material);
+
+		auto constExpr = createExpression<UMaterialExpressionConstant>(material, TEXT("Zero alpha"));
+		constExpr->R = 0.0f;
+
+		statSwitch->DefaultValue = true;
+		statSwitch->Value.Expression = statBool;
+		//statSwitch->A.Expression = 
+		statSwitch->B.Expression = constExpr;
+
+		material->OpacityMask.Expression = statSwitch;
+	//}
 
 	//no specular
 	MaterialTools::arrangeMaterialNodesAsTree(material);
