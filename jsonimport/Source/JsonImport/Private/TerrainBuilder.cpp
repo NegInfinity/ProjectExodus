@@ -39,8 +39,10 @@ UStaticMesh* TerrainBuilder::createClonedMesh(const JsonMesh &jsonMesh, const FS
 		auto matName = FString::Printf(TEXT("%s_mat%d"), *baseName, i);
 		matName = sanitizePackageName(matName);
 		auto baseMat = matBuilder.getBaseMaterial(*jsonMat);
+		auto assetPath = FPaths::Combine(terrainDataPath, matName);
 
-		auto matInst = matBuilder.createMaterialInstance(matName, &terrainDataPath, baseMat, importer, 
+		//auto matInst = matBuilder.createMaterialInstance(matName, &terrainDataPath, baseMat, importer, 
+		auto matInst = matBuilder.createMaterialInstance(matName, &assetPath, baseMat, importer, 
 			[&](UMaterialInstanceConstant* newInst){
 				if (!newInst)
 					return;
@@ -93,76 +95,9 @@ UStaticMesh* TerrainBuilder::createGrassMesh(const FString &baseName, const Json
 			matBuilder.setVectorParam(matInst, "dryColor", detPrototype.dryColor);
 			//noiseSpread
 			matBuilder.setScalarParam(matInst, "noiseSpread", detPrototype.noiseSpread);
+			//landscape cell scale?
 		}
 	);
-#if 0
-	MaterialBuilder matBuilder;
-	//MeshBuilder meshBuilder;
-
-	TArray<UMaterialInterface*> matInstances;
-
-	//duplicating materials and making them tint
-	const auto& meshMatIds = detPrototype.detailMeshMaterials;
-	for(int i = 0; i < meshMatIds.Num(); i++){
-		auto matId = meshMatIds[i];
-		auto jsonMat = importer->getJsonMaterial(matId);
-		if (!jsonMat){
-			matInstances.Add(nullptr);
-			continue;
-		}
-
-		auto matName = FString::Printf(TEXT("detailLayer%dmat%d"), layerIndex, i);
-		auto baseMat = matBuilder.getBaseMaterial(*jsonMat);
-
-		auto matInst = matBuilder.createMaterialInstance(matName, &terrainDataPath, baseMat, importer, 
-			[&](UMaterialInstanceConstant* newInst){
-				if (!newInst)
-					return;
-				FStaticParameterSet statParams;
-				newInst->GetStaticParameterValues(statParams);
-
-				//enableLandscapeColorBlending - static bool
-				matBuilder.setStaticSwitch(statParams, "enableLandscapeColorBlending", true);//detPrototype.noiseSpread
-				
-				//landscapeCellScale = scaleFactor, default 0.01
-				//???
-
-				//healthyColor
-				matBuilder.setVectorParam(newInst, "healthyColor", detPrototype.healthyColor);
-				//dryColor
-				matBuilder.setVectorParam(newInst, "dryColor", detPrototype.dryColor);
-				//noiseSpread
-				matBuilder.setScalarParam(newInst, "noiseSpread", detPrototype.noiseSpread);
-
-				//cellsize?
-				//matBuilder.setVectorParam(newinst, "landscapeCellScale", detPrototype.cell
-
-				newInst->UpdateStaticPermutation(statParams);
-			}
-		);
-	}
-
-	auto jsonMesh = importer->loadJsonMesh(detPrototype.detailMeshId);
-	auto meshName = FString::Printf(TEXT("detailLayer%d"), layerIndex);
-
-	auto result = createAssetObject<UStaticMesh>(baseName, &terrainDataPath, importer, 
-		[&](UStaticMesh *mesh){
-			MeshBuilder builder;
-			builder.setupMesh(mesh, jsonMesh, 
-				[&](TArray<FStaticMaterial> &meshMaterials){
-					meshMaterials.Empty();
-					for(auto cur: matInstances){
-						meshMaterials.Add(cur);
-					}
-				}
-			);
-		},
-		[&](auto pkg){
-			return NewObject<UStaticMesh>(pkg, FName(*baseName), RF_Standalone|RF_Public);
-		}
-	);
-	return result;
-#endif
 }
 
 UStaticMesh* TerrainBuilder::createBillboardMesh(const FString &baseName, const JsonTerrainDetailPrototype &detPrototype, int layerIndex, const FString &terrainDataPath){
@@ -174,6 +109,9 @@ UStaticMesh* TerrainBuilder::createBillboardMesh(const FString &baseName, const 
 		[&](UStaticMesh *mesh){
 			MeshBuilder builder;
 			builder.generateBillboardMesh(mesh, billboardMaterial);
+			/*
+			if (detPrototype.billboardFlag)
+				mesh->shad*/
 		},
 		[&](auto pkg){
 			return NewObject<UStaticMesh>(pkg, FName(*baseName), RF_Standalone|RF_Public);
@@ -200,21 +138,6 @@ ULandscapeGrassType* TerrainBuilder::createGrassType(int layerIndex, const FStri
 					UE_LOG(JsonLogTerrain, Warning, TEXT("Could not load mesh %d used by detail layer %d"), srcType.detailMeshId, layerIndex);
 					return;
 				}
-				/*
-				else{
-					//check and fix materials
-					for(auto &cur: mesh->StaticMaterials){
-						UMaterial* mat = Cast<UMaterial>(cur.MaterialInterface);
-						if (!mat)
-							continue;
-						if (!mat->bUsedWithInstancedStaticMeshes){
-							mat->bUsedWithInstancedStaticMeshes = true;
-							mat->MarkPackageDirty();
-						}
-						//if (mat && mat->
-					}
-				}
-				*/
 				dstType.GrassMesh = mesh;
 
 				dstType.Scaling = EGrassScaling::Uniform;
@@ -240,13 +163,24 @@ ULandscapeGrassType* TerrainBuilder::createGrassType(int layerIndex, const FStri
 			}
 
 			auto totalCells = (float)terrainData.detailHeight * (float)terrainData.detailWidth;
-			auto totalGrass = totalCells * 16.0f;//Don't know why it works this way.
+			auto totalGrass = totalCells * 16.0f;//On unity side, maximum number of grass spots per cell is 16. I don't know why.
 			auto landArea = terrainData.worldSize.X * terrainData.worldSize.Z;
 
-			auto density = totalGrass / landArea;
-			density /= 10.0f;//per TEN square meters? Okay...
+			auto density = totalGrass / landArea; //that's per square meter
+			/*
+			Unreal documentation(comments) claims that density is specified per 10 (TEN) square meters.
+			The documentation appears to be incorrect, and code suggest that it is actually per 100 (Hundred) square meters.
+			*/
+			density *= 100.0f;
+			//density /= 10.0f;
+			/*
+			if (	srcType.billboardFlag)
+				dstType.bCastDynamicShadow 
+				*/
+			if (srcType.billboardFlag)
+				dstType.bCastDynamicShadow = false;
 
-			//dstType.GrassDensity = density;
+			dstType.GrassDensity = density;
 		}, RF_Standalone|RF_Public
 	);
 
