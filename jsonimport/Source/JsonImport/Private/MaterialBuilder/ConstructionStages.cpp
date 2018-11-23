@@ -411,7 +411,8 @@ void MaterialBuilder::buildMaterial(UMaterial* material, const JsonMaterial &jso
 	//sort this as a grid.
 
 	//arrangeNodesGrid(material, jsonMat, fingerprint, buildData);
-	arrangeNodesTree(material);//, jsonMat, fingerprint, buildData);
+	//arrangeNodesTree(material);
+	arrangeMaterialNodesAsTree(material);
 }
 
 #endif

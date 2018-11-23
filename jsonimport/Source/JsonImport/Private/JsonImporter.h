@@ -39,8 +39,10 @@ protected:
 	IdSet emissiveMaterials;
 	MaterialBuilder materialBuilder;
 
+	/*
 	ALandscape* createDefaultLandscape(ImportWorkData &workData, const JsonGameObject &jsonGameObj);
 	ALandscape* createDefaultLandscape(UWorld *world);
+	*/
 
 	UWorld* importSceneObjectsAsWorld(const TArray<JsonGameObject> &sceneObjects, const FString &sceneName, const FString &scenePath);
 	void processReflectionProbes(ImportWorkData &workData, const JsonGameObject &gameObj, int32 objId, AActor *parentActor, const FString &folderPath);

@@ -17,7 +17,9 @@ public:
 	virtual void ShutdownModule() override;
 	
 	/** This function will be bound to Command. */
-	void PluginButtonClicked();
+	void PluginImportButtonClicked();
+	void PluginTestButtonClicked();
+	void PluginLandscapeTestButtonClicked();
 	
 private:
 

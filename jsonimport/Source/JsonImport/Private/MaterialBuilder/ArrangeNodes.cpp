@@ -23,7 +23,8 @@ void MaterialBuilder::arrangeNodesGrid(UMaterial* material, const JsonMaterial &
 	}
 }
 
-void MaterialBuilder::arrangeNodesTree(UMaterial* material /*, const JsonMaterial &jsonMat, const MaterialFingerprint &fingerprint, MaterialBuildData &buildData*/){
+#if 0
+void MaterialBuilder::arrangeNodesTree(UMaterial* material){
 	TMap<UMaterialExpression*, TSet<UMaterialExpression*>> srcToDst, dstToSrc;
 	auto registerConnection = [&](UMaterialExpression* src, UMaterialExpression* dst){
 		if (!src || !dst)
@@ -226,4 +227,4 @@ void MaterialBuilder::arrangeNodesTree(UMaterial* material /*, const JsonMateria
 		x -= xPadding;
 	}
 }
-
+#endif

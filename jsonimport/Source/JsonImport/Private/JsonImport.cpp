@@ -43,6 +43,9 @@
 
 #include "JsonLog.h"
 
+#include "Tests/LandscapeTest.h"
+#include "Tests/OutlinerTest.h"
+
 #define LOCTEXT_NAMESPACE "FJsonImportModule"
 
 static const FName JsonImportTabName("JsonImport");
@@ -58,22 +61,32 @@ void FJsonImportModule::StartupModule(){
 	PluginCommands = MakeShareable(new FUICommandList);
 
 	PluginCommands->MapAction(
-		FJsonImportCommands::Get().PluginAction,
-		FExecuteAction::CreateRaw(this, &FJsonImportModule::PluginButtonClicked),
+		FJsonImportCommands::Get().PluginImportAction,
+		FExecuteAction::CreateRaw(this, &FJsonImportModule::PluginImportButtonClicked),
+		FCanExecuteAction());
+	PluginCommands->MapAction(
+		FJsonImportCommands::Get().PluginTestAction,
+		FExecuteAction::CreateRaw(this, &FJsonImportModule::PluginTestButtonClicked),
+		FCanExecuteAction());
+	PluginCommands->MapAction(
+		FJsonImportCommands::Get().PluginLandscapeTestAction,
+		FExecuteAction::CreateRaw(this, &FJsonImportModule::PluginLandscapeTestButtonClicked),
 		FCanExecuteAction());
 		
 	FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
 	
 	{
 		TSharedPtr<FExtender> MenuExtender = MakeShareable(new FExtender());
-		MenuExtender->AddMenuExtension("WindowLayout", EExtensionHook::After, PluginCommands, FMenuExtensionDelegate::CreateRaw(this, &FJsonImportModule::AddMenuExtension));
+		MenuExtender->AddMenuExtension("WindowLayout", EExtensionHook::After, PluginCommands, 
+			FMenuExtensionDelegate::CreateRaw(this, &FJsonImportModule::AddMenuExtension));
 
 		LevelEditorModule.GetMenuExtensibilityManager()->AddExtender(MenuExtender);
 	}
 	
 	{
 		TSharedPtr<FExtender> ToolbarExtender = MakeShareable(new FExtender);
-		ToolbarExtender->AddToolBarExtension("Settings", EExtensionHook::After, PluginCommands, FToolBarExtensionDelegate::CreateRaw(this, &FJsonImportModule::AddToolbarExtension));
+		ToolbarExtender->AddToolBarExtension("Settings", EExtensionHook::After, PluginCommands, 
+			FToolBarExtensionDelegate::CreateRaw(this, &FJsonImportModule::AddToolbarExtension));
 		
 		LevelEditorModule.GetToolBarExtensibilityManager()->AddExtender(ToolbarExtender);
 	}
@@ -88,7 +101,17 @@ void FJsonImportModule::ShutdownModule(){
 }
 
 
-void FJsonImportModule::PluginButtonClicked(){
+void FJsonImportModule::PluginTestButtonClicked(){
+	OutlinerTest test;
+	test.run();
+}
+
+void FJsonImportModule::PluginLandscapeTestButtonClicked(){
+	LandscapeTest test;
+	test.run();
+}
+
+void FJsonImportModule::PluginImportButtonClicked(){
 	// Put your "OnButtonClicked" stuff here
 	FStringArray files;
 
@@ -108,11 +131,13 @@ void FJsonImportModule::PluginButtonClicked(){
 }
 
 void FJsonImportModule::AddMenuExtension(FMenuBuilder& Builder){
-	Builder.AddMenuEntry(FJsonImportCommands::Get().PluginAction);
+	Builder.AddMenuEntry(FJsonImportCommands::Get().PluginImportAction);
 }
 
 void FJsonImportModule::AddToolbarExtension(FToolBarBuilder& Builder){
-	Builder.AddToolBarButton(FJsonImportCommands::Get().PluginAction);
+	Builder.AddToolBarButton(FJsonImportCommands::Get().PluginImportAction);
+	Builder.AddToolBarButton(FJsonImportCommands::Get().PluginTestAction);
+	Builder.AddToolBarButton(FJsonImportCommands::Get().PluginLandscapeTestAction);
 }
 
 #undef LOCTEXT_NAMESPACE

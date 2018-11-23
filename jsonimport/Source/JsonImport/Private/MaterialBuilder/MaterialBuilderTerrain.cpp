@@ -1,5 +1,6 @@
 #include "JsonImportPrivatePCH.h"
 #include "MaterialBuilder.h"
+#include "MaterialTools.h"
 
 UMaterialExpression* createTerrainLayerCoords(UMaterial *material, const JsonTerrain &terr, const JsonTerrainData &terrData
 	, const FVector2D& splatSize, const FVector2D& splatOffset, const FIntPoint &terrainVertSize,  const TCHAR* text = 0){
@@ -233,7 +234,7 @@ void MaterialBuilder::buildTerrainMaterial(UMaterial* material,
 	createDetailControl(material, terrainBuilder);
 
 	//no specular
-	arrangeNodesTree(material);
+	MaterialTools::arrangeMaterialNodesAsTree(material);
 }
 
 UMaterial* MaterialBuilder::createTerrainMaterial(const TerrainBuilder *terrainBuilder, 

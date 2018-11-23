@@ -88,6 +88,9 @@ namespace MaterialTools{
 
 	//UMaterialExpressionLandscapeLayerBlend* createLayerExpression(UMaterial* material, 
 
+	void arrangeMaterialNodesAsTree(UMaterial* material);
+	void arrangeMaterialNodesAsGrid(UMaterial* materia);
+
 	template<typename Exp> Exp* createExpression(UMaterial *material, const TCHAR* name = 0){
 		Exp* result = NewObject<Exp>(material);
 		material->Expressions.Add(result);

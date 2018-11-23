@@ -108,7 +108,8 @@ void MaterialBuilder::fillBillboardMaterial(UMaterial* material, const JsonTerra
 	//if (detailPrototype->billboard){
 	//}
 
-	arrangeNodesTree(material);
+	arrangeMaterialNodesAsTree(material);
+	//arrangeNodesTree(material);
 }
 
 UMaterial* MaterialBuilder::createBillboardMaterial(const JsonTerrainDetailPrototype * detailPrototype, 

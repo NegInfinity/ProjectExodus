@@ -18,5 +18,7 @@ public:
 	virtual void RegisterCommands() override;
 
 public:
-	TSharedPtr< FUICommandInfo > PluginAction;
+	TSharedPtr< FUICommandInfo > PluginImportAction;
+	TSharedPtr< FUICommandInfo > PluginTestAction;
+	TSharedPtr< FUICommandInfo > PluginLandscapeTestAction;
 };

@@ -364,7 +364,7 @@ ALandscape* TerrainBuilder::buildTerrain(){
 	FVector vTerX, vTerY, vTerZ, vTerPos;
 	/* 
 		Oh, this is interesting. 
-		Terrain in unity is permanently axis aligned and can be neither rotated nor scald. 
+		Terrain in unity is permanently axis aligned and can be neither rotated nor scaled. 
 	*/
 	terrainMatrix.GetScaledAxes(vTerX, vTerY, vTerZ);
 	vTerX = FVector(1.0f, 0.0f, 0.0f);
