@@ -10,15 +10,42 @@ This demonstrates landscape crash I've experienced. The problematic part is this
 		TEXT(""), importLayers, ELandscapeImportAlphamapType::Additive);
 --------
 
-And is located at the line 130 at the time of writing.The rest is simply configuration of the test landscape.
+And is located at the line 157 at the time of writing.The rest is simply configuration of the test landscape.
 
 Symptoms: After calling "Import()" the engine triggers shader recompilation, which then proceeds seemingly normally.
 In the middle of compilation landscape appears black, and once that happen, the editor crashes with a failed assert once shader recompilation is done.
 
-The cause of the issue is unknown, but multithreaded nature is suspected.
+The cause of the issue is unknown, but multithreaded nature is suspected, as the bug does not ALWAYS happen.
 
 The only way to avoid the problem is not to render the landscape. That means either turning the camera away from it, or 
-spawning landscape in an external UWorld, that is not currently being displayed.
+spawning landscape in an external UWorld, that is not currently being displayed. This is the typical crash:
+--------
+
+Assertion failed: bValid || !bFailOnInvalid [File:d:\build\++ue4\sync\engine\source\runtime\engine\public\MaterialShared.h] [Line: 881] 
+FMaterialShaderMap testLandscapeMaterial invalid for rendering: bCompilationFinalized: 1, bCompiledSuccessfully: 1, bDeletedThroughDeferredCleanup: 1
+
+
+0x000007fefd5fa06d KERNELBASE.dll!UnknownFunction []
+0x000007fede9bcd1a UE4Editor-Core.dll!FWindowsErrorOutputDevice::Serialize() [d:\build\++ue4\sync\engine\source\runtime\core\private\windows\windowserroroutputdevice.cpp:63]
+0x000007fede79a967 UE4Editor-Core.dll!FOutputDevice::LogfImpl() [d:\build\++ue4\sync\engine\source\runtime\core\private\misc\outputdevice.cpp:71]
+0x000007fede6d0df7 UE4Editor-Core.dll!FDebug::AssertFailed() [d:\build\++ue4\sync\engine\source\runtime\core\private\misc\assertionmacros.cpp:417]
+0x000007fedb0420ad UE4Editor-Renderer.dll!FMaterialShaderMap::IsValidForRendering() [d:\build\++ue4\sync\engine\source\runtime\engine\public\materialshared.h:882]
+0x000007fedafec9e8 UE4Editor-Renderer.dll!FMaterialShader::SetParametersInner<FRHIVertexShader * __ptr64>() [d:\build\++ue4\sync\engine\source\runtime\renderer\private\shaderbaseclasses.cpp:183]
+0x000007fedaa17ca5 UE4Editor-Renderer.dll!TBasePassDrawingPolicy<FUniformLightMapPolicy>::SetSharedState() [d:\build\++ue4\sync\engine\source\runtime\renderer\private\basepassrendering.h:834]
+0x000007feda9bfe39 UE4Editor-Renderer.dll!TStaticMeshDrawList<TBasePassDrawingPolicy<FUniformLightMapPolicy> >::DrawElement() [d:\build\++ue4\sync\engine\source\runtime\renderer\private\staticmeshdrawlist.inl:186]
+0x000007feda9c178c UE4Editor-Renderer.dll!TStaticMeshDrawList<TBasePassDrawingPolicy<FUniformLightMapPolicy> >::DrawVisibleInner() [d:\build\++ue4\sync\engine\source\runtime\renderer\private\staticmeshdrawlist.inl:391]
+0x000007feda9bfa04 UE4Editor-Renderer.dll!FDrawVisibleAnyThreadTask<TBasePassDrawingPolicy<FUniformLightMapPolicy> >::DoTask() [d:\build\++ue4\sync\engine\source\runtime\renderer\private\staticmeshdrawlist.inl:505]
+0x000007feda9c3553 UE4Editor-Renderer.dll!TGraphTask<FDrawVisibleAnyThreadTask<TBasePassDrawingPolicy<FUniformLightMapPolicy> > >::ExecuteTask() [d:\build\++ue4\sync\engine\source\runtime\core\public\async\taskgraphinterfaces.h:830]
+0x000007fede560aec UE4Editor-Core.dll!FTaskThreadAnyThread::ProcessTasks() [d:\build\++ue4\sync\engine\source\runtime\core\private\async\taskgraph.cpp:1022]
+0x000007fede561d70 UE4Editor-Core.dll!FTaskThreadAnyThread::ProcessTasksUntilQuit() [d:\build\++ue4\sync\engine\source\runtime\core\private\async\taskgraph.cpp:847]
+0x000007fede56baae UE4Editor-Core.dll!FTaskThreadAnyThread::Run() [d:\build\++ue4\sync\engine\source\runtime\core\private\async\taskgraph.cpp:923]
+0x000007fede9bc500 UE4Editor-Core.dll!FRunnableThreadWin::Run() [d:\build\++ue4\sync\engine\source\runtime\core\private\windows\windowsrunnablethread.cpp:76]
+0x000007fede9acac1 UE4Editor-Core.dll!FRunnableThreadWin::GuardedRun() [d:\build\++ue4\sync\engine\source\runtime\core\private\windows\windowsrunnablethread.cpp:33]
+0x00000000775959bd kernel32.dll!UnknownFunction []
+0x00000000777ca2e1 ntdll.dll!UnknownFunction []
+
+Crash in runnable thread TaskGraphThreadNP 1
+---------
 */
 
 #include "Landscape.h"
