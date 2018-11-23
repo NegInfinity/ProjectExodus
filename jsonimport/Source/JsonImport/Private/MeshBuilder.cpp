@@ -166,10 +166,16 @@ void MeshBuilder::setupMesh(UStaticMesh *mesh, const JsonMesh &jsonMesh, std::fu
 
 					if (hasColors){
 						FColor col32(
+							jsonMesh.colors[origIndex * 4], 
+							jsonMesh.colors[origIndex * 4 + 1], 
+							jsonMesh.colors[origIndex * 4 + 2], 
+							jsonMesh.colors[origIndex * 4 + 3]
+							/*
 							jsonMesh.colors[trigVertIdx * 4], 
 							jsonMesh.colors[trigVertIdx * 4 + 1], 
 							jsonMesh.colors[trigVertIdx * 4 + 2], 
 							jsonMesh.colors[trigVertIdx * 4 + 3]
+							*/
 						);
 
 						//srgb conversion, though?

@@ -11,3 +11,11 @@ void JsonScene::load(JsonObjPtr data){
 
 	getJsonObjArray(data, objects, "objects");
 }
+
+bool JsonScene::containsTerrain() const{
+	for(const auto& cur: objects){
+		if (cur.hasTerrain())
+			return true;
+	}
+	return false;
+}

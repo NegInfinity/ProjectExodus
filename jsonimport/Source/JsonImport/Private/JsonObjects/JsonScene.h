@@ -8,6 +8,8 @@ public:
 	int buildIndex = -1;
 	TArray<JsonGameObject> objects;
 
+	bool containsTerrain() const;
+
 	void load(JsonObjPtr data);
 	JsonScene() = default;
 	JsonScene(JsonObjPtr data){
