@@ -412,6 +412,7 @@ ALandscape* TerrainBuilder::buildTerrain(){
 	landProxy->SetLandscapeGuid(guid);
 
 	landProxy->LandscapeMaterial = terrainMaterial;
+	landProxy->LandscapeHoleMaterial = terrainMaterial;
 
 	landProxy->Import(FGuid::NewGuid(),
 		0, 0, xSize - 1, ySize - 1, sectionsPerComp, quadsPerSection, heightMapData.getData(), 

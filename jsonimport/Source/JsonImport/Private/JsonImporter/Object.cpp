@@ -38,7 +38,7 @@
 
 using namespace JsonObjects;
 
-static void setParentAndFolder(AActor *actor, AActor *parentActor, const FString& folderPath, ImportWorkData &workData){
+void setActorHierarchy(AActor *actor, AActor *parentActor, const FString& folderPath, ImportWorkData &workData, const JsonGameObject &gameObj){
 	if (!actor)
 		return;
 	if (parentActor){
@@ -49,6 +49,13 @@ static void setParentAndFolder(AActor *actor, AActor *parentActor, const FString
 			actor->SetFolderPath(*folderPath);
 	}
 	workData.registerActor(actor, parentActor);
+
+	auto root = actor->GetRootComponent();
+	if (root)
+		root->bVisible = gameObj.activeInHierarchy;
+	actor->SetActorHiddenInGame(!gameObj.activeInHierarchy);
+	actor->SetActorEnableCollision(gameObj.activeInHierarchy);
+	actor->SetActorTickEnabled(gameObj.activeInHierarchy);
 }
 
 void JsonImporter::importObject(const JsonGameObject &jsonGameObj , int32 objId, ImportWorkData &workData){
@@ -193,7 +200,7 @@ void JsonImporter::processMesh(ImportWorkData &workData, const JsonGameObject &j
 	}
 
 	workData.objectActors.Add(jsonGameObj.id, meshActor);
-	setParentAndFolder(meshActor, parentActor, folderPath, workData);
+	setActorHierarchy(meshActor, parentActor, folderPath, workData, jsonGameObj);
 
 	meshComp->SetCastShadow(hasShadows);
 	meshComp->bCastShadowAsTwoSided = twoSidedShadows;
@@ -257,7 +264,7 @@ void JsonImporter::processReflectionProbes(ImportWorkData &workData, const JsonG
 				}
 				//reflComponent->Influence
 				actor->MarkComponentsRenderStateDirty();
-				setParentAndFolder(actor, parentActor, folderPath, workData);
+				setActorHierarchy(actor, parentActor, folderPath, workData, gameObj);
 			}
 		}
 		else{
@@ -279,7 +286,7 @@ void JsonImporter::processReflectionProbes(ImportWorkData &workData, const JsonG
 				/*if (isStatic)
 					actor->SetMobility(EComponentMobility::Static);*/
 				actor->MarkComponentsRenderStateDirty();
-				setParentAndFolder(actor, parentActor, folderPath, workData);
+				setActorHierarchy(actor, parentActor, folderPath, workData, gameObj);
 			}
 		}
 		if (reflComponent){
@@ -334,7 +341,7 @@ void JsonImporter::processLight(ImportWorkData &workData, const JsonGameObject &
 			actor->MarkComponentsRenderStateDirty();
 
 			//createdActors.Add(actor);
-			setParentAndFolder(actor, parentActor, folderPath, workData);
+			setActorHierarchy(actor, parentActor, folderPath, workData, gameObj);
 		}
 	}
 	else if (jsonLight.lightType == "Spot"){
@@ -364,7 +371,7 @@ void JsonImporter::processLight(ImportWorkData &workData, const JsonGameObject &
 			actor->MarkComponentsRenderStateDirty();
 
 			//createdActors.Add(actor);
-			setParentAndFolder(actor, parentActor, folderPath, workData);
+			setActorHierarchy(actor, parentActor, folderPath, workData, gameObj);
 		}
 	}
 	else if (jsonLight.lightType == "Directional"){
@@ -399,7 +406,7 @@ void JsonImporter::processLight(ImportWorkData &workData, const JsonGameObject &
 				dirLightActor->SetMobility(EComponentMobility::Static);
 			dirLightActor->MarkComponentsRenderStateDirty();
 
-			setParentAndFolder(dirLightActor, parentActor, folderPath, workData);
+			setActorHierarchy(dirLightActor, parentActor, folderPath, workData, gameObj);
 		}
 	}
 }

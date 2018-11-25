@@ -16,6 +16,10 @@ namespace SceneExport{
 		public List<int> children = new List<int>();
 		public int parent = -1;
 		public int mesh = -1;
+		
+		public bool activeSelf = true;
+		public bool activeInHierarchy = true;
+		
 		public JsonRendererData[] renderer = null;
 		public JsonLight[] light = null;
 		public JsonReflectionProbe[] reflectionProbes = null;
@@ -62,6 +66,9 @@ namespace SceneExport{
 			writer.writeKeyVal("occluderStatic", occluderStatic);
 			writer.writeKeyVal("occludeeStatic", occludeeStatic);
 			writer.writeKeyVal("reflectionProbeStatic", reflectionProbeStatic);
+			
+			writer.writeKeyVal("activeSelft", activeSelf);
+			writer.writeKeyVal("activeInHierarchy", activeInHierarchy);
 					
 			writer.writeKeyVal("nameClash", nameClash);
 			writer.writeKeyVal("uniqueName", uniqueName);
@@ -99,11 +106,14 @@ namespace SceneExport{
 			navigationStatic = (flags & StaticEditorFlags.NavigationStatic) != 0;
 			reflectionProbeStatic = (flags & StaticEditorFlags.ReflectionProbeStatic) != 0;
 			
+			activeSelf = obj.activeSelf;
+			activeInHierarchy = obj.activeInHierarchy;
+			
 			var prefType = PrefabUtility.GetPrefabType(obj);
 			prefabType = prefType.ToString();
 			prefabRootId = resMap.getRootPrefabId(obj, true);
 			prefabObjectId = resMap.getPrefabObjectId(obj, true);
-			prefabInstance = (prefType == PrefabType.PrefabInstance) || (prefType == PrefabType.ModelPrefabInstance);
+			prefabInstance = (prefType == PrefabType.PrefabInstance) || (prefType == PrefabType.ModelPrefabInstance);			
 
 			if (obj.transform.parent){
 				localMatrix = obj.transform.parent.worldToLocalMatrix * localMatrix;

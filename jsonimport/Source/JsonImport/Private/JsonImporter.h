@@ -196,3 +196,5 @@ public:
 		return package;
 	}
 };
+
+//void setActorHierarchy(AActor *actor, AActor *parentActor, const FString& folderPath, ImportWorkData &workData, const JsonGameObject &gameObj);

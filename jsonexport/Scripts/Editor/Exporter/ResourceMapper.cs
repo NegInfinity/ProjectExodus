@@ -274,7 +274,8 @@ namespace SceneExport{
 			}
 		}
 		
-		public JsonExternResourceList saveResourceToFolder(string baseDir, bool showGui, List<JsonScene> scenes){		
+		public JsonExternResourceList saveResourceToFolder(string baseDir, bool showGui, List<JsonScene> scenes, Logger logger){		
+			Logger.makeValid(ref logger);
 			var result = new JsonExternResourceList();
 			
 			result.scenes = saveResourcesToPath(baseDir, scenes, 
@@ -284,7 +285,15 @@ namespace SceneExport{
 			result.meshes = saveResourcesToPath(baseDir, meshes.objectList, 
 				(objData) => new JsonMesh(objData, this),  "mesh", showGui);
 			result.materials = saveResourcesToPath(baseDir, materials.objectList, 
-				(objData) => new JsonMaterial(objData, this), "material", showGui);
+				(objData) => {
+					var mat = new JsonMaterial(objData, this);
+					if (!mat.supportedShader){
+						logger.logWarningFormat("Possibly unsupported shader \"{0}\" in material \"{1}\"(#{2}, path \"{3}\"). " + 
+							"Correct information transfer is not guaranteed.",
+							mat.shader, mat.name, mat.id, mat.path);
+					}
+					return mat; 
+				}, "material", showGui);
 			result.textures = saveResourcesToPath(baseDir, textures.objectList, 
 				(objData) => new JsonTexture(objData, this), "texture", showGui);
 			result.cubemaps = saveResourcesToPath(baseDir, cubemaps.objectList, 

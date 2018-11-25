@@ -9,6 +9,8 @@ public:
 	FString path;
 	FString shader;
 
+	bool supportedShader = true;
+
 	JsonTextureId mainTexture = -1;
 	FVector2D mainTextureOffset = FVector2D(0.0f, 0.0f);//Vector2.zero;
 	FVector2D mainTextureScale = FVector2D(1.0f, 1.0f);//Vector2.one;

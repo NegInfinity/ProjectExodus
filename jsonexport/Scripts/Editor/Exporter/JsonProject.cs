@@ -170,7 +170,7 @@ namespace SceneExport{
 			string filesDir = System.IO.Path.Combine(targetDir, baseName);// + "_data");
 			System.IO.Directory.CreateDirectory(filesDir);
 			
-			externResourceList = resourceMapper.saveResourceToFolder(filesDir, showGui, scenes);
+			externResourceList = resourceMapper.saveResourceToFolder(filesDir, showGui, scenes, logger);
 			
 			Utility.saveStringToFile(filename, toJsonString());
 			

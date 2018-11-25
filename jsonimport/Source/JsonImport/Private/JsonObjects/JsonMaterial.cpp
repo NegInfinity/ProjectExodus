@@ -12,6 +12,8 @@ void JsonMaterial::load(JsonObjPtr data){
 	JSON_GET_VAR(data, path);
 	JSON_GET_VAR(data, shader);
 
+	JSON_GET_VAR(data, supportedShader);
+
 	JSON_GET_VAR(data, mainTexture);
 	JSON_GET_VAR(data, mainTextureOffset);
 	JSON_GET_VAR(data, mainTextureScale);

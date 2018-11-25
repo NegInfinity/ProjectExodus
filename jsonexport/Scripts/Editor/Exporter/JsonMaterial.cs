@@ -10,6 +10,9 @@ namespace SceneExport{
 		public string name;
 		public string path;
 		public string shader;
+		
+		public bool supportedShader = true;
+		
 		//public string renderType;
 		public int mainTexture = -1;
 		public Vector2 mainTextureOffset = Vector2.zero;
@@ -68,6 +71,9 @@ namespace SceneExport{
 			writer.writeKeyVal("name", name);
 			writer.writeKeyVal("path", path);
 			writer.writeKeyVal("shader", shader);
+			
+			writer.writeKeyVal("supportedShader", supportedShader);
+			
 			//writer.writeKeyVal("renderType", cur.renderType);
 			writer.writeKeyVal("mainTexture", mainTexture);
 			writer.writeKeyVal("mainTextureOffset", mainTextureOffset);
@@ -139,6 +145,10 @@ namespace SceneExport{
 			public static readonly string emissionColor = "_EmissionColor";
 		}
 		
+		static bool isSupportedShaderName(string name){
+			return (name == "Standard") || (name == "Standard (Specular setup)");
+		}
+		
 		static void registerLinkedTex(Material mat, string paramName, ResourceMapper resMap){
 			if (!mat.HasProperty(paramName))
 				return;
@@ -189,6 +199,9 @@ namespace SceneExport{
 			var path = AssetDatabase.GetAssetPath(mat);
 			this.path = path;
 			shader = mat.shader.name;
+			
+			supportedShader = isSupportedShaderName(shader);
+			
 			mainTexture = resMap.getTextureId(mat.mainTexture);
 			mainTextureOffset = mat.mainTextureOffset;
 			mainTextureScale = mat.mainTextureScale;

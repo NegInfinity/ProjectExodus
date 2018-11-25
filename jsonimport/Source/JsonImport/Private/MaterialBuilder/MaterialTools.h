@@ -99,6 +99,10 @@ namespace MaterialTools{
 		material->Expressions.Add(result);
 		if (name){
 			result->Desc = FString(name);
+			UMaterialExpressionParameter *paramNode = Cast<UMaterialExpressionParameter>(result);
+			if (paramNode){
+				paramNode->ParameterName = name;
+			}
 		}
 		return result;
 	}

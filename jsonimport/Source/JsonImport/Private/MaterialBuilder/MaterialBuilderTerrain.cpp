@@ -100,6 +100,7 @@ UMaterialExpression* createDetailControl(UMaterial* material, const TerrainBuild
 	auto grassControl = createExpression<UMaterialExpressionLandscapeGrassOutput>(material, TEXT("Grass control"));
 
 	auto grassEnabled = createExpression<UMaterialExpressionStaticBoolParameter>(material, TEXT("enableGrass"));
+	grassEnabled->ParameterName = TEXT("enableGrass");
 	grassEnabled->DefaultValue = terrainBuilder->jsonTerrain.drawTreesAndFoliage;
 
 	auto zeroConst = createExpression<UMaterialExpressionConstant>(material, TEXT("Zero"));

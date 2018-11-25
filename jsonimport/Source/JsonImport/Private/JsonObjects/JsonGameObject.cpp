@@ -18,6 +18,9 @@ void JsonGameObject::load(JsonObjPtr jsonData){
 	JSON_GET_PARAM2(jsonData, parentId, parent, getInt);
 	JSON_GET_PARAM2(jsonData, meshId, mesh, getInt);
 
+	JSON_GET_PARAM(jsonData, activeSelf, getBool);
+	JSON_GET_PARAM(jsonData, activeInHierarchy, getBool);
+
 	JSON_GET_PARAM(jsonData, isStatic, getBool);
 	JSON_GET_PARAM(jsonData, lightMapStatic, getBool);
 	JSON_GET_PARAM(jsonData, navigationStatic, getBool);

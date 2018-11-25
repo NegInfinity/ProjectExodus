@@ -17,6 +17,10 @@ public:
 	FMatrix localMatrix;
 	int32 parentId;
 	int32 meshId;
+
+	bool activeSelf = true;
+	bool activeInHierarchy = true;
+
 	bool isStatic;
 	bool lightMapStatic;
 	bool navigationStatic;

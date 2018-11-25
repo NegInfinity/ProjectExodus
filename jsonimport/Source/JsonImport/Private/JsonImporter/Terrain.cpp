@@ -28,7 +28,6 @@ void JsonImporter::processTerrains(ImportWorkData &workData, const JsonGameObjec
 	}
 }
 
-
 void JsonImporter::processTerrain(ImportWorkData &workData, const JsonGameObject &jsonGameObj, const JsonTerrain &jsonTerrain, 
 		AActor *parentActor, const FString& folderPath){
 
@@ -51,7 +50,7 @@ void JsonImporter::processTerrain(ImportWorkData &workData, const JsonGameObject
 	}
 	builtTerrain->PostEditChange();
 
-	setParentAndFolder(builtTerrain, parentActor, folderPath, workData);
+	setActorHierarchy(builtTerrain, parentActor, folderPath, workData, jsonGameObj);
 
 	//return builtTerrain;
 }

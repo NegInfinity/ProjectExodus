@@ -188,6 +188,7 @@ void JsonImporter::importProject(const FString& filename){
 		for(const auto& cur: importedWorlds){
 			text += FString::Printf(TEXT("%s\n"), *cur);
 		}
+		text += TEXT("If you imported scenes with terrain, please wait till shaders finish compiling.");
 		FMessageDialog::Debugf(FText::FromString(text));
 	}
 }
