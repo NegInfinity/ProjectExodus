@@ -121,26 +121,26 @@ namespace SceneExport{
 			writer.writeKeyVal("materials", materials);
 			writer.writeKeyVal("readable", readable);
 			writer.writeKeyVal("vertexCount", vertexCount);
-			writer.writeKeyVal("colors", colors, 4 * vertsPerLine);
-			writer.writeKeyVal("verts", verts, 3 * vertsPerLine);
-			writer.writeKeyVal("normals", normals, 3 * vertsPerLine);
-			writer.writeKeyVal("uv0", uv0, 2 * vertsPerLine);
-			writer.writeKeyVal("uv1", uv1, 2 * vertsPerLine);
-			writer.writeKeyVal("uv2", uv2, 2 * vertsPerLine);
-			writer.writeKeyVal("uv3", uv3, 2 * vertsPerLine);
-			writer.writeKeyVal("uv4", uv4, 2 * vertsPerLine);
-			writer.writeKeyVal("uv5", uv5, 2 * vertsPerLine);
-			writer.writeKeyVal("uv6", uv6, 2 * vertsPerLine);
-			writer.writeKeyVal("uv7", uv7, 2 * vertsPerLine);
+			writer.writeOptionalKeyVal("colors", colors, 4 * vertsPerLine);
+			writer.writeOptionalKeyVal("verts", verts, 3 * vertsPerLine);
+			writer.writeOptionalKeyVal("normals", normals, 3 * vertsPerLine);
+			writer.writeOptionalKeyVal("uv0", uv0, 2 * vertsPerLine);
+			writer.writeOptionalKeyVal("uv1", uv1, 2 * vertsPerLine);
+			writer.writeOptionalKeyVal("uv2", uv2, 2 * vertsPerLine);
+			writer.writeOptionalKeyVal("uv3", uv3, 2 * vertsPerLine);
+			writer.writeOptionalKeyVal("uv4", uv4, 2 * vertsPerLine);
+			writer.writeOptionalKeyVal("uv5", uv5, 2 * vertsPerLine);
+			writer.writeOptionalKeyVal("uv6", uv6, 2 * vertsPerLine);
+			writer.writeOptionalKeyVal("uv7", uv7, 2 * vertsPerLine);
 			
-			writer.writeKeyVal("bindPoses", bindPoses);
-			writer.writeKeyVal("inverseBindPoses", inverseBindPoses);
+			writer.writeOptionalKeyVal("bindPoses", bindPoses);
+			writer.writeOptionalKeyVal("inverseBindPoses", inverseBindPoses);
 			
-			writer.writeKeyVal("boneWeights", boneWeights, 4 * vertsPerLine);
-			writer.writeKeyVal("boneIndexes", boneIndexes, 4 * vertsPerLine);
+			writer.writeOptionalKeyVal("boneWeights", boneWeights, 4 * vertsPerLine);
+			writer.writeOptionalKeyVal("boneIndexes", boneIndexes, 4 * vertsPerLine);
 			
 			writer.writeKeyVal("blendShapeCount", blendShapeCount);			
-			writer.writeKeyVal("blendShapes", blendShapes);			
+			writer.writeOptionalKeyVal("blendShapes", blendShapes);			
 			
 			writer.writeKeyVal("subMeshCount", subMeshCount);			
 			writer.writeKeyVal("subMeshes", subMeshes);
@@ -217,7 +217,7 @@ namespace SceneExport{
 			}
 			
 			var srcPoses = mesh.bindposes;
-			foreach(var cur in bindPoses){
+			foreach(var cur in srcPoses){
 				bindPoses.Add(cur);
 				var inverted = cur.inverse;
 				inverseBindPoses.Add(inverted);				

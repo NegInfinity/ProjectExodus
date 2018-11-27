@@ -68,7 +68,7 @@ namespace SceneExport{
 			writer.writeKeyVal("occludeeStatic", occludeeStatic);
 			writer.writeKeyVal("reflectionProbeStatic", reflectionProbeStatic);
 			
-			writer.writeKeyVal("activeSelft", activeSelf);
+			writer.writeKeyVal("activeSelf", activeSelf);
 			writer.writeKeyVal("activeInHierarchy", activeInHierarchy);
 					
 			writer.writeKeyVal("nameClash", nameClash);

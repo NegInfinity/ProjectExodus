@@ -115,7 +115,7 @@ void JsonImporter::loadMaterials(const StringArray &materials){
 		JsonMaterial jsonMat(obj);
 		jsonMaterials.Add(jsonMat);
 		//importMasterMaterial(obj, curId);
-		if (jsonMat.supportedShader){
+		if (!jsonMat.supportedShader){
 			UE_LOG(JsonLog, Warning, TEXT("Material \"%s\"(id: %d) is marked as having unsupported shader \"%s\""),
 				*jsonMat.name, jsonMat.id, *jsonMat.shader);
 		}

@@ -24,6 +24,7 @@
 #include "Materials/MaterialExpressionConstant.h"
 	
 #include "RawMesh.h"
+#include "Engine/Classes/Engine/SkeletalMesh.h"
 
 #include "JsonObjects/JsonMesh.h"
 #include "UnrealUtilities.h"
@@ -60,6 +61,49 @@ void JsonImporter::importStaticMesh(const JsonMesh &jsonMesh, int32 meshId){
 	}
 }
 
+void JsonImporter::importSkeletalMesh(const JsonMesh &jsonMesh, int32 meshId){
+	auto unrealMeshName = jsonMesh.makeUnrealMeshName() + TEXT("_Skin");
+	auto desiredDir = FPaths::GetPath(jsonMesh.path);
+
+	auto mesh = createAssetObject<USkeletalMesh>(unrealMeshName, &desiredDir, this, 
+		[&](USkeletalMesh *mesh){
+			MeshBuilder meshBuilder;
+			meshBuilder.setupMesh(mesh, jsonMesh, [&](auto &materials){
+				materials.Empty();
+				for(auto matId: jsonMesh.materials){
+					UMaterialInterface *material = loadMaterialInterface(matId);
+					materials.Add(material);
+				}
+			});
+		},
+		[&](auto pkg, auto objName){
+			return NewObject<USkeletalMesh>(pkg, FName(*objName), RF_Standalone|RF_Public);
+		}, RF_Standalone|RF_Public
+	);
+	/*
+	auto mesh = createAssetObject<UStaticMesh>(unrealMeshName, &desiredDir, this, 
+		[&](UStaticMesh *mesh){
+			MeshBuilder meshBuilder;
+			meshBuilder.setupMesh(mesh, jsonMesh, [&](auto &materials){
+				materials.Empty();
+				for(auto matId: jsonMesh.materials){
+					UMaterialInterface *material = loadMaterialInterface(matId);
+					materials.Add(material);
+				}
+			});
+		},
+		[&](auto pkg, auto objName){
+			return NewObject<UStaticMesh>(pkg, FName(*objName), RF_Standalone|RF_Public);
+		}, RF_Standalone|RF_Public
+	);
+	*/
+
+	if (mesh){
+		auto meshPath = mesh->GetPathName();
+		skinMeshIdMap.Add(jsonMesh.id, meshPath);
+	}
+}
+
 void JsonImporter::importMesh(const JsonMesh &jsonMesh, int32 meshId){
 	UE_LOG(JsonLog, Log, TEXT("Mesh data: Verts: %d; submeshes: %d; materials: %d; colors %d; normals: %d"), 
 		jsonMesh.verts.Num(), jsonMesh.subMeshes.Num(), jsonMesh.colors.Num(), jsonMesh.normals.Num());
@@ -73,6 +117,10 @@ void JsonImporter::importMesh(const JsonMesh &jsonMesh, int32 meshId){
 	}
 
 	importStaticMesh(jsonMesh, meshId);
+
+	if (jsonMesh.hasBlendShapes() || jsonMesh.hasBoneWeights()){
+		importSkeletalMesh(jsonMesh, meshId);
+	}
 }
 
 

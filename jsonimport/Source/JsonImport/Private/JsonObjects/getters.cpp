@@ -180,7 +180,11 @@ FQuat JsonObjects::getQuat(JsonObjPtr data, const char* name, const FQuat &defau
 	return result;
 }
 
-IntArray JsonObjects::getIntArray(JsonObjPtr jsonObj, const char *name){
+IntArray JsonObjects::getIntArray(JsonObjPtr jsonObj, const char *name, bool optional){
+	if (optional){
+		if (!jsonObj->HasField(name))
+			return IntArray();
+	}
 	const JsonValPtrs* arrValues = 0;
 	loadArray(jsonObj, arrValues, name);
 	if (arrValues)
@@ -188,7 +192,11 @@ IntArray JsonObjects::getIntArray(JsonObjPtr jsonObj, const char *name){
 	return IntArray();
 }
 
-ByteArray JsonObjects::getByteArray(JsonObjPtr jsonObj, const char *name){
+ByteArray JsonObjects::getByteArray(JsonObjPtr jsonObj, const char *name, bool optional){
+	if (optional){
+		if (!jsonObj->HasField(name))
+			return ByteArray();
+	}
 	const JsonValPtrs* arrValues = 0;
 	loadArray(jsonObj, arrValues, name);
 	if (arrValues)
@@ -196,7 +204,11 @@ ByteArray JsonObjects::getByteArray(JsonObjPtr jsonObj, const char *name){
 	return ByteArray();
 }
 
-FloatArray JsonObjects::getFloatArray(JsonObjPtr jsonObj, const char *name){
+FloatArray JsonObjects::getFloatArray(JsonObjPtr jsonObj, const char *name, bool optional){
+	if (optional){
+		if (!jsonObj->HasField(name))
+			return FloatArray();
+	}
 	const JsonValPtrs* arrValues = 0;
 	loadArray(jsonObj, arrValues, name);
 	if (arrValues)
@@ -392,7 +404,11 @@ LinearColorArray JsonObjects::getLinearColorArray(JsonObjPtr jsonObj, const char
 	return LinearColorArray();
 }
 
-MatrixArray JsonObjects::getMatrixArray(JsonObjPtr data, const char *name){
+MatrixArray JsonObjects::getMatrixArray(JsonObjPtr data, const char *name, bool optional){
+	if (optional){
+		if (!data->HasField(name))
+			return MatrixArray();
+	}
 	const JsonValPtrs* arrValues = 0;
 	loadArray(data, arrValues, name);
 	if (arrValues)

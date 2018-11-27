@@ -1,4 +1,5 @@
 #include "JsonImportPrivatePCH.h"
+#include "Engine/Classes/Engine/SkeletalMesh.h"
 #include "MeshBuilder.h"
 #include "UnrealUtilities.h"
 
@@ -15,6 +16,10 @@ static FVector getIdxVector3(const TArray<float>& floats, int32 idx){
 		return FVector();
 	return FVector(floats[idx*3], floats[idx*3+1], floats[idx*3+2]);
 };
+
+void MeshBuilder::setupMesh(USkeletalMesh *mesh, const JsonMesh &jsonMesh, std::function<void(TArray<FStaticMaterial> &meshMaterials)> materialSetup){
+	check(mesh);
+}
 
 void MeshBuilder::generateBillboardMesh(UStaticMesh *staticMesh, UMaterialInterface *billboardMaterial){
 	check(staticMesh);
@@ -182,12 +187,6 @@ void MeshBuilder::setupMesh(UStaticMesh *mesh, const JsonMesh &jsonMesh, std::fu
 							jsonMesh.colors[origIndex * 4 + 1], 
 							jsonMesh.colors[origIndex * 4 + 2], 
 							jsonMesh.colors[origIndex * 4 + 3]
-							/*
-							jsonMesh.colors[trigVertIdx * 4], 
-							jsonMesh.colors[trigVertIdx * 4 + 1], 
-							jsonMesh.colors[trigVertIdx * 4 + 2], 
-							jsonMesh.colors[trigVertIdx * 4 + 3]
-							*/
 						);
 
 						//srgb conversion, though?
@@ -233,13 +232,6 @@ void MeshBuilder::setupMesh(UStaticMesh *mesh, const JsonMesh &jsonMesh, std::fu
 	if (materialSetup){
 		materialSetup(mesh->StaticMaterials);
 	}
-	/*
-	mesh->StaticMaterials.Empty();
-	for(auto matId: jsonMesh.materials){
-		UMaterialInterface *material = loadMaterialInterface(matId);
-		mesh->StaticMaterials.Add(material);
-	}
-	*/
 
 	srcModel.RawMeshBulkData->SaveRawMesh(newRawMesh);
 
@@ -252,3 +244,4 @@ void MeshBuilder::setupMesh(UStaticMesh *mesh, const JsonMesh &jsonMesh, std::fu
 		UE_LOG(JsonLog, Error, TEXT("MeshBuildError: %s"), *(err.ToString()));
 	}	
 }
+

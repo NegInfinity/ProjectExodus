@@ -69,7 +69,7 @@ protected:
 	void registerMasterMaterialPath(int32 id, FString path);
 
 	void importStaticMesh(const JsonMesh &jsonMesh, int32 meshId);
-	void importSkinnedMesh(const JsonMesh &jsonMesh, int32 meshId);
+	void importSkeletalMesh(const JsonMesh &jsonMesh, int32 meshId);
 
 	//UWorld* importScene(const JsonScene &scene, bool createWorld) const;
 public:

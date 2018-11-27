@@ -10,6 +10,11 @@ namespace JsonObjects{
 	}
 
 	template<typename T> void getJsonValArray(JsonObjPtr jsonData, TArray<T>& result, const char* name, std::function<T(JsonValPtr, int)> converter){
+		result.Empty();
+		if (!jsonData->HasField(name)){
+			return;
+		}
+
 		auto arrayVal = jsonData->GetArrayField(name);
 
 		if (arrayVal.Num() <= 0)
@@ -43,7 +48,11 @@ namespace JsonObjects{
 		);
 	}
 
-	template<typename T> void getJsonObjArray(JsonObjPtr jsonData, TArray<T>& result, const char* name){
+	template<typename T> void getJsonObjArray(JsonObjPtr jsonData, TArray<T>& result, const char* name, bool optional = false){
+		if (optional){
+			if (!jsonData->HasField(name))
+				return;
+		}
 		auto arrayVal = jsonData->GetArrayField(name);
 
 		if (arrayVal.Num() <= 0)
@@ -85,12 +94,12 @@ namespace JsonObjects{
 	FString getString(JsonObjPtr data, const char* name);
 	JsonObjPtr getObject(JsonObjPtr data, const char* name);
 
-	IntArray getIntArray(JsonObjPtr data, const char *name);
-	ByteArray getByteArray(JsonObjPtr jsonObj, const char *name);
+	IntArray getIntArray(JsonObjPtr data, const char *name, bool optional = false);
+	ByteArray getByteArray(JsonObjPtr jsonObj, const char *name, bool optional = false);
 	StringArray getStringArray(JsonObjPtr data, const char *name);
-	FloatArray getFloatArray(JsonObjPtr data, const char *name);
+	FloatArray getFloatArray(JsonObjPtr data, const char *name, bool optional = false);
 	LinearColorArray getLinearColorArray(JsonObjPtr data, const char *name);
-	MatrixArray getMatrixArray(JsonObjPtr data, const char *name);
+	MatrixArray getMatrixArray(JsonObjPtr data, const char *name, bool optional = false);
 
 	//this needs cleanup
 	FloatArray toFloatArray(const JsonValPtrs &inData);

@@ -108,6 +108,7 @@ static ULandscapeLayerInfoObject* createTerrainLayerInfo(const FString &layerNam
 
 
 ALandscape* createTestLandscape(UWorld *world, const TArray<FString> &layerNames, UMaterial *landMaterial){
+	//FlushRenderingCommands(true);
 	ALandscape * result = nullptr;
 	const int32 xComps = 1;
 	const int32 yComps = 1;
