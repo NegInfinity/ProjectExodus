@@ -18,6 +18,10 @@ void JsonObjects::logValue(const FString &msg, const StringArray &arr){
 	UE_LOG(JsonLog, Log, TEXT("%s: StringArray[%d]{...}"), *msg, arr.Num());
 }
 
+void JsonObjects::logValue(const FString &msg, const MatrixArray &arr){
+	UE_LOG(JsonLog, Log, TEXT("%s: MatrixArray[%d]{...}"), *msg, arr.Num());
+}
+
 void JsonObjects::logValue(const FString &msg, const ByteArray &arr){
 	UE_LOG(JsonLog, Log, TEXT("%s: ByteArray[%d]{...}"), *msg, arr.Num());
 }

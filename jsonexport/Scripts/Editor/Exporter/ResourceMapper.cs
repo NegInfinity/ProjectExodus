@@ -230,6 +230,29 @@ namespace SceneExport{
 		
 		static string makeJsonResourcePath(string resourceName, int resourceIndex){
 			return string.Format("{0}{1:D8}.json", resourceName, resourceIndex);
+		}
+		
+		static string cleanUpObjectName(string src){
+			var invalidChars = new HashSet<char>(System.IO.Path.GetInvalidFileNameChars());
+			var sb = new System.Text.StringBuilder();
+			foreach(var cur in src){
+				if (cur == '%'){
+					sb.Append("%%");
+					continue;
+				}
+				if (invalidChars.Contains(cur)){
+					sb.AppendFormat("%{0}", ((uint)cur).ToString("X2"));
+					continue;					
+				}
+				sb.Append(cur);
+			}
+			return src.ToString();
+		}
+		
+		static string makeJsonResourcePath(string resourceName, string objName, int resourceIndex){
+			if (string.IsNullOrEmpty(objName))
+				return makeJsonResourcePath(resourceName, resourceIndex);
+			return string.Format("{0}{1:D8}-{2}.json", resourceName, resourceIndex, cleanUpObjectName(objName));
 		}			
 		
 		static List<string> makeResourcePaths(string baseDir, int numResources, string baseName){
@@ -242,7 +265,9 @@ namespace SceneExport{
 		}		
 		
 		static List<string> saveResourcesToPath<ClassType, ObjType>(string baseDir, 
-				List<ObjType> objects, System.Func<ObjType, ClassType> converter, string baseName, bool showGui) 
+				List<ObjType> objects, 
+				System.Func<ObjType, ClassType> converter, 
+				System.Func<ClassType, string> nameFunc, string baseName, bool showGui) 
 				where ClassType: IFastJsonValue{
 				
 			if (converter == null)
@@ -252,15 +277,21 @@ namespace SceneExport{
 				var result = new List<string>();
 				if (objects != null){
 					for(int i = 0; i < objects.Count; i++){
-						var fileName = makeJsonResourcePath(baseName, i);	
 						if (showGui){
 							ExportUtility.showProgressBar(
-								string.Format("Saving file {0} for resource type {1}", fileName, baseName), 
+								string.Format("Saving file #{0} of resource type {1}", i + 1, baseName), 
 								"Writing json data", i, objects.Count);
+						}
+						var jsonObj = converter(objects[i]);	
+						string fileName;
+						if (nameFunc != null){
+							fileName = makeJsonResourcePath(baseName, nameFunc(jsonObj), i);	
+						}
+						else{
+							fileName = makeJsonResourcePath(baseName, i);	
 						}
 						var fullPath = System.IO.Path.Combine(baseDir, fileName);
 				
-						var jsonObj = converter(objects[i]);
 						jsonObj.saveToJsonFile(fullPath);				
 						result.Add(fileName);
 					}
@@ -279,11 +310,11 @@ namespace SceneExport{
 			var result = new JsonExternResourceList();
 			
 			result.scenes = saveResourcesToPath(baseDir, scenes, 
-				(objData) => objData, "scene", showGui);
+				(objData) => objData, (obj) => obj.name, "scene", showGui);
 			result.terrains = saveResourcesToPath(baseDir, terrains.objectList, 
-				(objData) => new JsonTerrainData(objData, this), "terrainData", showGui);
+				(objData) => new JsonTerrainData(objData, this), (obj) => obj.name, "terrainData", showGui);
 			result.meshes = saveResourcesToPath(baseDir, meshes.objectList, 
-				(objData) => new JsonMesh(objData, this),  "mesh", showGui);
+				(objData) => new JsonMesh(objData, this), (obj) => obj.name, "mesh", showGui);
 			result.materials = saveResourcesToPath(baseDir, materials.objectList, 
 				(objData) => {
 					var mat = new JsonMaterial(objData, this);
@@ -293,16 +324,17 @@ namespace SceneExport{
 							mat.shader, mat.name, mat.id, mat.path);
 					}
 					return mat; 
-				}, "material", showGui);
+				}, (obj) => obj.name, "material", showGui);
 			result.textures = saveResourcesToPath(baseDir, textures.objectList, 
-				(objData) => new JsonTexture(objData, this), "texture", showGui);
+				(objData) => new JsonTexture(objData, this), (obj) => obj.name, "texture", showGui);
 			result.cubemaps = saveResourcesToPath(baseDir, cubemaps.objectList, 
-				(objData) => new JsonCubemap(objData, this), "cubemap", showGui);
+				(objData) => new JsonCubemap(objData, this), (obj) => obj.name, "cubemap", showGui);
 			result.audioClips = saveResourcesToPath(baseDir, audioClips.objectList, 
-				(objData) => new JsonAudioClip(objData, this), "audioClip", showGui);
+				(objData) => new JsonAudioClip(objData, this), (obj) => obj.name, "audioClip", showGui);
 				
 			var prefabList = makePrefabList();
-			result.prefabs = saveResourcesToPath(baseDir, prefabList, (objData) => objData, "prefab", showGui);
+			result.prefabs = saveResourcesToPath(baseDir, prefabList, 
+				(objData) => objData, (obj) => obj.name, "prefab", showGui);
 			/*result.prefabs = saveResourcesToPath(baseDir, prefabs.objectMap, 
 				(objData) => new JsonPref"prefab");*/
 			result.resources = new List<string>(resources);

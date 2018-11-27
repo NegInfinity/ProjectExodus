@@ -74,7 +74,12 @@ namespace SceneExport{
 		
 		public void writeKeyVal<T>(string key, T[] val) where T: IFastJsonValue{
 			writeKey(key);
-			writeRawValue(val);
+			writeRawValue(val, 1);
+		}		
+		
+		public void writeKeyVal<T>(string key, T[] val, int stride) where T: IFastJsonValue{
+			writeKey(key);
+			writeRawValue(val, stride);
 		}		
 	}
 }

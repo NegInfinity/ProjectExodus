@@ -106,7 +106,7 @@ namespace SceneExport{
 			EditorUtility.ClearProgressBar();
 		}
 		
-		public static JsonType[] convertComponents<CompType, JsonType>(GameObject gameObject, 
+		public static List<JsonType> convertComponentsList<CompType, JsonType>(GameObject gameObject, 
 				System.Func<CompType, JsonType> converter) //thanks for not letting me specify constructor with parameters constraint, I guess?
 				where CompType: Component {				
 			if (!gameObject)
@@ -129,8 +129,14 @@ namespace SceneExport{
 				var jsonObject = converter(curComponent);
 				jsonObjects.Add(jsonObject);
 			}
-			
-			return jsonObjects.ToArray();
+			return jsonObjects;
+		}
+		
+		public static JsonType[] convertComponents<CompType, JsonType>(GameObject gameObject, 
+				System.Func<CompType, JsonType> converter) //thanks for not letting me specify constructor with parameters constraint, I guess?
+				where CompType: Component {				
+				
+			return convertComponentsList<CompType, JsonType>(gameObject, converter).ToArray();
 		}
 		
 		public static List<GameObject> getSelectedGameObjects(){

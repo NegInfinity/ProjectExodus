@@ -2,6 +2,7 @@
 #include "JsonTypes.h"
 #include "JsonLight.h"
 #include "JsonRenderer.h"
+#include "JsonSkinRenderer.h"
 #include "JsonReflectionProbe.h"
 #include "JsonTerrain.h"
 
@@ -39,6 +40,7 @@ public:
 	TArray<JsonLight> lights;
 	TArray<JsonReflectionProbe> probes;
 	TArray<JsonRenderer> renderers;
+	TArray<JsonSkinRenderer> skinRenderers;
 	TArray<JsonTerrain> terrains;
 
 	IntArray getFirstMaterials() const;

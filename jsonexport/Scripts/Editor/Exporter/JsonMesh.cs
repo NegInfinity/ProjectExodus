@@ -14,9 +14,9 @@ namespace SceneExport{
 			writer.beginRawObject();
 			writer.writeKeyVal("index", index);
 			writer.writeKeyVal("weight", weight);
-			writer.writeKeyVal("deltaVerts", deltaVerts);
-			writer.writeKeyVal("deltaNormals", deltaNormals);
-			writer.writeKeyVal("deltaTangents", deltaTangents);
+			writer.writeKeyVal("deltaVerts", deltaVerts, 3 * JsonMesh.vertsPerLine);
+			writer.writeKeyVal("deltaNormals", deltaNormals, 3 * JsonMesh.vertsPerLine);
+			writer.writeKeyVal("deltaTangents", deltaTangents, 3 * JsonMesh.vertsPerLine);
 			writer.endObject();
 		}
 		
@@ -68,6 +68,9 @@ namespace SceneExport{
 
 	[System.Serializable]
 	public class JsonMesh: IFastJsonValue{
+		public static readonly int vertsPerLine = 4;
+		public static readonly int trianglesPerLine = 4;
+	
 		public int id = -1;
 		public string name;
 		public string path;
@@ -102,7 +105,7 @@ namespace SceneExport{
 			public int[] triangles = null;//new int[0];
 			public void writeRawJsonValue(FastJsonWriter writer){
 				writer.beginRawObject();
-				writer.writeKeyVal("triangles", triangles);
+				writer.writeKeyVal("triangles", triangles, 3 * trianglesPerLine);
 				writer.endObject();
 			}
 		};
@@ -118,23 +121,23 @@ namespace SceneExport{
 			writer.writeKeyVal("materials", materials);
 			writer.writeKeyVal("readable", readable);
 			writer.writeKeyVal("vertexCount", vertexCount);
-			writer.writeKeyVal("colors", colors);
-			writer.writeKeyVal("verts", verts);
-			writer.writeKeyVal("normals", normals);
-			writer.writeKeyVal("uv0", uv0);
-			writer.writeKeyVal("uv1", uv1);
-			writer.writeKeyVal("uv2", uv2);
-			writer.writeKeyVal("uv3", uv3);
-			writer.writeKeyVal("uv4", uv4);
-			writer.writeKeyVal("uv5", uv5);
-			writer.writeKeyVal("uv6", uv6);
-			writer.writeKeyVal("uv7", uv7);
+			writer.writeKeyVal("colors", colors, 4 * vertsPerLine);
+			writer.writeKeyVal("verts", verts, 3 * vertsPerLine);
+			writer.writeKeyVal("normals", normals, 3 * vertsPerLine);
+			writer.writeKeyVal("uv0", uv0, 2 * vertsPerLine);
+			writer.writeKeyVal("uv1", uv1, 2 * vertsPerLine);
+			writer.writeKeyVal("uv2", uv2, 2 * vertsPerLine);
+			writer.writeKeyVal("uv3", uv3, 2 * vertsPerLine);
+			writer.writeKeyVal("uv4", uv4, 2 * vertsPerLine);
+			writer.writeKeyVal("uv5", uv5, 2 * vertsPerLine);
+			writer.writeKeyVal("uv6", uv6, 2 * vertsPerLine);
+			writer.writeKeyVal("uv7", uv7, 2 * vertsPerLine);
 			
 			writer.writeKeyVal("bindPoses", bindPoses);
 			writer.writeKeyVal("inverseBindPoses", inverseBindPoses);
 			
-			writer.writeKeyVal("boneWeights", boneWeights);
-			writer.writeKeyVal("boneIndexes", boneIndexes);
+			writer.writeKeyVal("boneWeights", boneWeights, 4 * vertsPerLine);
+			writer.writeKeyVal("boneIndexes", boneIndexes, 4 * vertsPerLine);
 			
 			writer.writeKeyVal("blendShapeCount", blendShapeCount);			
 			writer.writeKeyVal("blendShapes", blendShapes);			
@@ -208,6 +211,10 @@ namespace SceneExport{
 			}
 			
 			blendShapeCount = mesh.blendShapeCount;
+			blendShapes.Clear();
+			for(int i = 0; i < blendShapeCount; i++){
+				blendShapes.Add(new JsonBlendShape(mesh, i));
+			}
 			
 			var srcPoses = mesh.bindposes;
 			foreach(var cur in bindPoses){

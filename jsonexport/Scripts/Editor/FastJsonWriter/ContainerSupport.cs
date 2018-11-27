@@ -19,16 +19,32 @@ namespace SceneExport{
 			writeKeyVal<int>(key, val, writeRawValue);
 		}
 		
+		public void writeKeyVal(string key, int[] val, int stride){
+			writeKeyVal<int>(key, val, writeRawValue, stride);
+		}
+		
 		public void writeKeyVal(string key, byte[] val){
 			writeKeyVal<byte>(key, val, writeRawValue);
+		}
+		
+		public void writeKeyVal(string key, byte[] val, int stride){
+			writeKeyVal<byte>(key, val, writeRawValue, stride);
 		}
 		
 		public void writeKeyVal(string key, List<float> val){
 			writeKeyVal<float>(key, val, writeRawValue);
 		}
 		
+		public void writeKeyVal(string key, List<float> val, int stride){
+			writeKeyVal<float>(key, val, writeRawValue, stride);
+		}
+		
 		public void writeKeyVal(string key, List<int> val){
 			writeKeyVal<int>(key, val, writeRawValue);
+		}
+		
+		public void writeKeyVal(string key, List<int> val, int stride){
+			writeKeyVal<int>(key, val, writeRawValue, stride);
 		}
 		
 		public void writeKeyVal(string key, List<Matrix4x4> val){
@@ -49,6 +65,10 @@ namespace SceneExport{
 		
 		public void writeKeyVal(string key, float[] val){
 			writeKeyVal<float>(key, val, writeRawValue);
+		}
+		
+		public void writeKeyVal(string key, float[] val, int stride){
+			writeKeyVal<float>(key, val, writeRawValue, stride);
 		}
 	}
 }

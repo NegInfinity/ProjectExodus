@@ -38,6 +38,19 @@ namespace SceneExport{
 				builder.AppendLine(",");
 			writeIndent();
 		}
+		
+		public void processComma(bool indent){
+			var count = valCount.Pop();
+			valCount.Push(count+1);
+			if (count > 0){
+				if (indent)
+					builder.AppendLine(",");
+				else
+					builder.Append(", ");
+			}
+			if (indent)
+				writeIndent();
+		}
 
 		public void beginRawObject(){
 			builder.AppendLine("{");

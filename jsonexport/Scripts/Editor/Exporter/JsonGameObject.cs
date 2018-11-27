@@ -23,6 +23,7 @@ namespace SceneExport{
 		public JsonRendererData[] renderer = null;
 		public JsonLight[] light = null;
 		public JsonReflectionProbe[] reflectionProbes = null;
+		public List<JsonSkinRendererData> skinRenderers = new List<JsonSkinRendererData>();
 		
 		public JsonTerrain[] terrains = null;
 		
@@ -83,6 +84,7 @@ namespace SceneExport{
 			writer.writeKeyVal("renderer", renderer);
 			writer.writeKeyVal("light", light);
 			writer.writeKeyVal("reflectionProbes", reflectionProbes);
+			writer.writeKeyVal("skinRenderers", skinRenderers);
 			writer.writeKeyVal("terrains", terrains);
 			
 			writer.endObject();
@@ -134,6 +136,10 @@ namespace SceneExport{
 						return new JsonTerrain(c, resMap);						
 					}
 				);
+				
+			skinRenderers = 
+				ExportUtility.convertComponentsList<SkinnedMeshRenderer, JsonSkinRendererData>(obj, 
+					(c) => new JsonSkinRendererData(c, objMap, resMap));
 					
 			mesh = resMap.getOrRegMeshId(obj);
 
