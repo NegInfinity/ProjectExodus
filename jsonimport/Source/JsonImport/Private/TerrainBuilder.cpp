@@ -73,8 +73,8 @@ UStaticMesh* TerrainBuilder::createClonedMesh(const JsonMesh &jsonMesh, const FS
 				}
 			);
 		},
-		[&](auto pkg){
-			return NewObject<UStaticMesh>(pkg, FName(*meshName), RF_Standalone|RF_Public);
+		[&](auto pkg, auto sanitizedName){
+			return NewObject<UStaticMesh>(pkg, FName(*sanitizedName), RF_Standalone|RF_Public);
 		}
 	);
 	return result;
@@ -113,8 +113,8 @@ UStaticMesh* TerrainBuilder::createBillboardMesh(const FString &baseName, const 
 			if (detPrototype.billboardFlag)
 				mesh->shad*/
 		},
-		[&](auto pkg){
-			return NewObject<UStaticMesh>(pkg, FName(*baseName), RF_Standalone|RF_Public);
+		[&](auto pkg, auto sanitizedName){
+			return NewObject<UStaticMesh>(pkg, FName(*sanitizedName), RF_Standalone|RF_Public);
 		}
 	);
 	return result;

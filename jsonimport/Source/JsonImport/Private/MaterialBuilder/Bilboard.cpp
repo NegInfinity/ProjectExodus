@@ -126,12 +126,12 @@ UMaterial* MaterialBuilder::createBillboardMaterial(const JsonTerrainDetailProto
 			mat->PreEditChange(0);
 			mat->PostEditChange();
 		},
-		[&](UPackage* pkg) -> UMaterial*{
+		[&](UPackage* pkg, auto sanitizedName) -> UMaterial*{
 			return Cast<UMaterial>(
 				matFactory->FactoryCreateNew(
 					UMaterial::StaticClass(), 
 					pkg, 
-					*sanitizeObjectName(baseName), 
+					*sanitizedName, 
 					RF_Standalone|RF_Public,
 					0, GWarn
 				)
@@ -188,7 +188,6 @@ UMaterialInstanceConstant* MaterialBuilder::createBillboardMatInstance(const Jso
 		UE_LOG(JsonLog, Warning, TEXT("Could not load default material \"%s\""));
 	}
 
-	//createPackage(
 	auto matFactory = makeFactoryRootGuard<UMaterialInstanceConstantFactoryNew>();
 	auto matInst = createAssetObject<UMaterialInstanceConstant>(matName, &terrainDataPath, terrainBuilder->getImporter(), 
 		[&](UMaterialInstanceConstant* inst){
@@ -196,11 +195,11 @@ UMaterialInstanceConstant* MaterialBuilder::createBillboardMatInstance(const Jso
 			inst->PostEditChange();
 			inst->MarkPackageDirty();
 		}, 
-		[&](UPackage* pkg) -> auto{
+		[&](UPackage* pkg, auto sanitizedName) -> auto{
 			matFactory->InitialParent = baseMaterial;
 			auto result = (UMaterialInstanceConstant*)matFactory->FactoryCreateNew(
 				UMaterialInstanceConstant::StaticClass(), pkg, 
-				*matName,
+				*sanitizedName,
 				//*sanitizeObjectName(matName), 
 				RF_Standalone|RF_Public, 0, GWarn
 			);

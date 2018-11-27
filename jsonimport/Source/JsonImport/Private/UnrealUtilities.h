@@ -62,25 +62,35 @@ namespace UnrealUtilities{
 	void generateStaticMesh(UStaticMesh *mesh, RawMeshFillCallback fillCallback, 
 		StaticMeshBuildCallback preConfig = nullptr, StaticMeshBuildCallback postConfig = nullptr);
 
-	UPackage* createAssetPackage(const FString &objectName, const FString* objectPath, const JsonImporter *importer, std::function<UObject*(UPackage*)> assetCreator);
+	UPackage* createAssetPackage(const FString &objectName, const FString* desiredDir, const JsonImporter *importer, std::function<UObject*(UPackage*)> assetCreator);
 
-	template <typename T>T* createAssetObject(const FString& objectName, const FString* objectPath, const JsonImporter *importer, 
+	template <typename T>T* createAssetObject(const FString& objectName, const FString* desiredDir, const JsonImporter *importer, 
 			std::function<void(T* obj)> onCreate, EObjectFlags objectFlags){
-		return createAssetObject<T>(objectName, objectPath, importer, onCreate, nullptr, objectFlags);
+		return createAssetObject<T>(objectName, desiredDir, importer, onCreate, nullptr, objectFlags);
 	}
 
-	template <typename T>T* createAssetObject(const FString& objectName, const FString* objectPath, const JsonImporter *importer, 
-			std::function<void(T* obj)> onCreate, std::function<T*(UPackage* pkg)> creatorFunc = nullptr, EObjectFlags objectFlags = RF_NoFlags){
+	template <typename T>T* createAssetObject(const FString& objectName, const FString* desiredDir, const JsonImporter *importer, 
+			std::function<void(T* obj)> onCreate, std::function<T*(UPackage* pkg, const FString&)> creatorFunc = nullptr, EObjectFlags objectFlags = RF_NoFlags, 
+			bool checkForExistingObjects = true){
 
 		T* finalResult;
-		createAssetPackage(objectName, objectPath, importer,
+		auto sanitizedName = sanitizeObjectName(*objectName);
+		createAssetPackage(objectName, desiredDir, importer,
 			[&](UPackage* pkg) -> T*{
 				T* newObj = nullptr;
+				if (checkForExistingObjects){
+					auto *oldObj = FindObject<T>(pkg, *sanitizedName);
+					if (oldObj){
+						auto uniqueName = MakeUniqueObjectName(pkg, T::StaticClass(), *sanitizedName).ToString();
+						UE_LOG(JsonLog, Log, TEXT("Unique name created: %s (old obj: %x). Original name: %s"), *uniqueName, oldObj, *sanitizedName);
+						sanitizedName = uniqueName;
+					}
+				}
 				if (creatorFunc){
-					newObj = creatorFunc(pkg);
+					newObj = creatorFunc(pkg, sanitizedName);
 				}
 				else{
-					newObj =  NewObject<T>(pkg, T::StaticClass(), *sanitizeObjectName(*objectName), objectFlags);
+					newObj =  NewObject<T>(pkg, T::StaticClass(), *sanitizedName, objectFlags);
 				}
 				if (onCreate)
 					onCreate(newObj);
@@ -88,7 +98,6 @@ namespace UnrealUtilities{
 				return newObj;
 			}
 		);
-
 
 		return finalResult;
 	}

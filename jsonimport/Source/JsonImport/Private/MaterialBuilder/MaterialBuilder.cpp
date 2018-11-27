@@ -150,11 +150,11 @@ UMaterialInstanceConstant* MaterialBuilder::createMaterialInstance(const FString
 			inst->PostEditChange();
 			inst->MarkPackageDirty();
 		}, 
-		[&](UPackage* pkg) -> auto{
+		[&](UPackage* pkg, auto sanitizedName) -> auto{
 			matFactory->InitialParent = baseMaterial;
 			auto result = (UMaterialInstanceConstant*)matFactory->FactoryCreateNew(
 				UMaterialInstanceConstant::StaticClass(), pkg, 
-				*matName,
+				*sanitizedName,
 				//*sanitizeObjectName(matName), 
 				RF_Standalone|RF_Public, 0, GWarn
 			);

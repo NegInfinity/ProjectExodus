@@ -4,10 +4,10 @@
 
 using namespace UnrealUtilities;
 
-UPackage* UnrealUtilities::createAssetPackage(const FString &objectName, const FString* objectPath, 
+UPackage* UnrealUtilities::createAssetPackage(const FString &objectName, const FString* desiredDir, 
 		const JsonImporter *importer, std::function<UObject*(UPackage*)> assetCreator){
 
-	auto fullPackagePath = buildPackagePath(objectName, objectPath, importer);
+	auto fullPackagePath = buildPackagePath(objectName, desiredDir, importer);
 
 	auto newPackage = CreatePackage(0, *fullPackagePath);
 
