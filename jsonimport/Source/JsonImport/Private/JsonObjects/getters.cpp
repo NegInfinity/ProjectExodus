@@ -330,7 +330,7 @@ IntArray JsonObjects::toIntArray(const JsonValPtrs &inData){
 ByteArray JsonObjects::toByteArray(const JsonValPtrs &inData){
 	ByteArray result;
 	for(auto cur: inData){
-		uint32 val;
+		uint32 val = 0;
 		if (cur.IsValid()){
 			cur->TryGetNumber(val);
 		}

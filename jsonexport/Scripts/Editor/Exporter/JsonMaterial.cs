@@ -191,6 +191,18 @@ namespace SceneExport{
 			return mat.GetColor(paramName);
 		}
 		
+		static Vector2 getTextureScale(Material mat, string paramName){
+			if (!mat.HasProperty(paramName))
+				return Vector2.one;
+			return mat.GetTextureScale(paramName);
+		}
+		
+		static Vector2 getTextureOffset(Material mat, string paramName){
+			if (!mat.HasProperty(paramName))
+				return Vector2.zero;
+			return mat.GetTextureOffset(paramName);
+		}
+		
 		public JsonMaterial(Material mat, ResourceMapper resMap){
 			name = mat.name;
 			//TODO: Further investigation shows that this is likely going to return -1 for all new materials.
@@ -228,8 +240,8 @@ namespace SceneExport{
 			detailAlbedoTex = getTexId(mat, TexParamNames.detailAlbedo, resMap);
 			detailNormalMapTex = getTexId(mat, TexParamNames.detailNormal, resMap);
 			
-			detailAlbedoScale = mat.GetTextureScale(TexParamNames.detailAlbedo);
-			detailAlbedoOffset = mat.GetTextureOffset(TexParamNames.detailAlbedo);
+			detailAlbedoScale = getTextureScale(mat, TexParamNames.detailAlbedo);//mat.GetTextureScale(TexParamNames.detailAlbedo);
+			detailAlbedoOffset = getTextureOffset(mat, TexParamNames.detailAlbedo);//mat.GetTextureOffset(TexParamNames.detailAlbedo);
 			detailNormalMapScale = getFloat(mat, "_DetailNormalMapScale", 1.0f);
 
 			alphaCutoff = getFloat(mat, "_Cutoff", 1.0f);

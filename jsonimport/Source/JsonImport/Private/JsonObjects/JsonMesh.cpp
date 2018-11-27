@@ -58,3 +58,16 @@ void JsonBlendShape::load(JsonObjPtr data){
 
 	getJsonObjArray(data, frames, "frames");
 }
+
+FString JsonMesh::makeUnrealMeshName() const{
+	auto pathBaseName = FPaths::GetBaseFilename(path);
+	FString result;
+	if (!pathBaseName.IsEmpty()){
+		//Well, I've managed to create a level with two meshes named "cube". So...
+		result = FString::Printf(TEXT("%s_%s_%d"), *pathBaseName, *name, id);
+	}
+	else{
+		result = FString::Printf(TEXT("%s_%d"), *name, id);
+	}
+	return result;
+}

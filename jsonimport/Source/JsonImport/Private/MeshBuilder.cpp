@@ -4,6 +4,18 @@
 
 using namespace UnrealUtilities;
 
+static FVector2D getIdxVector2(const TArray<float>& floats, int32 idx){
+	if (floats.Num() <= (idx*2 + 1))
+		return FVector2D();
+	return FVector2D(floats[idx*2], floats[idx*2+1]);
+};
+
+static FVector getIdxVector3(const TArray<float>& floats, int32 idx){
+	if (floats.Num() <= (idx*3 + 2))
+		return FVector();
+	return FVector(floats[idx*3], floats[idx*3+1], floats[idx*3+2]);
+};
+
 void MeshBuilder::generateBillboardMesh(UStaticMesh *staticMesh, UMaterialInterface *billboardMaterial){
 	check(staticMesh);
 	check(billboardMaterial);

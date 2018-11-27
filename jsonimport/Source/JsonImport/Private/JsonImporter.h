@@ -25,6 +25,7 @@ protected:
 	FString assetCommonPath;
 	FString sourceBaseName;
 	IdNameMap meshIdMap;
+	IdNameMap skinMeshIdMap;
 	IdNameMap texIdMap;
 	IdNameMap cubeIdMap;
 	IdNameMap matMasterIdMap;
@@ -66,6 +67,9 @@ protected:
 
 	void registerMaterialInstancePath(int32 id, FString path);
 	void registerMasterMaterialPath(int32 id, FString path);
+
+	void importStaticMesh(const JsonMesh &jsonMesh, int32 meshId);
+	void importSkinnedMesh(const JsonMesh &jsonMesh, int32 meshId);
 
 	//UWorld* importScene(const JsonScene &scene, bool createWorld) const;
 public:
@@ -114,6 +118,7 @@ public:
 	void importTexture(const JsonTexture &tex, const FString &rootPath);
 
 	void importMesh(JsonObjPtr obj, int32 meshId);
+	void importMesh(const JsonMesh &jsonMesh, int32 meshId);
 	void importObject(const JsonGameObject &jsonGameObj , int32 objId, ImportWorkData &importData);
 
 	static int findMatchingLength(const FString& arg1, const FString& arg2);
@@ -125,17 +130,16 @@ public:
 	Ugh, this function again. I need to replace it with more compact version
 	*/
 	template<typename T> UPackage* createPackage(const FString &name, 
-			const FString &filePath, const FString &rootPath, 
+			const FString &srcFilePath, const FString &targetRootPath, 
 			const FString &objNameSuffix, FString *outPackageName, 
 			FString *outObjName, T** outExistingObj) const{
 
-		FString extension = FPaths::GetExtension(filePath);
-		FString objDir = FPaths::GetPath(filePath);
+		FString objDir = FPaths::GetPath(srcFilePath);
 
 		auto objSuffixName = ObjectTools::SanitizeObjectName(name + TEXT("_") + objNameSuffix);
 		auto objName = ObjectTools::SanitizeObjectName(name);
-		auto objInFileName = FPaths::Combine(*rootPath, *filePath);
-		UE_LOG(JsonLog, Log, TEXT("Creating package. Object name: %s, filename: %s, extension: %s"), *objName, *objInFileName, *extension);
+		auto objInFileName = FPaths::Combine(*targetRootPath, *srcFilePath);
+		UE_LOG(JsonLog, Log, TEXT("Creating package. Object name: %s, filename: %s"), *objName, *objInFileName);
 
 		FString packageName;
 

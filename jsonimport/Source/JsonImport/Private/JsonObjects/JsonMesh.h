@@ -72,6 +72,16 @@ public:
 	int32 subMeshCount = 0;
 	TArray<JsonSubMesh> subMeshes;
 
+	FString makeUnrealMeshName() const;
+
+	bool hasBoneWeights() const{
+		return (boneWeights.Num() > 0) || (boneIndexes.Num() > 0);
+	}
+
+	bool hasBlendShapes() const{
+		return blendShapes.Num() > 0;
+	}
+
 	JsonMesh() = default;
 	void load(JsonObjPtr data);
 	JsonMesh(JsonObjPtr data){

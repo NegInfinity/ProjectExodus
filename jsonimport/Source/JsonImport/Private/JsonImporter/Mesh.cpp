@@ -35,23 +35,11 @@
 using namespace UnrealUtilities;
 using namespace JsonObjects;
 
-static FVector2D getIdxVector2(const TArray<float>& floats, int32 idx){
-	if (floats.Num() <= (idx*2 + 1))
-		return FVector2D();
-	return FVector2D(floats[idx*2], floats[idx*2+1]);
-};
+void JsonImporter::importStaticMesh(const JsonMesh &jsonMesh, int32 meshId){
+}
 
-static FVector getIdxVector3(const TArray<float>& floats, int32 idx){
-	if (floats.Num() <= (idx*3 + 2))
-		return FVector();
-	return FVector(floats[idx*3], floats[idx*3+1], floats[idx*3+2]);
-};
 
-void JsonImporter::importMesh(JsonObjPtr obj, int32 meshId){
-	UE_LOG(JsonLog, Log, TEXT("Importing mesh %d"), meshId);
-
-	JsonMesh jsonMesh(obj);
-
+void JsonImporter::importMesh(const JsonMesh &jsonMesh, int32 meshId){
 	UE_LOG(JsonLog, Log, TEXT("Mesh data: Verts: %d; submeshes: %d; materials: %d; colors %d; normals: %d"), 
 		jsonMesh.verts.Num(), jsonMesh.subMeshes.Num(), jsonMesh.colors.Num(), jsonMesh.normals.Num());
 	UE_LOG(JsonLog, Log, TEXT("Mesh data: uv0: %d; uv1: %d; uv2: %d; uv3: %d; uv4: %d; uv5: %d; uv6: %d; uv7: %d;"),
@@ -66,16 +54,8 @@ void JsonImporter::importMesh(JsonObjPtr obj, int32 meshId){
 	FString sanitizedMeshName;
 	FString sanitizedPackageName;
 
-	FString meshName = jsonMesh.name;
-	auto pathBaseName = FPaths::GetBaseFilename(jsonMesh.path);
-	if (!pathBaseName.IsEmpty()){
-		//Well, I've managed to create a level with two meshes named "cube". So...
-		meshName = FString::Printf(TEXT("%s_%s_%d"), *pathBaseName, *meshName, meshId);
-	}
-	else{
-		meshName = FString::Printf(TEXT("%s_%d"), *meshName, meshId);
-	}
-
+	FString meshName = jsonMesh.makeUnrealMeshName();
+		
 	UStaticMesh *existingMesh = nullptr;
 	UPackage *meshPackage = createPackage(
 		meshName, jsonMesh.path, assetRootPath, FString("Mesh"), 
@@ -83,6 +63,7 @@ void JsonImporter::importMesh(JsonObjPtr obj, int32 meshId){
 	if (existingMesh){
 		meshIdMap.Add(jsonMesh.id, existingMesh->GetPathName());
 		UE_LOG(JsonLog, Log, TEXT("Found existing mesh: %s (package %s)"), *sanitizedMeshName, *sanitizedPackageName);
+		//we should probably disable and rethink this part.
 		return;
 	}
 
@@ -108,6 +89,14 @@ void JsonImporter::importMesh(JsonObjPtr obj, int32 meshId){
 		FAssetRegistryModule::AssetCreated(mesh);
 		meshPackage->SetDirtyFlag(true);
 	}
+}
+
+void JsonImporter::importMesh(JsonObjPtr obj, int32 meshId){
+	UE_LOG(JsonLog, Log, TEXT("Importing mesh %d"), meshId);
+
+	JsonMesh jsonMesh(obj);
+
+	importMesh(jsonMesh, meshId);
 }
 
 JsonMesh JsonImporter::loadJsonMesh(int32 id) const{
