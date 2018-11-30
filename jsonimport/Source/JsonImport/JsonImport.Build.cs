@@ -47,6 +47,7 @@ public class JsonImport : ModuleRules
 				"Json",
 				"Landscape", "Foliage", 
 				"DesktopPlatform", 
+				"RenderCore",
 				"RawMesh",
 				"MaterialEditor",
 				"AssetTools"
