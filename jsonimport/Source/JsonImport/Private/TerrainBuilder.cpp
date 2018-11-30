@@ -64,7 +64,7 @@ UStaticMesh* TerrainBuilder::createClonedMesh(const JsonMesh &jsonMesh, const FS
 	auto result = createAssetObject<UStaticMesh>(meshName, &terrainDataPath, importer, 
 		[&](UStaticMesh *mesh){
 			MeshBuilder builder;
-			builder.setupMesh(mesh, jsonMesh, 
+			builder.setupStaticMesh(mesh, jsonMesh, 
 				[&](TArray<FStaticMaterial> &meshMaterials){
 					meshMaterials.Empty();
 					for(auto cur: matInstances){

@@ -45,6 +45,7 @@
 
 #include "Tests/LandscapeTest.h"
 #include "Tests/OutlinerTest.h"
+#include "Tests/SkinMeshTest.h"
 
 #define LOCTEXT_NAMESPACE "FJsonImportModule"
 
@@ -71,6 +72,10 @@ void FJsonImportModule::StartupModule(){
 	PluginCommands->MapAction(
 		FJsonImportCommands::Get().PluginLandscapeTestAction,
 		FExecuteAction::CreateRaw(this, &FJsonImportModule::PluginLandscapeTestButtonClicked),
+		FCanExecuteAction());
+	PluginCommands->MapAction(
+		FJsonImportCommands::Get().PluginSkinMeshTestAction,
+		FExecuteAction::CreateRaw(this, &FJsonImportModule::PluginSkinMeshTestButtonClicked),
 		FCanExecuteAction());
 		
 	FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
@@ -130,6 +135,11 @@ void FJsonImportModule::PluginImportButtonClicked(){
 	//importer.importScene(filename);
 }
 
+void FJsonImportModule::PluginSkinMeshTestButtonClicked(){
+	SkinMeshTest skinTest;
+	skinTest.run();
+}
+
 void FJsonImportModule::AddMenuExtension(FMenuBuilder& Builder){
 	Builder.AddMenuEntry(FJsonImportCommands::Get().PluginImportAction);
 }
@@ -138,6 +148,7 @@ void FJsonImportModule::AddToolbarExtension(FToolBarBuilder& Builder){
 	Builder.AddToolBarButton(FJsonImportCommands::Get().PluginImportAction);
 	Builder.AddToolBarButton(FJsonImportCommands::Get().PluginTestAction);
 	Builder.AddToolBarButton(FJsonImportCommands::Get().PluginLandscapeTestAction);
+	Builder.AddToolBarButton(FJsonImportCommands::Get().PluginSkinMeshTestAction);
 }
 
 #undef LOCTEXT_NAMESPACE

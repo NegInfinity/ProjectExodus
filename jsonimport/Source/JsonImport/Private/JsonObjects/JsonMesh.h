@@ -53,6 +53,9 @@ public:
 	ByteArray colors;
 	FloatArray verts;
 	FloatArray normals;
+	FloatArray tangents;//well... looks like directly importing tangetns might be less hassle, after all.
+
+	//I wonder if I should've made this an array
 	FloatArray uv0;
 	FloatArray uv1;
 	FloatArray uv2;
@@ -62,8 +65,22 @@ public:
 	FloatArray uv6;
 	FloatArray uv7;
 
+	int getNumTexCoords() const{
+		const int maxNumCoords = 8;
+		const FloatArray* coords[maxNumCoords] = {
+			&uv0, &uv1, &uv2, &uv3, &uv4, &uv5, &uv6, &uv7
+		};
+		for(int i = 0; i < maxNumCoords; i++){
+			if (coords[i]->Num() == 0)
+				return i;
+		}
+		return maxNumCoords;
+	}
+
 	FloatArray boneWeights;
 	IntArray boneIndexes;
+	int origSkeletonId = -1;
+
 	int blendShapeCount = 0;
 	TArray<JsonBlendShape> blendShapes;
 	TArray<FMatrix> bindPoses;

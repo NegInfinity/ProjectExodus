@@ -198,3 +198,67 @@ FString UnrealUtilities::genTimestamp(){
 	return curTime.ToString(TEXT("%Y%m%d%H%M%S%Z"));
 }
 
+FVector2D UnrealUtilities::unityUvToUnreal(const FVector2D& arg){
+	return FVector2D(arg.X, 1.0f - arg.Y);
+}
+
+FVector UnrealUtilities::unityToUe(const FVector& arg){
+	return FVector(arg.Z, arg.X, arg.Y);
+}
+
+FVector UnrealUtilities::unityVecToUe(const FVector& arg){
+	return FVector(arg.Z, arg.X, arg.Y);
+}
+
+FVector UnrealUtilities::unityPosToUe(const FVector& arg){
+	return unityVecToUe(arg) * 100.0f;
+}
+
+FVector UnrealUtilities::unitySizeToUe(const FVector& arg){
+	return unityVecToUe(arg) * 100.0f;
+}
+
+FMatrix UnrealUtilities::unityWorldToUe(const FMatrix &unityWorld){
+	FVector xAxis, yAxis, zAxis;
+	unityWorld.GetScaledAxes(xAxis, yAxis, zAxis);
+	FVector pos = unityWorld.GetOrigin();
+	pos = unityToUe(pos)*100.0f;
+	xAxis = unityToUe(xAxis);
+	yAxis = unityToUe(yAxis);
+	zAxis = unityToUe(zAxis);
+	FMatrix ueMatrix;
+	ueMatrix.SetAxes(&zAxis, &xAxis, &yAxis, &pos);
+	return ueMatrix;
+}
+
+float UnrealUtilities::unityDistanceToUe(const float arg){
+	return arg * 100.0f;
+}
+
+FVector2D UnrealUtilities::getIdxVector2(const TArray<float>& floats, int32 idx){
+	if (floats.Num() <= (idx*2 + 1))
+		return FVector2D();
+	return FVector2D(floats[idx*2], floats[idx*2+1]);
+};
+
+FVector UnrealUtilities::getIdxVector3(const TArray<float>& floats, int32 idx){
+	if (floats.Num() <= (idx*3 + 2))
+		return FVector();
+	return FVector(floats[idx*3], floats[idx*3+1], floats[idx*3+2]);
+};
+
+FVector4 UnrealUtilities::getIdxVector4(const TArray<float>& floats, int32 idx){
+	if (floats.Num() <= (idx*4 + 3))
+		return FVector();
+	return FVector4(floats[idx*4], floats[idx*4+1], floats[idx*4+2], floats[idx*4+3]);
+};
+
+FColor UnrealUtilities::getIdxColor(const TArray<uint8>& colors, int32 idx){
+	return FColor(
+		colors[idx * 4], 
+		colors[idx * 4 + 1], 
+		colors[idx * 4 + 2], 
+		colors[idx * 4 + 3]
+	);
+}
+

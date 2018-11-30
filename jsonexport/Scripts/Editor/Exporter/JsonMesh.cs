@@ -10,6 +10,7 @@ namespace SceneExport{
 		public float[] deltaVerts = null;
 		public float[] deltaTangents = null;
 		public float[] deltaNormals = null;
+		
 		public void writeRawJsonValue(FastJsonWriter writer){
 			writer.beginRawObject();
 			writer.writeKeyVal("index", index);
@@ -82,6 +83,8 @@ namespace SceneExport{
 
 		public float[] verts = null;
 		public float[] normals = null;
+		public float[] tangents = null;
+		
 		public float[] uv0 = null;
 		public float[] uv1 = null;
 		public float[] uv2 = null;
@@ -93,6 +96,9 @@ namespace SceneExport{
 		
 		public List<float> boneWeights = new List<float>();
 		public List<int> boneIndexes = new List<int>();
+		
+		public int originalSkeletonId = -1;
+		//public JsonSkeleton skeleton = new JsonSkeleton();			
 		
 		public int blendShapeCount = 0;
 		public List<JsonBlendShape> blendShapes = new List<JsonBlendShape>();
@@ -124,6 +130,8 @@ namespace SceneExport{
 			writer.writeOptionalKeyVal("colors", colors, 4 * vertsPerLine);
 			writer.writeOptionalKeyVal("verts", verts, 3 * vertsPerLine);
 			writer.writeOptionalKeyVal("normals", normals, 3 * vertsPerLine);
+			writer.writeOptionalKeyVal("tangents", tangents, 4 * vertsPerLine);
+			
 			writer.writeOptionalKeyVal("uv0", uv0, 2 * vertsPerLine);
 			writer.writeOptionalKeyVal("uv1", uv1, 2 * vertsPerLine);
 			writer.writeOptionalKeyVal("uv2", uv2, 2 * vertsPerLine);
@@ -138,6 +146,7 @@ namespace SceneExport{
 			
 			writer.writeOptionalKeyVal("boneWeights", boneWeights, 4 * vertsPerLine);
 			writer.writeOptionalKeyVal("boneIndexes", boneIndexes, 4 * vertsPerLine);
+			writer.writeKeyVal("origSkeletonId", originalSkeletonId);
 			
 			writer.writeKeyVal("blendShapeCount", blendShapeCount);			
 			writer.writeOptionalKeyVal("blendShapes", blendShapes);			
@@ -176,6 +185,9 @@ namespace SceneExport{
 			colors = mesh.colors32.toByteArray();
 			verts = mesh.vertices.toFloatArray();
 			normals = mesh.normals.toFloatArray();
+			
+			tangents = mesh.tangents.toFloatArray();
+			
 			uv0 = mesh.uv.toFloatArray();
 			uv1 = mesh.uv2.toFloatArray();
 			uv2 = mesh.uv3.toFloatArray();
@@ -194,6 +206,7 @@ namespace SceneExport{
 			
 			boneWeights.Clear();
 			boneIndexes.Clear();
+			originalSkeletonId = exp.getSkeletonId(mesh);
 			
 			var srcWeights = mesh.boneWeights;
 			if ((srcWeights != null) && (srcWeights.Length > 0)){

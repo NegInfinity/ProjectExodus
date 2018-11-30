@@ -5,6 +5,7 @@
 
 #include "MaterialBuilder.h"
 #include "JsonObjects/JsonTerrainData.h"
+#include "JsonObjects/JsonSkeleton.h"
 
 class UMaterialExpression;
 class UMaterialExpressionParameter;
@@ -33,6 +34,7 @@ protected:
 	JsonExternResourceList externResources;
 
 	TArray<JsonMaterial> jsonMaterials;
+	TMap<JsonId, JsonSkeleton> jsonSkeletons;
 
 	TMap<JsonId, JsonTerrainData> terrainDataMap;
 
@@ -89,6 +91,8 @@ public:
 	void importCubemap(JsonObjPtr data, const FString &rootPath);
 
 	//UMaterialInstanceConstant* getMaterialInstance(int32 id) const;
+	const JsonSkeleton* getSkeleton(int32 id) const;
+
 	UTexture *getTexture(int32 id) const;
 	UTexture* loadTexture(int32 id) const;
 	UMaterialInstanceConstant* loadMaterialInstance(int32 id) const;
@@ -105,6 +109,7 @@ public:
 	void loadCubemaps(const StringArray &cubemaps);
 	void loadTextures(const StringArray & textures);
 	void loadMaterials(const StringArray &materials);
+	void loadSkeletons(const StringArray &materials);
 	void loadMeshes(const StringArray &meshes);
 
 	void loadObjects(const TArray<JsonGameObject> &objects, ImportWorkData &importData);

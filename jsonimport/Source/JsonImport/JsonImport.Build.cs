@@ -6,8 +6,9 @@ public class JsonImport : ModuleRules
 {
 	public JsonImport(ReadOnlyTargetRules Target): base(Target)
 	{
-		
-		PublicIncludePaths.AddRange(
+        PrivatePCHHeaderFile = "Private/JsonImportPrivatePCH.h";
+
+        PublicIncludePaths.AddRange(
 			new string[] {
 				"JsonImport/Public"
 				// ... add public include paths required here ...

@@ -5,6 +5,7 @@ class JsonExternResourceList{
 public:
 	StringArray scenes;
 	StringArray materials;
+	StringArray skeletons;
 	StringArray meshes;
 	StringArray textures;
 	StringArray prefabs;

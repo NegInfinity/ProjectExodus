@@ -99,6 +99,28 @@ void JsonImporter::loadTextures(const StringArray & textures){
 	}
 }
 
+void JsonImporter::loadSkeletons(const StringArray &skeletons){
+	FScopedSlowTask skelProgress(skeletons.Num(), LOCTEXT("Importing skeletons", "Importing skeletons"));
+	skelProgress.MakeDialog();
+	UE_LOG(JsonLog, Log, TEXT("Processing skeletons"));
+
+	jsonSkeletons.Empty();
+
+	for(int id = 0; id < skeletons.Num(); id++){
+		const auto& curFilename = skeletons[id];
+		auto obj = loadExternResourceFromFile(curFilename);
+		if (!obj.IsValid()){
+			continue;
+		}
+
+		JsonSkeleton jsonSkel(obj);
+		jsonSkeletons.Add(id, jsonSkel);
+		UE_LOG(JsonLog, Log, TEXT("Loaded json skeleotn #%d (%s)"), jsonSkel.id, *jsonSkel.name);
+
+		skelProgress.EnterProgressFrame(1.0f);
+	}
+}
+
 void JsonImporter::loadMaterials(const StringArray &materials){
 	FScopedSlowTask matProgress(materials.Num(), LOCTEXT("Importing materials", "Importing materials"));
 	matProgress.MakeDialog();
@@ -166,6 +188,7 @@ void JsonImporter::importResources(const JsonExternResourceList &externRes){
 	loadTextures(externRes.textures);
 	loadCubemaps(externRes.cubemaps);
 	loadMaterials(externRes.materials);
+	loadSkeletons(externRes.skeletons);
 	loadMeshes(externRes.meshes);
 	importPrefabs(externRes.prefabs);
 	loadTerrains(externRes.terrains);

@@ -12,6 +12,19 @@ class JsonImporter;
 class UStaticMesh;
 
 namespace UnrealUtilities{
+	FVector unityToUe(const FVector& arg);
+	float unityDistanceToUe(const float arg);
+	FVector unityVecToUe(const FVector& arg);
+	FVector unityPosToUe(const FVector& arg);
+	FVector unitySizeToUe(const FVector& arg);
+	FMatrix unityWorldToUe(const FMatrix &unityMatrix);
+	FVector2D unityUvToUnreal(const FVector2D& arg);
+
+	FVector4 getIdxVector4(const TArray<float>& floats, int32 idx);
+	FVector2D getIdxVector2(const TArray<float>& floats, int32 idx);
+	FVector getIdxVector3(const TArray<float>& floats, int32 idx);
+	FColor getIdxColor(const TArray<uint8>& colors, int32 idx);
+
 	template<typename Factory> auto makeFactoryRootPtr(){
 		auto factory = NewObject<Factory>();
 		factory ->AddToRoot();

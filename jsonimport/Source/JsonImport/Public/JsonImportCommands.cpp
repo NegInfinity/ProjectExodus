@@ -13,6 +13,8 @@ void FJsonImportCommands::RegisterCommands()
 		EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND(PluginLandscapeTestAction, "Exodus landscape crash test", "Run JsonImport landscape test", 
 		EUserInterfaceActionType::Button, FInputGesture());
+	UI_COMMAND(PluginSkinMeshTestAction, "SkinMesh Test", "Run skin mesh test", 
+		EUserInterfaceActionType::Button, FInputGesture());
 }
 
 #undef LOCTEXT_NAMESPACE

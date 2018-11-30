@@ -11,7 +11,6 @@
 #include "JsonObjects/DataPlane2D.h"
 #include "JsonObjects/DataPlane3D.h"
 #include "JsonObjects/utilities.h"
-#include "JsonObjects/converters.h"
 #include "ImportWorkData.h"
 #include "UnrealUtilities.h"
 

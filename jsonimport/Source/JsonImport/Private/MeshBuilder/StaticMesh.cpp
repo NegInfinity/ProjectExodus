@@ -1,98 +1,41 @@
 #include "JsonImportPrivatePCH.h"
-#include "Engine/Classes/Engine/SkeletalMesh.h"
 #include "MeshBuilder.h"
 #include "UnrealUtilities.h"
 
 using namespace UnrealUtilities;
 
-static FVector2D getIdxVector2(const TArray<float>& floats, int32 idx){
-	if (floats.Num() <= (idx*2 + 1))
-		return FVector2D();
-	return FVector2D(floats[idx*2], floats[idx*2+1]);
-};
+void MeshBuilder::processTangent(int originalIndex, const FloatArray &normFloats, const FloatArray &tangentFloats, bool hasNormals, bool hasTangents,
+		std::function<void(const FVector&)> normCallback, std::function<void(const FVector&, const FVector&)> tanCallback){
+	if (!hasNormals)
+		return;
+	auto unityNorm = getIdxVector3(normFloats, originalIndex);
+	auto normUnreal = unityVecToUe(unityNorm);
+	if (normCallback)
+		normCallback(normUnreal);
+	//newRawMesh.WedgeTangentZ.Add(normUnreal);
+	if (!hasTangents)
+		return;
 
-static FVector getIdxVector3(const TArray<float>& floats, int32 idx){
-	if (floats.Num() <= (idx*3 + 2))
-		return FVector();
-	return FVector(floats[idx*3], floats[idx*3+1], floats[idx*3+2]);
-};
+	auto unityTangent = getIdxVector4(tangentFloats, originalIndex);
+	auto uTanUnity = FVector(unityTangent.X, unityTangent.Y, unityTangent.Z);
 
-void MeshBuilder::setupMesh(USkeletalMesh *mesh, const JsonMesh &jsonMesh, std::function<void(TArray<FStaticMaterial> &meshMaterials)> materialSetup){
-	check(mesh);
+	auto uTanUnreal = unityVecToUe(uTanUnity);
+	//auto vTanUnreal = FVector::CrossProduct(uTanUnreal, normUnreal) * unityTangent.W;
+	auto vTanUnreal = FVector::CrossProduct(normUnreal, uTanUnreal) * unityTangent.W;
+	/* 
+		I suspect unity gets normals wrong on at least SOME geometry, but can't really prove it.
+	*/
+	uTanUnreal.Normalize();
+	vTanUnreal.Normalize();
+
+	if (tanCallback)
+		tanCallback(uTanUnreal, vTanUnreal);
+
+	//newRawMesh.WedgeTangentX.Add(uTanUnreal);
+	//newRawMesh.WedgeTangentY.Add(vTanUnreal);
 }
 
-void MeshBuilder::generateBillboardMesh(UStaticMesh *staticMesh, UMaterialInterface *billboardMaterial){
-	check(staticMesh);
-	check(billboardMaterial);
-
-	auto builderFunc = [&](FRawMesh& rawMesh, int lod) -> void{
-		float defSize = 50.0f;
-		TArray<FVector> verts = {
-			FVector(0.0f, -defSize, defSize * 2.0f),
-			FVector(0.0f, defSize, defSize * 2.0f),
-			FVector(0.0f, defSize, 0.0f),
-			FVector(0.0f, -defSize, 0.0f)
-		};
-		TArray<FVector2D> uvs = {
-			FVector2D(0.0f, 0.0f),
-			FVector2D(1.0f, 0.0f),
-			FVector2D(1.0f, 1.0f),
-			FVector2D(0.0f, 1.0f)
-		};
-		FVector n(-1.0f, 0.0f, 0.0f);
-		TArray<FVector> normals = {
-			n, n, n, n
-		};
-		//IntArray indices = {0, 2, 1, 0, 3, 2};
-		IntArray indices = {0, 2, 1, 0, 3, 2, 0, 1, 2, 0, 2, 3};
-
-		rawMesh.VertexPositions.SetNum(0);
-		rawMesh.WedgeColors.SetNum(0);
-		rawMesh.WedgeIndices.SetNum(0);
-		for(int i = 0; i < MAX_MESH_TEXTURE_COORDS; i++)
-			rawMesh.WedgeTexCoords[i].SetNum(0);
-		rawMesh.WedgeColors.SetNum(0);
-		rawMesh.WedgeTangentZ.SetNum(0);
-
-		auto addIdx = [&](int32 idx) -> void{
-			rawMesh.WedgeIndices.Add(idx);
-			rawMesh.WedgeTangentZ.Add(normals[idx]);
-			rawMesh.WedgeTexCoords[0].Add(uvs[idx]);
-		};
-
-		for(auto cur: verts){
-			rawMesh.VertexPositions.Add(cur);
-		}
-
-		for(auto idx: indices){
-			addIdx(idx);
-		}
-
-		rawMesh.FaceMaterialIndices.Add(0);
-		rawMesh.FaceMaterialIndices.Add(0);
-
-		rawMesh.FaceSmoothingMasks.Add(0);
-		rawMesh.FaceSmoothingMasks.Add(0);
-
-		rawMesh.FaceMaterialIndices.Add(0);
-		rawMesh.FaceMaterialIndices.Add(0);
-
-		rawMesh.FaceSmoothingMasks.Add(0);
-		rawMesh.FaceSmoothingMasks.Add(0);
-	};
-
-	generateStaticMesh(staticMesh, builderFunc, nullptr, 
-		[&](UStaticMesh* mesh, FStaticMeshSourceModel &model){
-			mesh->StaticMaterials.Empty();
-			mesh->StaticMaterials.Add(billboardMaterial);
-
-			model.BuildSettings.bRecomputeNormals = false;
-			model.BuildSettings.bRecomputeTangents = true;
-		}
-	);
-}
-
-void MeshBuilder::setupMesh(UStaticMesh *mesh, const JsonMesh &jsonMesh, std::function<void(TArray<FStaticMaterial> &meshMaterial)> materialSetup){
+void MeshBuilder::setupStaticMesh(UStaticMesh *mesh, const JsonMesh &jsonMesh, std::function<void(TArray<FStaticMaterial> &meshMaterial)> materialSetup){
 	check(mesh);
 	UE_LOG(JsonLog, Log, TEXT("Static mesh num lods: %d"), mesh->SourceModels.Num());
 
@@ -100,7 +43,7 @@ void MeshBuilder::setupMesh(UStaticMesh *mesh, const JsonMesh &jsonMesh, std::fu
 		UE_LOG(JsonLog, Warning, TEXT("Adding static mesh lod!"));
 		new(mesh->SourceModels) FStaticMeshSourceModel();//???
 	}
-
+	 
 	int32 lod = 0;
 
 	FStaticMeshSourceModel &srcModel = mesh->SourceModels[lod];
@@ -113,7 +56,14 @@ void MeshBuilder::setupMesh(UStaticMesh *mesh, const JsonMesh &jsonMesh, std::fu
 	srcModel.RawMeshBulkData->LoadRawMesh(newRawMesh);
 	newRawMesh.VertexPositions.SetNum(0);
 
-	{
+	UE_LOG(JsonLog, Log, TEXT("Num normal floats: %d"), jsonMesh.verts.Num());
+	bool hasNormals = jsonMesh.normals.Num() != 0;
+	UE_LOG(JsonLog, Log, TEXT("has normals: %d"), (int)hasNormals);
+	bool hasColors = jsonMesh.colors.Num() > 0;
+	bool hasTangents = jsonMesh.tangents.Num() != 0;
+	UE_LOG(JsonLog, Log, TEXT("hasColors: %d; hasTangents: %d"), (int)hasColors, (int)hasNormals);
+
+	{//why?
 		UE_LOG(JsonLog, Log, TEXT("Generating mesh"));
 		UE_LOG(JsonLog, Log, TEXT("Num vert floats: %d"), jsonMesh.verts.Num());//vertFloats.Num());
 		for(int i = 0; (i + 2) < jsonMesh.verts.Num(); i += 3){
@@ -123,10 +73,6 @@ void MeshBuilder::setupMesh(UStaticMesh *mesh, const JsonMesh &jsonMesh, std::fu
 		UE_LOG(JsonLog, Log, TEXT("Num verts: %d"), newRawMesh.VertexPositions.Num());
 
 		//const auto &normalFloats = jsonMesh.normals;
-		UE_LOG(JsonLog, Log, TEXT("Num normal floats: %d"), jsonMesh.verts.Num());
-		bool hasNormals = jsonMesh.normals.Num() != 0;
-		UE_LOG(JsonLog, Log, TEXT("has normals: %d"), (int)hasNormals);
-		bool hasColors = jsonMesh.colors.Num() > 0;
 
 		const int32 maxUvs = 8;
 		const TArray<float>* uvFloats[maxUvs] = {
@@ -147,6 +93,8 @@ void MeshBuilder::setupMesh(UStaticMesh *mesh, const JsonMesh &jsonMesh, std::fu
 			newRawMesh.WedgeTexCoords[i].SetNum(0);
 
 		newRawMesh.WedgeColors.SetNum(0);
+		newRawMesh.WedgeTangentX.SetNum(0);
+		newRawMesh.WedgeTangentY.SetNum(0);
 		newRawMesh.WedgeTangentZ.SetNum(0);
 
 		UE_LOG(JsonLog, Log, TEXT("Sub meshes: %d"), jsonMesh.subMeshes.Num());
@@ -164,13 +112,15 @@ void MeshBuilder::setupMesh(UStaticMesh *mesh, const JsonMesh &jsonMesh, std::fu
 					auto origIndex = trigs[trigVertIdx];
 					newRawMesh.WedgeIndices.Add(origIndex);
 
-					if (hasNormals){
-						newRawMesh.WedgeTangentZ.Add(
-							unityToUe(
-								getIdxVector3(jsonMesh.normals, origIndex)
-							)
-						);
-					}
+					processTangent(origIndex, jsonMesh.normals, jsonMesh.tangents, hasNormals, hasTangents, 
+						[&](const auto& norm){
+							newRawMesh.WedgeTangentZ.Add(norm);
+						},
+						[&](const auto &tanU, const auto &tanV){
+							newRawMesh.WedgeTangentX.Add(tanU);
+							newRawMesh.WedgeTangentY.Add(tanV);
+						}
+					);
 
 					for(int32 uvIndex = 0; uvIndex < maxUvs; uvIndex++){
 						if (!hasUvs[uvIndex])
@@ -235,8 +185,8 @@ void MeshBuilder::setupMesh(UStaticMesh *mesh, const JsonMesh &jsonMesh, std::fu
 
 	srcModel.RawMeshBulkData->SaveRawMesh(newRawMesh);
 
-	srcModel.BuildSettings.bRecomputeNormals = false;//!hasNormals;//hasNormals
-	srcModel.BuildSettings.bRecomputeTangents = true;
+	srcModel.BuildSettings.bRecomputeNormals = false;//!hasNormals; //Why??
+	srcModel.BuildSettings.bRecomputeTangents = !(hasTangents && hasNormals);//true;
 
 	TArray<FText> buildErrors;
 	mesh->Build(false, &buildErrors);
@@ -244,4 +194,3 @@ void MeshBuilder::setupMesh(UStaticMesh *mesh, const JsonMesh &jsonMesh, std::fu
 		UE_LOG(JsonLog, Error, TEXT("MeshBuildError: %s"), *(err.ToString()));
 	}	
 }
-

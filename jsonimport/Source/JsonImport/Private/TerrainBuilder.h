@@ -42,8 +42,8 @@ protected:
 		std::function<void(UMaterialInstanceConstant *matInst, FStaticParameterSet &statParams)> matInstCallback
 	);
 
-	ULandscapeGrassType* TerrainBuilder::createGrassType(int layerIndex, const FString &terrainDataPth);
-	ULandscapeLayerInfoObject* TerrainBuilder::createTerrainLayerInfo(int layerIndex, bool grassLayer, 
+	ULandscapeGrassType* createGrassType(int layerIndex, const FString &terrainDataPth);
+	ULandscapeLayerInfoObject* createTerrainLayerInfo(int layerIndex, bool grassLayer, 
 		const FString &terrainDataPath);
 	void processFoliageTreeActors(ALandscape *landscape);
 

@@ -7,6 +7,7 @@ namespace SceneExport{
 	public class JsonExternResourceList: JsonValueObject{
 		public List<string> scenes = new List<string>();
 		public List<string> materials = new List<string>();
+		public List<string> skeletons = new List<string>();
 		public List<string> meshes = new List<string>();
 		public List<string> textures = new List<string>();
 		public List<string> prefabs = new List<string>();
@@ -20,6 +21,7 @@ namespace SceneExport{
 			writer.writeKeyVal("prefabs", prefabs);
 			writer.writeKeyVal("terrains", terrains);
 			writer.writeKeyVal("materials", materials);
+			writer.writeKeyVal("skeletons", skeletons);
 			writer.writeKeyVal("meshes", meshes);
 			writer.writeKeyVal("textures", textures);
 			writer.writeKeyVal("cubemaps", cubemaps);

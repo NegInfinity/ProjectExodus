@@ -20,6 +20,7 @@ public:
 	void PluginImportButtonClicked();
 	void PluginTestButtonClicked();
 	void PluginLandscapeTestButtonClicked();
+	void PluginSkinMeshTestButtonClicked();
 	
 private:
 

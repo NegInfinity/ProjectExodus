@@ -45,6 +45,56 @@ namespace SceneExport{
 			}
 			return result;						
 		}
+		
+		static public List<float> toFloatList(this Vector4[] arg){
+			var result = new List<float>();
+			if (arg == null)
+				return result;
+			foreach(var cur in arg){
+				result.Add(cur.x);
+				result.Add(cur.y);
+				result.Add(cur.z);
+				result.Add(cur.w);
+			}
+			return result;
+		}
+
+		static public List<float> toFloatList(this Vector3[] arg){
+			var result = new List<float>();
+			if (arg == null)
+				return result;
+			foreach(var cur in arg){
+				result.Add(cur.x);
+				result.Add(cur.y);
+				result.Add(cur.z);
+			}
+			return result;
+		}
+
+		static public List<float> toFloatList(this Vector2[] arg){
+			var result = new List<float>();
+			if (arg == null)
+				return result;
+			foreach(var cur in arg){
+				result.Add(cur.x);
+				result.Add(cur.y);
+			}
+			return result;
+		}
+
+		static public float[] toFloatArray(this Vector4[] arg){
+			int numValues = 0;
+			if (arg != null)
+				numValues = arg.Length;
+			var result = new float[numValues * 4];
+			for(int i = 0; i < numValues; i++){
+				result[i*4 + 0] = arg[i].x;
+				result[i*4 + 1] = arg[i].y;
+				result[i*4 + 2] = arg[i].z;
+				result[i*4 + 3] = arg[i].w;
+			}
+			return result;				
+		}
 
 		static public float[] toFloatArray(this Vector3[] arg){
 			int numValues = 0;

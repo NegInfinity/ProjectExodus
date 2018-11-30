@@ -45,7 +45,7 @@ namespace SceneExport{
 			}
 			
 			var sharedMesh  = rend.sharedMesh;
-			meshId = resMap.getMeshId(sharedMesh);
+			meshId = resMap.getOrRegMeshId(rend);//resMap.getMeshId(sharedMesh);
 			
 			materials.Clear();
 			var sharedMats = rend.sharedMaterials;

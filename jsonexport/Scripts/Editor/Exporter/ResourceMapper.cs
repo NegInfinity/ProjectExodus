@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using UnityEditor;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SceneExport{
 	public class ResourceMapper{
@@ -10,6 +11,7 @@ namespace SceneExport{
 		public ObjectMapper<Cubemap> cubemaps = new ObjectMapper<Cubemap>();
 		public ObjectMapper<AudioClip> audioClips = new ObjectMapper<AudioClip>();
 		Dictionary<Mesh, List<Material>> meshMaterials = new Dictionary<Mesh, List<Material>>();
+		Dictionary<Mesh, JsonSkeleton> meshSkeletons = new Dictionary<Mesh, JsonSkeleton>();
 		public HashSet<string> resources = new HashSet<string>();
 		
 		public ObjectMapper<TerrainData> terrains = new ObjectMapper<TerrainData>();
@@ -75,6 +77,13 @@ namespace SceneExport{
 			return meshes.getId(obj, false);
 		}
 		
+		public int getSkeletonId(Mesh obj){
+			JsonSkeleton skel = null;
+			if (!meshSkeletons.TryGetValue(obj, out skel))
+				return -1;
+			return skel.id;
+		}
+		
 		public int getMaterialId(Material obj){
 			return materials.getId(obj, true);
 		}
@@ -110,42 +119,7 @@ namespace SceneExport{
 					registerGameObjectData(child.gameObject);
 			}
 		}
-		
-		public void registerMesh(Mesh mesh, GameObject meshObj){
-			meshes.getId(mesh, true, (newMesh) => {
-				if (meshMaterials.ContainsKey(newMesh))
-					return;
-				var r = meshObj.GetComponent<Renderer>();
-				if (r){
-					var matList = new List<Material>(r.sharedMaterials);					
-					meshMaterials[mesh] = matList;
-					foreach(var cur in matList){
-						registerMaterial(cur);
-					}
-				}
-			});	
-		}
-		
-		public void registerPrefab(GameObject prefab){
-			if (!prefab)
-				return;
-			var prefabType = PrefabUtility.GetPrefabType(prefab);
-			if ((prefabType != PrefabType.Prefab) && (prefabType != PrefabType.ModelPrefab))
-				return;
-				
-			var rootPrefab = PrefabUtility.FindPrefabRoot(prefab);
-			registerGameObjectData(rootPrefab);
-			
-			getPrefabObjectId(prefab, true);
-		}
-		
-		public void registerTerrainData(TerrainData data){
-			terrains.getId(data, true, (newData) => {
-				JsonTerrainData.registerLinkedData(newData, this);
-				return;
-			});
-		}
-		
+
 		int getOrRegMeshId(GameObject obj, Mesh mesh){
 			if (!mesh)
 				return ExportUtility.invalidId;
@@ -159,16 +133,28 @@ namespace SceneExport{
 			return result;
 		}
 		
-		public int getOrRegMeshId(GameObject obj){
-			//int result = -1;
-			var meshFilter = obj.GetComponent<MeshFilter>();
-			if (!meshFilter)
+		public int getOrRegMeshId(SkinnedMeshRenderer meshRend){
+			var mesh = meshRend.sharedMesh;
+			if (!mesh)
 				return ExportUtility.invalidId;
-
+				
+			if (!meshSkeletons.ContainsKey(mesh)){
+				var skel = JsonSkeleton.extractOriginalSkeleton(meshRend);
+				if (skel != null){
+					skel.id = meshSkeletons.Count;
+					meshSkeletons.Add(mesh, skel);
+				}
+			}
+			
+			return getOrRegMeshId(meshRend.gameObject, mesh);
+		}
+		
+		public int getOrRegMeshId(MeshFilter meshFilter){
 			var mesh = meshFilter.sharedMesh;
 			if (!mesh)
 				return ExportUtility.invalidId;
-			return getOrRegMeshId(obj, mesh);
+				
+			return getOrRegMeshId(meshFilter.gameObject, mesh);
 		}
 		
 		public int getPrefabObjectId(GameObject obj, bool createMissing){
@@ -193,7 +179,12 @@ namespace SceneExport{
 			var newMapper = new GameObjectMapper();
 			newMapper.gatherObjectIds(rootPrefab);
 			foreach(var curObj in newMapper.objectList){
-				getOrRegMeshId(curObj);
+				foreach(var meshFilter in curObj.GetComponents<MeshFilter>()){
+					getOrRegMeshId(meshFilter);
+				}
+				foreach(var meshRend in curObj.GetComponents<SkinnedMeshRenderer>()){
+					getOrRegMeshId(meshRend);
+				}
 			}
 			prefabObjects.Add(rootPrefab, newMapper);
 		}
@@ -332,6 +323,11 @@ namespace SceneExport{
 			result.audioClips = saveResourcesToPath(baseDir, audioClips.objectList, 
 				(objData) => new JsonAudioClip(objData, this), (obj) => obj.name, "audioClip", showGui);
 				
+			var skeletons = meshSkeletons.Values.ToList();
+			skeletons.Sort((x, y) => x.id.CompareTo(y.id));
+			result.skeletons = saveResourcesToPath(baseDir, skeletons, 
+				(objData) => objData, (obj) => obj.name, "skeleton", showGui);			
+				
 			var prefabList = makePrefabList();
 			result.prefabs = saveResourcesToPath(baseDir, prefabList, 
 				(objData) => objData, (obj) => obj.name, "prefab", showGui);
@@ -342,24 +338,6 @@ namespace SceneExport{
 			
 			return result;
 		}
-
-		/*		
-		public JsonExternResourceList makeExternResourceList(string baseDir){
-			var result = new JsonExternResourceList();
-			
-			result.terrains = makeResourcePaths(baseDir, terrains.objectList.Count, "terrainData");
-			result.meshes = makeResourcePaths(baseDir, meshes.objectList.Count, "mesh");
-			result.materials = makeResourcePaths(baseDir, materials.objectList.Count, "material");
-			result.textures = makeResourcePaths(baseDir, textures.objectList.Count, "texture");
-			result.cubemaps = makeResourcePaths(baseDir, cubemaps.objectList.Count, "cubemap");
-			result.audioClips = makeResourcePaths(baseDir, audioClips.objectList.Count, "audioClip");
-			result.prefabs = makeResourcePaths(baseDir, prefabs.objectMap.Count, "prefab");
-			result.resources = new List<string>(resources);
-			result.resources.Sort();
-			
-			return result;
-		}
-		*/
 		
 		public JsonResourceList makeResourceList(){
 			var result = new JsonResourceList();

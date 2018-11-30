@@ -27,6 +27,9 @@ void JsonMesh::load(JsonObjPtr data){
 	//JSON_GET_VAR(data, normals);
 	normals = getFloatArray(data, "normals", true);
 	logValue(TEXT("normals: "), normals);
+
+	tangents = getFloatArray(data, "tangents", true);
+	logValue(TEXT("tangents: "), tangents);
 	//JSON_GET_VAR(data, uv0);
 	//JSON_GET_VAR(data, uv1);
 	//JSON_GET_VAR(data, uv2);
@@ -58,6 +61,8 @@ void JsonMesh::load(JsonObjPtr data){
 	//JSON_GET_VAR(data, boneIndexes);
 	boneIndexes = getIntArray(data, "boneIndexes", true);
 	logValue(TEXT("boneIndexes: "), boneIndexes);
+
+	JSON_GET_VAR(data, origSkeletonId);
 
 	JSON_GET_VAR(data, blendShapeCount);
 	getJsonObjArray(data, blendShapes, "blendShapes", blendShapeCount == 0);

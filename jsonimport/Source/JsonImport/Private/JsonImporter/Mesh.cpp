@@ -25,10 +25,10 @@
 	
 #include "RawMesh.h"
 #include "Engine/Classes/Engine/SkeletalMesh.h"
+#include "Runtime/Engine/Classes/Animation/Skeleton.h"
 
 #include "JsonObjects/JsonMesh.h"
 #include "UnrealUtilities.h"
-#include "JsonObjects/converters.h"
 
 #include "DesktopPlatformModule.h"
 #include "MeshBuilder.h"
@@ -42,7 +42,7 @@ void JsonImporter::importStaticMesh(const JsonMesh &jsonMesh, int32 meshId){
 	auto mesh = createAssetObject<UStaticMesh>(unrealMeshName, &desiredDir, this, 
 		[&](UStaticMesh *mesh){
 			MeshBuilder meshBuilder;
-			meshBuilder.setupMesh(mesh, jsonMesh, [&](auto &materials){
+			meshBuilder.setupStaticMesh(mesh, jsonMesh, [&](auto &materials){
 				materials.Empty();
 				for(auto matId: jsonMesh.materials){
 					UMaterialInterface *material = loadMaterialInterface(matId);
@@ -62,13 +62,21 @@ void JsonImporter::importStaticMesh(const JsonMesh &jsonMesh, int32 meshId){
 }
 
 void JsonImporter::importSkeletalMesh(const JsonMesh &jsonMesh, int32 meshId){
+	auto skelId = jsonMesh.origSkeletonId;
+	auto foundSkeleton = getSkeleton(skelId);
+	if (!foundSkeleton){
+		UE_LOG(JsonLog, Warning, TEXT("Could not find skeleton %d"), skelId);
+	}
+
 	auto unrealMeshName = jsonMesh.makeUnrealMeshName() + TEXT("_Skin");
 	auto desiredDir = FPaths::GetPath(jsonMesh.path);
+
+	USkeleton *skeleton = nullptr;
 
 	auto mesh = createAssetObject<USkeletalMesh>(unrealMeshName, &desiredDir, this, 
 		[&](USkeletalMesh *mesh){
 			MeshBuilder meshBuilder;
-			meshBuilder.setupMesh(mesh, jsonMesh, [&](auto &materials){
+			meshBuilder.setupSkeletalMesh(mesh, jsonMesh, this, [&](auto &materials){
 				materials.Empty();
 				for(auto matId: jsonMesh.materials){
 					UMaterialInterface *material = loadMaterialInterface(matId);
@@ -80,23 +88,6 @@ void JsonImporter::importSkeletalMesh(const JsonMesh &jsonMesh, int32 meshId){
 			return NewObject<USkeletalMesh>(pkg, FName(*objName), RF_Standalone|RF_Public);
 		}, RF_Standalone|RF_Public
 	);
-	/*
-	auto mesh = createAssetObject<UStaticMesh>(unrealMeshName, &desiredDir, this, 
-		[&](UStaticMesh *mesh){
-			MeshBuilder meshBuilder;
-			meshBuilder.setupMesh(mesh, jsonMesh, [&](auto &materials){
-				materials.Empty();
-				for(auto matId: jsonMesh.materials){
-					UMaterialInterface *material = loadMaterialInterface(matId);
-					materials.Add(material);
-				}
-			});
-		},
-		[&](auto pkg, auto objName){
-			return NewObject<UStaticMesh>(pkg, FName(*objName), RF_Standalone|RF_Public);
-		}, RF_Standalone|RF_Public
-	);
-	*/
 
 	if (mesh){
 		auto meshPath = mesh->GetPathName();
@@ -195,4 +186,8 @@ JsonMesh JsonImporter::loadJsonMesh(int32 id) const{
 
 	auto meshData = loadExternResourceFromFile(externResources.meshes[id]);
 	return JsonMesh(meshData);
+}
+
+const JsonSkeleton* JsonImporter::getSkeleton(int32 id) const{
+	return jsonSkeletons.Find(id);
 }

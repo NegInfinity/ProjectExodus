@@ -7,6 +7,7 @@ using namespace JsonObjects;
 void JsonExternResourceList::load(JsonObjPtr data){
 	JSON_GET_VAR(data, scenes);
 	JSON_GET_VAR(data, materials);
+	JSON_GET_VAR(data, skeletons);
 	JSON_GET_VAR(data, meshes);
 	JSON_GET_VAR(data, textures);
 	JSON_GET_VAR(data, prefabs);

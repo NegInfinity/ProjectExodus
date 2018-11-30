@@ -141,7 +141,10 @@ namespace SceneExport{
 				ExportUtility.convertComponentsList<SkinnedMeshRenderer, JsonSkinRendererData>(obj, 
 					(c) => new JsonSkinRendererData(c, objMap, resMap));
 					
-			mesh = resMap.getOrRegMeshId(obj);
+			var meshFilter = obj.GetComponent<MeshFilter>();
+			if (meshFilter){
+				mesh = resMap.getOrRegMeshId(meshFilter);
+			}
 
 			foreach(Transform curChild in obj.transform){
 				var childId = objMap.getId(curChild.gameObject); 
