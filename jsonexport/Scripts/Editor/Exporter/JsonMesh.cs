@@ -97,7 +97,7 @@ namespace SceneExport{
 		public List<float> boneWeights = new List<float>();
 		public List<int> boneIndexes = new List<int>();
 		
-		public int originalSkeletonId = -1;
+		public int defaultSkeletonId = -1;
 		//public JsonSkeleton skeleton = new JsonSkeleton();			
 		
 		public int blendShapeCount = 0;
@@ -146,7 +146,7 @@ namespace SceneExport{
 			
 			writer.writeOptionalKeyVal("boneWeights", boneWeights, 4 * vertsPerLine);
 			writer.writeOptionalKeyVal("boneIndexes", boneIndexes, 4 * vertsPerLine);
-			writer.writeKeyVal("origSkeletonId", originalSkeletonId);
+			writer.writeKeyVal("origSkeletonId", defaultSkeletonId);
 			
 			writer.writeKeyVal("blendShapeCount", blendShapeCount);			
 			writer.writeOptionalKeyVal("blendShapes", blendShapes);			
@@ -206,7 +206,7 @@ namespace SceneExport{
 			
 			boneWeights.Clear();
 			boneIndexes.Clear();
-			originalSkeletonId = exp.getSkeletonId(mesh);
+			defaultSkeletonId = exp.getDefaultSkeletonId(mesh);
 			
 			var srcWeights = mesh.boneWeights;
 			if ((srcWeights != null) && (srcWeights.Length > 0)){

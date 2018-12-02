@@ -10,29 +10,32 @@ using namespace UnrealUtilities;
 /*
 	Amusingly, the most useful file in figuring out how skeletal mesh configuraiton is supposed to work 
 */
-void MeshBuilder::setupSkeletalMesh(USkeletalMesh *mesh, const JsonMesh &jsonMesh, const JsonImporter *importer, std::function<void(TArray<FSkeletalMaterial> &meshMaterials)> materialSetup){
-	check(mesh);
+void MeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonMesh &jsonMesh, const JsonImporter *importer, std::function<void(TArray<FSkeletalMaterial> &meshMaterials)> materialSetup){
+	check(skelMesh);
 	check(importer);
 	
-	auto importModel = mesh->GetImportedModel();
+	auto importModel = skelMesh->GetImportedModel();
 	check(importModel->LODModels.Num() == 0);
 	importModel->LODModels.Empty();
 
 	new(importModel->LODModels)FSkeletalMeshLODModel();//????
 	//I suppose it does same thing as calling new and then Add()
 	auto &lodModel = importModel->LODModels[0];
-	auto &lodInfo = mesh->AddLODInfo();
+
+	auto hasNormals = jsonMesh.normals.Num() != 0;
+	auto hasColors = jsonMesh.colors.Num() != 0;
+	auto hasTangents = jsonMesh.tangents.Num() != 0;
+	auto numTexCoords = jsonMesh.getNumTexCoords();
+
+	skelMesh->bUseFullPrecisionUVs = true;
+	skelMesh->bHasVertexColors = hasColors;
+	skelMesh->bHasBeenSimplified = false;
+
+	lodModel.NumTexCoords = numTexCoords;
 
 	if (materialSetup){
-		materialSetup(mesh->Materials);
+		materialSetup(skelMesh->Materials);
 	}
-
-	for (int i = 0; i < mesh->Materials.Num(); i++){
-		lodInfo.LODMaterialMap.Add(i);
-	}
-
-	auto& refSkeleton = mesh->RefSkeleton;
-	refSkeleton.Empty();
 
 	auto skelId = jsonMesh.origSkeletonId;
 	if (skelId < 0){
@@ -46,30 +49,28 @@ void MeshBuilder::setupSkeletalMesh(USkeletalMesh *mesh, const JsonMesh &jsonMes
 		return;
 	}
 
-	FReferenceSkeletonModifier refSkelModifier(refSkeleton, nullptr);
+	auto& refSkeleton = skelMesh->RefSkeleton;
+	refSkeleton.Empty();
+	{
+		FReferenceSkeletonModifier refSkelModifier(refSkeleton, nullptr);
 
-	for(int boneIndex = 0; boneIndex < jsonSkel->bones.Num(); boneIndex++){
-		lodModel.RequiredBones.Add(boneIndex);
-		lodModel.ActiveBoneIndices.Add(boneIndex);
+		for(int boneIndex = 0; boneIndex < jsonSkel->bones.Num(); boneIndex++){
+			//lodModel.RequiredBones.Add(boneIndex);
+			//lodModel.ActiveBoneIndices.Add(boneIndex);
 
-		const auto &srcBone = jsonSkel->bones[boneIndex];
-		FName boneName = *srcBone.name;
+			const auto &srcBone = jsonSkel->bones[boneIndex];
+			auto parentBoneIndex = srcBone.parent >= 0 ? srcBone.parent: INDEX_NONE;
+			auto boneInfo = FMeshBoneInfo(FName(*srcBone.name), srcBone.name, parentBoneIndex);
 
-		 auto boneInfo = FMeshBoneInfo(FName(*srcBone.name), srcBone.name, srcBone.parent);
+			auto unityPose = srcBone.pose;
+			auto unrealPose = unityWorldToUe(unityPose);
+			FTransform boneTransform;
+			//auto boneTransform = unityWorldToUe(srcBone.pose);
+			boneTransform.SetFromMatrix(unrealPose);
 
-		auto unityPose = srcBone.pose;
-		auto unrealPose = unityWorldToUe(unityPose);
-		FTransform boneTransform;
-		//auto boneTransform = unityWorldToUe(srcBone.pose);
-		boneTransform.SetFromMatrix(unrealPose);
-
-		refSkelModifier.Add(boneInfo, boneTransform);
+			refSkelModifier.Add(boneInfo, boneTransform);
+		}
 	}
-
-	auto hasNormals = jsonMesh.normals.Num() != 0;
-	auto hasColors = jsonMesh.colors.Num() != 0;
-	auto hasTangents = jsonMesh.tangents.Num() != 0;
-	auto numTexCoords = jsonMesh.getNumTexCoords();
 
 	TArray<SkeletalMeshImportData::FVertInfluence> meshInfluences;
 	TArray<SkeletalMeshImportData::FMeshWedge> meshWedges;
@@ -79,30 +80,42 @@ void MeshBuilder::setupSkeletalMesh(USkeletalMesh *mesh, const JsonMesh &jsonMes
 	TArray<FText> buildWarnMessages;
 	TArray<FName> buildWarnNames;
 
-	for(int i = 0; i < jsonMesh.vertexCount; i++){
-		auto srcVert = getIdxVector3(jsonMesh.verts, i);
+	const int jsonInfluencesPerVertex = 4;
+	for(int vertIndex = 0; vertIndex < jsonMesh.vertexCount; vertIndex++){
+		auto srcVert = getIdxVector3(jsonMesh.verts, vertIndex);
 		meshPoints.Add(unityPosToUe(srcVert));
-		pointToOriginalMap.Add(i);
+		pointToOriginalMap.Add(vertIndex);
+
+		for(int inflIndex = 0; inflIndex < jsonInfluencesPerVertex; inflIndex++){
+			auto dataOffset = inflIndex + vertIndex * jsonInfluencesPerVertex;
+			auto boneIdx = jsonMesh.boneIndexes[dataOffset];
+			auto boneWeight = jsonMesh.boneWeights[dataOffset];
+			if (boneWeight == 0.0f)
+				continue;
+			auto &dstInfl = meshInfluences.AddDefaulted_GetRef();
+			dstInfl.VertIndex = boneIdx;
+			dstInfl.Weight = boneWeight;
+			dstInfl.VertIndex = vertIndex;
+		}
 	}
 
 	//should I just say "screw it" and load it via renderable sections? It would certainly work...
+	//Nope, idea dropped. There are issues with renderable sections approach - incorrect center is one of them.
 
-	//influences?
 	for(int subMeshIndex = 0; subMeshIndex < jsonMesh.subMeshes.Num(); subMeshIndex++){
 		const auto &curSubMesh = jsonMesh.subMeshes[subMeshIndex];
-		for(int faceVertOffset = 0; (faceVertOffset + 2) < curSubMesh.triangles.Num(); faceVertOffset += 3){
+		for(int vertIndexOffset = 0; (vertIndexOffset + 2) < curSubMesh.triangles.Num(); vertIndexOffset += 3){
 			auto& dstFace = meshFaces.AddDefaulted_GetRef();
 			dstFace.MeshMaterialIndex = subMeshIndex;
+			dstFace.SmoothingGroups = 0;
 
-			auto processFaceVertex = [&](int faceVertDstIdx, int faceVertSrcIdx){
-				auto srcIdx = faceVertOffset + faceVertSrcIdx;
+			auto processFaceVertex = [&](int dstFaceIdx, int srcFaceIdx){
+				auto srcIdx = vertIndexOffset + srcFaceIdx;
 
 				auto curWedgeIndex = meshWedges.Num();
 
 				auto& dstWedge = meshWedges.AddDefaulted_GetRef();
-				//dstWedge.MatIndex = subMeshIndex;
 				auto srcVertIdx = curSubMesh.triangles[srcIdx];
-				//dstWedge.VertexIndex = srcVertIdx;
 				dstWedge.iVertex = srcVertIdx;
 
 				if (hasColors)
@@ -117,20 +130,17 @@ void MeshBuilder::setupSkeletalMesh(USkeletalMesh *mesh, const JsonMesh &jsonMes
 				if (numTexCoords >= 4)
 					dstWedge.UVs[3] = unityUvToUnreal(getIdxVector2(jsonMesh.uv3, srcVertIdx));
 
-				///this needs to be moved into a subroutine...
-
 				processTangent(srcVertIdx, jsonMesh.normals, jsonMesh.tangents, hasNormals, hasTangents, 
 					[&](const auto &norm){
-						dstFace.TangentZ[faceVertDstIdx] = norm;
+						dstFace.TangentZ[dstFaceIdx] = norm;
 					},
 					[&](const auto &tanU, const auto &tanV){
-						dstFace.TangentX[faceVertDstIdx] = tanU;
-						dstFace.TangentY[faceVertDstIdx] = tanV;
+						dstFace.TangentX[dstFaceIdx] = tanU;
+						dstFace.TangentY[dstFaceIdx] = tanV;
 					}
 				);
 
-				//dstFace.WedgeIndex[faceVertDstIdx] = curWedgeIndex;
-				dstFace.iWedge[faceVertDstIdx] = curWedgeIndex;
+				dstFace.iWedge[dstFaceIdx] = curWedgeIndex;
 			};
 
 			processFaceVertex(0, 0);
@@ -138,10 +148,6 @@ void MeshBuilder::setupSkeletalMesh(USkeletalMesh *mesh, const JsonMesh &jsonMes
 			processFaceVertex(2, 1);
 		}
 	}
-
-	mesh->Skeleton = NewObject<USkeleton>();
-	mesh->Skeleton->MergeAllBonesToBoneTree(mesh);
-	mesh->PostLoad();
 
 	IMeshUtilities::MeshBuildOptions buildOptions;
 	buildOptions.bComputeNormals = !hasNormals;
@@ -159,22 +165,13 @@ void MeshBuilder::setupSkeletalMesh(USkeletalMesh *mesh, const JsonMesh &jsonMes
 		UE_LOG(JsonLog, Warning, TEXT("Warning name: %s"), *warn.ToString());
 	}
 
-#if 0
-#endif
+	auto skeleton = NewObject<USkeleton>(skelMesh->GetOuter());
+	skeleton->MergeAllBonesToBoneTree(skelMesh);
+	skelMesh->Skeleton = skeleton;
+	FAssetRegistryModule::AssetCreated(skeleton);
+	skeleton->MarkPackageDirty();
 
-	/*
-	meshUtils.BuildSkeletalMesh( 
-		*NewModel, RefSkeleton, MeshData.Influences, MeshData.Wedges, MeshData.Faces, MeshData.Points, DummyMap, Options);*/
-
-	//NewModel->NumTexCoords = MeshData.TexCoordCount;
-
-	/*
-	if (materialSetup){
-		materialSetup(mesh->Materials);
-	}
-
-	*/
-}
-
-void MeshBuilder::setupSkeleton(USkeleton *skeleton, const JsonSkeleton &jsonSkel){
+	skelMesh->PostEditChange();
+	skelMesh->MarkPackageDirty();
+	skelMesh->PostLoad();
 }

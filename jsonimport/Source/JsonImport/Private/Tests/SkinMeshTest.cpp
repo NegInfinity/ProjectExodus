@@ -152,6 +152,7 @@ static void fillTestSkinMeshDirect(USkeletalMesh* skelMesh){
 	skeleton->SetFlags(RF_Public|RF_Standalone);
 	skeleton->MergeAllBonesToBoneTree(skelMesh);
 	skeleton->MarkPackageDirty();
+	//FassetDatabase
 
 	skelMesh->Skeleton = skeleton;
 	
@@ -329,6 +330,7 @@ static void fillTestSkinMeshWithMeshTools(USkeletalMesh* skelMesh){
 	skeleton->SetFlags(RF_Public|RF_Standalone);
 	skeleton->MergeAllBonesToBoneTree(skelMesh);
 	skelMesh->Skeleton = skeleton;
+	FAssetRegistryModule::AssetCreated(skeleton);
 	skeleton->MarkPackageDirty();
 	
 	skelMesh->PostEditChange();

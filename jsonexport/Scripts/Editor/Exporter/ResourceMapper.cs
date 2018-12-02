@@ -10,8 +10,11 @@ namespace SceneExport{
 		public ObjectMapper<Material> materials = new ObjectMapper<Material>();
 		public ObjectMapper<Cubemap> cubemaps = new ObjectMapper<Cubemap>();
 		public ObjectMapper<AudioClip> audioClips = new ObjectMapper<AudioClip>();
+		public ObjectMapper<JsonSkeleton> skeletons = new ObjectMapper<JsonSkeleton>();
+
+		Dictionary<Mesh, int> defaultSkeletonIds = new Dictionary<Mesh, int>();		
 		Dictionary<Mesh, List<Material>> meshMaterials = new Dictionary<Mesh, List<Material>>();
-		Dictionary<Mesh, JsonSkeleton> meshSkeletons = new Dictionary<Mesh, JsonSkeleton>();
+		
 		public HashSet<string> resources = new HashSet<string>();
 		
 		public ObjectMapper<TerrainData> terrains = new ObjectMapper<TerrainData>();
@@ -77,11 +80,14 @@ namespace SceneExport{
 			return meshes.getId(obj, false);
 		}
 		
-		public int getSkeletonId(Mesh obj){
+		public int getDefaultSkeletonId(Mesh obj){
+			return defaultSkeletonIds.getValOrDefault(obj, -1);
+			/*
 			JsonSkeleton skel = null;
 			if (!meshSkeletons.TryGetValue(obj, out skel))
 				return -1;
 			return skel.id;
+			*/
 		}
 		
 		public int getMaterialId(Material obj){
@@ -138,11 +144,12 @@ namespace SceneExport{
 			if (!mesh)
 				return ExportUtility.invalidId;
 				
-			if (!meshSkeletons.ContainsKey(mesh)){
-				var skel = JsonSkeleton.extractOriginalSkeleton(meshRend);
+			if (!defaultSkeletonIds.ContainsKey(mesh)){
+				var skel = JsonSkeletonBuilder.extractOriginalSkeleton(meshRend, null);
 				if (skel != null){
-					skel.id = meshSkeletons.Count;
-					meshSkeletons.Add(mesh, skel);
+					var skelId = skeletons.registerObject(skel);
+					skel.id = skelId;
+					defaultSkeletonIds.Add(mesh, skelId);
 				}
 			}
 			
@@ -323,9 +330,9 @@ namespace SceneExport{
 			result.audioClips = saveResourcesToPath(baseDir, audioClips.objectList, 
 				(objData) => new JsonAudioClip(objData, this), (obj) => obj.name, "audioClip", showGui);
 				
-			var skeletons = meshSkeletons.Values.ToList();
-			skeletons.Sort((x, y) => x.id.CompareTo(y.id));
-			result.skeletons = saveResourcesToPath(baseDir, skeletons, 
+			//var skeletons = meshSkeletons.Values.ToList();
+			//skeletons.Sort((x, y) => x.id.CompareTo(y.id));
+			result.skeletons = saveResourcesToPath(baseDir, skeletons.objectList, 
 				(objData) => objData, (obj) => obj.name, "skeleton", showGui);			
 				
 			var prefabList = makePrefabList();

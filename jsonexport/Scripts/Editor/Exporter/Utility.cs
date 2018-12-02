@@ -1,7 +1,27 @@
 ﻿using UnityEngine;
+using System.Collections.Generic;
 
 namespace SceneExport{
 	public static class Utility{
+		/*
+		public static Value getValueGenerate<Key, Value, Dict>(this Dict dict, Key key, System.Func<Value> generator)
+				where Dict: IDictionary<Key, Value>{*/ //Bah
+		public static Value getValueGenerate<Key, Value>(this IDictionary<Key, Value> dict, Key key, System.Func<Value> generator){
+			Value result;
+			if (dict.TryGetValue(key, out result))
+				return result;
+			return generator();
+		}
+		
+		public static Value getValueSetGenerate<Key, Value>(this IDictionary<Key, Value> dict, Key key, System.Func<Value> generator){
+			Value result;
+			if (dict.TryGetValue(key, out result))
+				return result;
+			var newVal = generator();
+			dict.Add(key, newVal);
+			return newVal;
+		}
+	
 		public static string toJsonString<T>(this T arg) where T: IFastJsonValue{
 			if (arg == null)
 				return string.Empty;

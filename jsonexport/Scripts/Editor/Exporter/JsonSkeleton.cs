@@ -12,7 +12,34 @@ namespace SceneExport{
 			return (bones == null) || (bones.Count == 0);
 		}
 		
-		public List<JsonSkinBone> bones = new List<JsonSkinBone>();
+		[System.Serializable]
+		public class Bone: JsonValueObject{
+			public int id = -1;
+			public int parentId = -1;
+			public string name = "";
+			public Matrix4x4 world = Matrix4x4.identity;
+			public Matrix4x4 local = Matrix4x4.identity;
+			public Matrix4x4 rootRelative = Matrix4x4.identity;
+			public override void writeJsonObjectFields(FastJsonWriter writer){
+				writer.writeKeyVal("name", name);
+				writer.writeKeyVal("id", id);
+				writer.writeKeyVal("parentId", parentId);
+				writer.writeKeyVal("world", world);
+				writer.writeKeyVal("local", local);
+				writer.writeKeyVal("rootRelative", rootRelative);
+			}
+
+			public Bone(string name_, int id_, int parentId_, Matrix4x4 world_, Matrix4x4 local_, Matrix4x4 rootRelative_){
+				name = name_;
+				id = id_;
+				parentId = parentId_;
+				world = world_;
+				local = local_;
+				rootRelative = rootRelative_;
+			}	
+		}
+		
+		public List<Bone> bones = new List<Bone>();
 		
 		public override void writeJsonObjectFields(FastJsonWriter writer){
 			writer.writeKeyVal("id", id);
@@ -20,68 +47,54 @@ namespace SceneExport{
 			writer.writeKeyVal("bones", bones);
 		}
 		
-		public static JsonSkeleton extractOriginalSkeleton(SkinnedMeshRenderer skinRend){
-			if (!skinRend)
-				throw new System.ArgumentNullException("skinRend");
+		public void clear(){
+			bones.Clear();
+			name = "";
+			id = ExportUtility.invalidId;
+		}
+		
+		public void assignFrom<Container>(Transform rootTransform, List<Transform> transforms) 
+				where Container: IEnumerable<Transform>{
+			var mapper = new ObjectMapper<Transform>();
+			foreach(var cur in transforms){
+				mapper.registerObject(cur);
+			}
+			assignFrom(rootTransform, mapper);
+		}
+		
+		public void assignFrom(Transform rootTransform, ObjectMapper<Transform> transforms){
+			if (!rootTransform)
+				throw new System.ArgumentNullException("rootTransform");
+			if (transforms == null)
+				throw new System.ArgumentNullException("transforms");
+			clear();
+			
+			var invRootMatrix = rootTransform.worldToLocalMatrix;
+			
+			for(int boneIndex = 0; boneIndex < transforms.objectList.Count; boneIndex++){
+				var curBone = transforms.objectList[boneIndex];
+				var parentBone = curBone.parent;
+				var parentId = transforms.findId(parentBone);///why, why, WHY can't I have const methods...
+				var worldMatrix = curBone.localToWorldMatrix;
+				var localMatrix = worldMatrix;
+				var rootRelativeMatrix = invRootMatrix * worldMatrix;
+				if (parentBone){
+					var invParent = parentBone.worldToLocalMatrix;
+					localMatrix = invParent * worldMatrix;
+				}
 				
-			/*
-			//Aaaaand nope. Can't do that.
-			
-			var prefabObj = PrefabUtility.GetPrefabObject(skinRend);
-			var prefabSkinRend = prefabObj as SkinnedMeshRenderer;
-			
-			if (!prefabSkinRend)
-				return null;
-			var mesh = skinRend.sharedMesh;
-			*/
-			
-			return new JsonSkeleton(skinRend.sharedMesh, skinRend);			
+				var newBone = new Bone(curBone.name, boneIndex, parentId, worldMatrix, localMatrix, rootRelativeMatrix);
+				bones.Add(newBone);
+			}			
+		}
+		
+		public JsonSkeleton(string name_, int id_, Transform rootTransform, ObjectMapper<Transform> transforms){
+			name = name_;
+			id = id_;
+			assignFrom(rootTransform, transforms);
 		}
 		
 		public JsonSkeleton(){
-		}
-		
-		public JsonSkeleton(Mesh skinMesh, SkinnedMeshRenderer skinRend, int id_ = -1){
-			id = id_;
-			if (!skinMesh)
-				throw new System.ArgumentNullException("skinMesh");
-			if (!skinRend)
-				throw new System.ArgumentException("skinRend");
-			name = skinMesh.name;
-			//meshId = resMap.getMeshId(skinMesh);
-			
-			var boneMap = new Dictionary<Transform, int>();
-			var skinBones = skinRend.bones;
-			for(int i = 0; i < skinBones.Length; i++){
-				var bone = skinBones[i];
-				boneMap.Add(bone, i);
-			}
-			
-			bones.Clear();
-			var skinPoses = skinMesh.bindposes;
-			if (skinBones.Length != skinPoses.Length){
-				Debug.LogErrorFormat("Skin bones and skin poses length mismatch while processing skeleton for skinMesh \"{0}\"",
-					skinMesh.name);
-				throw new System.ArgumentException("Bone and skin poses mismatch");
-			}
-			
-			for(int i = 0; i < skinBones.Length; i++){
-				var skinBone = skinBones[i];
-				if (!skinBone){
-					bones.Add(new JsonSkinBone());
-					continue;
-				}
-				var parent = skinBone.parent;
-				var parentIndex = -1;
-				if (!boneMap.TryGetValue(parent, out parentIndex))
-					parentIndex = -1;
-				
-				Matrix4x4 bindPose = Matrix4x4.identity;
-				if (i < skinPoses.Length){
-					bindPose = skinPoses[i];
-				}
-				bones.Add(new JsonSkinBone(skinBone.name, bindPose, parentIndex));
-			}
-		}
+		}		
 	}
 }
