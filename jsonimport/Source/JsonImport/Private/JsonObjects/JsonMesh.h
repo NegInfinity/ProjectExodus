@@ -79,7 +79,8 @@ public:
 
 	FloatArray boneWeights;
 	IntArray boneIndexes;
-	int origSkeletonId = -1;
+	int defaultSkeletonId = -1;
+	StringArray defaultBoneNames;
 
 	int blendShapeCount = 0;
 	TArray<JsonBlendShape> blendShapes;

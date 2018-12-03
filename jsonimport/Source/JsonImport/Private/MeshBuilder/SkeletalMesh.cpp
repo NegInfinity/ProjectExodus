@@ -39,7 +39,7 @@ void MeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonMesh &jso
 		materialSetup(skelMesh->Materials);
 	}
 
-	auto skelId = jsonMesh.origSkeletonId;
+	auto skelId = jsonMesh.defaultSkeletonId;
 	if (skelId < 0){
 		UE_LOG(JsonLog, Warning, TEXT("Skeleton not found on skinned mesh \"%s\"(%d)"), *jsonMesh.name, jsonMesh.id);
 		return;
@@ -50,6 +50,32 @@ void MeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonMesh &jso
 		UE_LOG(JsonLog, Warning, TEXT("Json skeleton not found on \"%s\"(%d), skeletonid: %d"), *jsonMesh.name, jsonMesh.id, skelId);
 		return;
 	}
+
+	//TMap<FString, int> mappedBoneNames;
+	TMap<int, int> meshToSkeletonBoneMap;
+	for(int boneIndex = 0; boneIndex < jsonMesh.defaultBoneNames.Num(); boneIndex++){
+		const auto &curName = jsonMesh.defaultBoneNames[boneIndex];
+		/*
+		if (curName.IsEmpty()){
+			UE_LOG(JsonLog, Warning, TEXT("Invalid bone name #%d on mesh \"%s\""), 
+				boneIndex, *jsonMesh.name);
+			continue;
+		}
+		*/
+		const auto skeletonBoneIndex = jsonSkel->findBoneIndex(curName);
+		if (skeletonBoneIndex < 0){
+			UE_LOG(JsonLog, Warning, TEXT("Bone \"%s\" not found while processing mesh \"%s\""), 
+				*curName, *jsonMesh.name);
+			continue;
+		}
+		//mappedBoneNames.Add(curName, skeletonBoneIndex);
+		meshToSkeletonBoneMap.Add(boneIndex, skeletonBoneIndex);
+	}
+	/*
+	for(const auto& curName: jsonSkel->defaultBoneNames){
+
+		mappedNames.Add(cur, 
+	}*/
 
 	auto& refSkeleton = skelMesh->RefSkeleton;
 	refSkeleton.Empty();
@@ -123,15 +149,33 @@ void MeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonMesh &jso
 
 		for(int inflIndex = 0; inflIndex < jsonInfluencesPerVertex; inflIndex++){
 			auto dataOffset = inflIndex + vertIndex * jsonInfluencesPerVertex;
-			auto boneIdx = jsonMesh.boneIndexes[dataOffset]; 
+			auto meshBoneIdx = jsonMesh.boneIndexes[dataOffset]; 
 			auto boneWeight = jsonMesh.boneWeights[dataOffset];
-			if (boneWeight == 0.0f)
-				continue;
+			#if 0
+			/*if (boneWeight == 0.0f)
+				continue;*/
+			#endif
 			auto &dstInfl = meshInfluences.AddDefaulted_GetRef();
-			dstInfl.VertIndex = boneIdx;
+			auto skelBoneIdx = meshBoneIdx;
+			auto foundIdx = meshToSkeletonBoneMap.Find(meshBoneIdx);
+			if (!foundIdx){
+				UE_LOG(JsonLog, Error, TEXT("Could not remap mesh bone index %d in vertex influence, errors are possible"),
+					meshBoneIdx);
+			}
+			else{
+				skelBoneIdx = *foundIdx;
+			}
+
+			dstInfl.BoneIndex = skelBoneIdx;//meshBoneIdx;
 			dstInfl.Weight = boneWeight;
 			dstInfl.VertIndex = vertIndex;
 		}
+		/*
+		auto &dstInfl = meshInfluences.AddDefaulted_GetRef();
+		dstInfl.BoneIndex = 0;
+		dstInfl.Weight = 1.0f;
+		dstInfl.VertIndex = vertIndex;
+		*/
 	}
 
 	//should I just say "screw it" and load it via renderable sections? It would certainly work...

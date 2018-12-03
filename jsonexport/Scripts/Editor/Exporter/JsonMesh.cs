@@ -98,6 +98,7 @@ namespace SceneExport{
 		public List<int> boneIndexes = new List<int>();
 		
 		public int defaultSkeletonId = -1;
+		public List<string> defaultBoneNames = new List<string>();
 		//public JsonSkeleton skeleton = new JsonSkeleton();			
 		
 		public int blendShapeCount = 0;
@@ -146,7 +147,8 @@ namespace SceneExport{
 			
 			writer.writeOptionalKeyVal("boneWeights", boneWeights, 4 * vertsPerLine);
 			writer.writeOptionalKeyVal("boneIndexes", boneIndexes, 4 * vertsPerLine);
-			writer.writeKeyVal("origSkeletonId", defaultSkeletonId);
+			writer.writeKeyVal("defaultSkeletonId", defaultSkeletonId);
+			writer.writeKeyVal("defaultBoneNames", defaultBoneNames);
 			
 			writer.writeKeyVal("blendShapeCount", blendShapeCount);			
 			writer.writeOptionalKeyVal("blendShapes", blendShapes);			
@@ -178,6 +180,9 @@ namespace SceneExport{
 				return;
 			}
 			#endif
+			
+			
+			
 			vertexCount = mesh.vertexCount;
 			if (vertexCount <= 0)
 				return;
@@ -207,6 +212,7 @@ namespace SceneExport{
 			boneWeights.Clear();
 			boneIndexes.Clear();
 			defaultSkeletonId = exp.getDefaultSkeletonId(mesh);
+			defaultBoneNames = exp.getDefaultBoneNames(mesh);
 			
 			var srcWeights = mesh.boneWeights;
 			if ((srcWeights != null) && (srcWeights.Length > 0)){

@@ -351,7 +351,11 @@ ByteArray JsonObjects::toByteArray(const JsonValPtrs &inData){
 	return result;
 }
 
-StringArray JsonObjects::getStringArray(JsonObjPtr jsonObj, const char *name){
+StringArray JsonObjects::getStringArray(JsonObjPtr jsonObj, const char *name, bool optional){
+	if (optional){
+		if (!jsonObj->HasField(name))
+			return StringArray();
+	}
 	const JsonValPtrs* arrValues = 0;
 	loadArray(jsonObj, arrValues, name);
 	if (arrValues)

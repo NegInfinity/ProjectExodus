@@ -62,7 +62,7 @@ void JsonImporter::importStaticMesh(const JsonMesh &jsonMesh, int32 meshId){
 }
 
 void JsonImporter::importSkeletalMesh(const JsonMesh &jsonMesh, int32 meshId){
-	auto skelId = jsonMesh.origSkeletonId;
+	auto skelId = jsonMesh.defaultSkeletonId;
 	auto foundSkeleton = getSkeleton(skelId);
 	if (!foundSkeleton){
 		UE_LOG(JsonLog, Warning, TEXT("Could not find skeleton %d"), skelId);

@@ -62,7 +62,9 @@ void JsonMesh::load(JsonObjPtr data){
 	boneIndexes = getIntArray(data, "boneIndexes", true);
 	logValue(TEXT("boneIndexes: "), boneIndexes);
 
-	JSON_GET_VAR(data, origSkeletonId);
+	JSON_GET_VAR(data, defaultSkeletonId);
+	defaultBoneNames = getStringArray(data, "defaultBoneNames", true);
+	logValue(TEXT("defaultBoneNames: "), boneIndexes);
 
 	JSON_GET_VAR(data, blendShapeCount);
 	getJsonObjArray(data, blendShapes, "blendShapes", blendShapeCount == 0);

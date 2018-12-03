@@ -10,6 +10,8 @@ namespace SceneExport{
 		public int id = -1;
 		public string name;
 		
+		//public List<string> defaultBoneNames = new List<string>();
+		
 		public bool isEmpty(){
 			return (bones == null) || (bones.Count == 0);
 		}
@@ -68,6 +70,8 @@ namespace SceneExport{
 		public override void writeJsonObjectFields(FastJsonWriter writer){
 			writer.writeKeyVal("id", id);
 			writer.writeKeyVal("name", name);
+			//writer.writeKeyVal("defaultBoneNames", defaultBoneNames);
+				
 			writer.writeKeyVal("bones", bones);
 		}
 		

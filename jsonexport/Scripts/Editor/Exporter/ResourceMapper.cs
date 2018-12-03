@@ -12,8 +12,24 @@ namespace SceneExport{
 		public ObjectMapper<AudioClip> audioClips = new ObjectMapper<AudioClip>();
 		//public ObjectMapper<JsonSkeleton> skeletons = new ObjectMapper<JsonSkeleton>();
 
+		[System.Serializable]
+		public class MeshDefaultSkeletonData{
+			public Transform defaultRoot;
+			public List<string> defaultBoneNames;			
+			
+			public MeshDefaultSkeletonData(Transform defaultRoot_, List<string> defaultBoneNames_){
+				defaultRoot = defaultRoot_;
+				defaultBoneNames = defaultBoneNames_;
+			}
+		};
+		
 		Dictionary<Transform, JsonSkeleton> jsonSkeletons = new Dictionary<Transform, JsonSkeleton>();
+		
+		Dictionary<Mesh, MeshDefaultSkeletonData> meshDefaultSkeletonData = new Dictionary<Mesh, MeshDefaultSkeletonData>();
+		/*
 		Dictionary<Mesh, Transform> meshDefaultSkeletonRoots = new Dictionary<Mesh, Transform>();
+		Dictionary<Mesh, List<string>> meshDefaultBoneNames = new Dictionary<Mesh, List<string>>();
+		*/
 		//Dictionary<Mesh, int> defaultSkeletonIds = new Dictionary<Mesh, int>();		
 		Dictionary<Mesh, List<Material>> meshMaterials = new Dictionary<Mesh, List<Material>>();
 		
@@ -82,12 +98,23 @@ namespace SceneExport{
 			return meshes.getId(obj, false);
 		}
 		
+		public List<string> getDefaultBoneNames(Mesh mesh){
+			var tmp = meshDefaultSkeletonData.getValOrDefault(mesh, null);
+			if (tmp == null)
+				return new List<string>();
+			return tmp.defaultBoneNames.ToList();
+		}
+		
 		public int getDefaultSkeletonId(Mesh obj){
+			var defaultData = meshDefaultSkeletonData.getValOrDefault(obj, null);
+			if (defaultData == null)
+				return ExportUtility.invalidId;
+			/*
 			var transform = meshDefaultSkeletonRoots.getValOrDefault(obj, null);
 			if (!transform)
-				return ExportUtility.invalidId;
+				return ExportUtility.invalidId;*/
 				
-			var skel = jsonSkeletons.getValOrDefault(transform, null);
+			var skel = jsonSkeletons.getValOrDefault(defaultData.defaultRoot, null);
 			if (skel == null)
 				return ExportUtility.invalidId;
 				
@@ -155,19 +182,28 @@ namespace SceneExport{
 			if (!mesh)
 				return ExportUtility.invalidId;
 				
-			if (!meshDefaultSkeletonRoots.ContainsKey(mesh)){
+			//if (!meshDefaultSkeletonRoots.ContainsKey(mesh)){
+			if (!meshDefaultSkeletonData.ContainsKey(mesh)){				
 				var rootTransform = JsonSkeletonBuilder.findSkeletonRoot(meshRend);
 				if (!rootTransform)
 					throw new System.ArgumentException(
 						string.Format("Could not find skeleton root transform for {0}", meshRend));
+						
+				var boneNames = meshRend.bones.Select((arg) => arg.name).ToList();
+				
+				var defaultData = new MeshDefaultSkeletonData(rootTransform, boneNames);
+				meshDefaultSkeletonData.Add(mesh, defaultData);
 				
 				if (!jsonSkeletons.ContainsKey(rootTransform)){
 					var newSkel = JsonSkeletonBuilder.buildFromRootTransform(rootTransform);
 					var id = jsonSkeletons.Count;
 					newSkel.id = id;
+					
+					//newSkel.defaultBoneNames.Clear();
+					//newSkel.defaultBoneNames.AddRange(meshRend.bones.Select((arg) => arg.name));;
 					jsonSkeletons.Add(rootTransform, newSkel);
 				}
-				meshDefaultSkeletonRoots.Add(mesh, rootTransform);
+				//meshDefaultSkeletonRoots.Add(mesh, rootTransform);
 			}
 			
 			/*

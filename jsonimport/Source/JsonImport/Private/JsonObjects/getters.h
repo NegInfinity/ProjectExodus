@@ -96,7 +96,7 @@ namespace JsonObjects{
 
 	IntArray getIntArray(JsonObjPtr data, const char *name, bool optional = false);
 	ByteArray getByteArray(JsonObjPtr jsonObj, const char *name, bool optional = false);
-	StringArray getStringArray(JsonObjPtr data, const char *name);
+	StringArray getStringArray(JsonObjPtr data, const char *name, bool optional = false);
 	FloatArray getFloatArray(JsonObjPtr data, const char *name, bool optional = false);
 	LinearColorArray getLinearColorArray(JsonObjPtr data, const char *name);
 	MatrixArray getMatrixArray(JsonObjPtr data, const char *name, bool optional = false);
