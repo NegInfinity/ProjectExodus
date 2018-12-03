@@ -295,7 +295,7 @@ Let's proceed with first attempt, which does not take this madness scenario into
 			if (hasAnimationComponents(parent))
 				return parent.name;
 			return commonRoot.name;
-		}			
+		}
 		
 		protected void build(JsonSkeleton result, SkinnedMeshRenderer[] meshRenders){
 			var commonRoot = findSkinMeshCommonRoot(meshRenders);
@@ -331,25 +331,50 @@ Let's proceed with first attempt, which does not take this madness scenario into
 			result.name = findSkeletonName(commonRoot);
 		}
 		
-		public static void buildFromSkinMesh(JsonSkeleton result, SkinnedMeshRenderer meshRend){
-			var builder = new JsonSkeletonBuilder();
-			builder.build(result, new SkinnedMeshRenderer[] {meshRend});
+		protected void buildFromTransform(JsonSkeleton result, Transform skeletonRoot){
+			if (!skeletonRoot)
+				throw new System.ArgumentNullException("skeletonRoot");
+				
+			var transformIds = gatherIds(skeletonRoot);
+			Debug.LogFormat("Transofrm skeleton:");
+			printSkeleton(transformIds);
+			
+			result.clear();
+			result.assignFrom(skeletonRoot, transformIds);
+			result.name = findSkeletonName(skeletonRoot);
 		}
 		
-		public static void buildFromPrefab(JsonSkeleton result, GameObject prefabRoot){
-			var builder = new JsonSkeletonBuilder();
-			builder.build(result, prefabRoot);
-		}
+		public static Transform findSkeletonRoot(SkinnedMeshRenderer meshRend){
+			if (!meshRend)
+				throw new System.ArgumentNullException("meshRend");
+				
+			var skinRend = PrefabUtility.GetCorrespondingObjectFromSource(meshRend) as SkinnedMeshRenderer;
+			if (!skinRend)
+				skinRend = meshRend;
+				
+			var commonRoot = findSkinMeshCommonRoot(new SkinnedMeshRenderer[]{skinRend});
+			
+			return commonRoot;
+		}		
 		
 		public static JsonSkeleton buildFromSkinMesh(SkinnedMeshRenderer meshRend){
 			var result = new JsonSkeleton();
-			buildFromSkinMesh(result, meshRend);
+			var builder = new JsonSkeletonBuilder();
+			builder.build(result, new SkinnedMeshRenderer[] {meshRend});
 			return result;
 		}
 		
-		public static JsonSkeleton buildFromPrefab(GameObject prefabRoot){
+		public static JsonSkeleton buildFromPrefabRoot(GameObject prefabRoot){
 			var result = new JsonSkeleton();
-			buildFromPrefab(result, prefabRoot);
+			var builder = new JsonSkeletonBuilder();
+			builder.build(result, prefabRoot);
+			return result;
+		}
+		
+		public static JsonSkeleton buildFromRootTransform(Transform prefabTransform){
+			var result = new JsonSkeleton();
+			var builder = new JsonSkeletonBuilder();
+			builder.buildFromTransform(result, prefabTransform);
 			return result;
 		}
 		
@@ -364,7 +389,7 @@ Let's proceed with first attempt, which does not take this madness scenario into
 				);
 				return buildFromSkinMesh(meshRend);
 			}
-			return buildFromPrefab(rootPrefab);
+			return buildFromPrefabRoot(rootPrefab);
 		}
 	}
 }

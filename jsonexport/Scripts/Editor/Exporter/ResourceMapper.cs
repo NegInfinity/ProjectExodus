@@ -10,9 +10,11 @@ namespace SceneExport{
 		public ObjectMapper<Material> materials = new ObjectMapper<Material>();
 		public ObjectMapper<Cubemap> cubemaps = new ObjectMapper<Cubemap>();
 		public ObjectMapper<AudioClip> audioClips = new ObjectMapper<AudioClip>();
-		public ObjectMapper<JsonSkeleton> skeletons = new ObjectMapper<JsonSkeleton>();
+		//public ObjectMapper<JsonSkeleton> skeletons = new ObjectMapper<JsonSkeleton>();
 
-		Dictionary<Mesh, int> defaultSkeletonIds = new Dictionary<Mesh, int>();		
+		Dictionary<Transform, JsonSkeleton> jsonSkeletons = new Dictionary<Transform, JsonSkeleton>();
+		Dictionary<Mesh, Transform> meshDefaultSkeletonRoots = new Dictionary<Mesh, Transform>();
+		//Dictionary<Mesh, int> defaultSkeletonIds = new Dictionary<Mesh, int>();		
 		Dictionary<Mesh, List<Material>> meshMaterials = new Dictionary<Mesh, List<Material>>();
 		
 		public HashSet<string> resources = new HashSet<string>();
@@ -81,7 +83,16 @@ namespace SceneExport{
 		}
 		
 		public int getDefaultSkeletonId(Mesh obj){
-			return defaultSkeletonIds.getValOrDefault(obj, -1);
+			var transform = meshDefaultSkeletonRoots.getValOrDefault(obj, null);
+			if (!transform)
+				return ExportUtility.invalidId;
+				
+			var skel = jsonSkeletons.getValOrDefault(transform, null);
+			if (skel == null)
+				return ExportUtility.invalidId;
+				
+			return skel.id;
+			//return defaultSkeletonIds.getValOrDefault(obj, -1);
 			/*
 			JsonSkeleton skel = null;
 			if (!meshSkeletons.TryGetValue(obj, out skel))
@@ -144,6 +155,22 @@ namespace SceneExport{
 			if (!mesh)
 				return ExportUtility.invalidId;
 				
+			if (!meshDefaultSkeletonRoots.ContainsKey(mesh)){
+				var rootTransform = JsonSkeletonBuilder.findSkeletonRoot(meshRend);
+				if (!rootTransform)
+					throw new System.ArgumentException(
+						string.Format("Could not find skeleton root transform for {0}", meshRend));
+				
+				if (!jsonSkeletons.ContainsKey(rootTransform)){
+					var newSkel = JsonSkeletonBuilder.buildFromRootTransform(rootTransform);
+					var id = jsonSkeletons.Count;
+					newSkel.id = id;
+					jsonSkeletons.Add(rootTransform, newSkel);
+				}
+				meshDefaultSkeletonRoots.Add(mesh, rootTransform);
+			}
+			
+			/*
 			if (!defaultSkeletonIds.ContainsKey(mesh)){
 				var skel = JsonSkeletonBuilder.extractOriginalSkeleton(meshRend, null);
 				if (skel != null){
@@ -152,6 +179,7 @@ namespace SceneExport{
 					defaultSkeletonIds.Add(mesh, skelId);
 				}
 			}
+			*/
 			
 			return getOrRegMeshId(meshRend.gameObject, mesh);
 		}
@@ -330,9 +358,9 @@ namespace SceneExport{
 			result.audioClips = saveResourcesToPath(baseDir, audioClips.objectList, 
 				(objData) => new JsonAudioClip(objData, this), (obj) => obj.name, "audioClip", showGui);
 				
-			//var skeletons = meshSkeletons.Values.ToList();
-			//skeletons.Sort((x, y) => x.id.CompareTo(y.id));
-			result.skeletons = saveResourcesToPath(baseDir, skeletons.objectList, 
+			var skeletons = jsonSkeletons.Values.ToList();
+			skeletons.Sort((x, y) => x.id.CompareTo(y.id));
+			result.skeletons = saveResourcesToPath(baseDir, skeletons, 
 				(objData) => objData, (obj) => obj.name, "skeleton", showGui);			
 				
 			var prefabList = makePrefabList();
