@@ -4,8 +4,10 @@
 #include "Runtime/Engine/Public/Rendering/SkeletalMeshModel.h"
 #include "Developer/MeshUtilities/Public/MeshUtilities.h"
 #include "JsonImporter.h"
+#include "JsonObjects/loggers.h"
 
 using namespace UnrealUtilities;
+using namespace JsonObjects;
 
 /*
 	Amusingly, the most useful file in figuring out how skeletal mesh configuraiton is supposed to work 
@@ -54,19 +56,52 @@ void MeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonMesh &jso
 	{
 		FReferenceSkeletonModifier refSkelModifier(refSkeleton, nullptr);
 
+		MatrixArray unityBoneWorldTransforms;
+		MatrixArray unrealBoneWorldTransforms;
+
+		unityBoneWorldTransforms.SetNum(jsonSkel->bones.Num());
+		unrealBoneWorldTransforms.SetNum(jsonSkel->bones.Num());
+
+		UE_LOG(JsonLog, Log, TEXT("Reconstructing skeleton: %s"), *jsonSkel->name);
+
 		for(int boneIndex = 0; boneIndex < jsonSkel->bones.Num(); boneIndex++){
-			//lodModel.RequiredBones.Add(boneIndex);
-			//lodModel.ActiveBoneIndices.Add(boneIndex);
+			UE_LOG(JsonLog, Log, TEXT("Processing bone %d out of %d"), boneIndex, jsonSkel->bones.Num());
+			auto &unityWorldMat = unityBoneWorldTransforms[boneIndex];
+			auto &unrealWorldMat = unrealBoneWorldTransforms[boneIndex];
+			
+			unityWorldMat = unrealWorldMat = FMatrix::Identity;
 
 			const auto &srcBone = jsonSkel->bones[boneIndex];
-			auto parentBoneIndex = srcBone.parent >= 0 ? srcBone.parent: INDEX_NONE;
+
+			logValue(TEXT("srcBone.id: "), srcBone.id);
+			logValue(TEXT("srcBone.bane: "), srcBone.name);
+			logValue(TEXT("srcBone.parentId: "), srcBone.parentId);
+			logValue(TEXT("localMatrix: "), srcBone.local);
+			logValue(TEXT("worldMatrix: "), srcBone.world);
+
+			auto parentBoneIndex = srcBone.parentId >= 0 ? srcBone.parentId: INDEX_NONE;
 			auto boneInfo = FMeshBoneInfo(FName(*srcBone.name), srcBone.name, parentBoneIndex);
 
-			auto unityPose = srcBone.pose;
-			auto unrealPose = unityWorldToUe(unityPose);
+			unityWorldMat = srcBone.world;
+			unrealWorldMat = unityWorldToUe(unityWorldMat);
+
+			logValue(TEXT("unityWorldMat: "), unityWorldMat);
+			logValue(TEXT("unrealWorldMat: "), unrealWorldMat);
+
+			auto unrealLocalMat = unrealWorldMat;
+
+			if (parentBoneIndex >= 0){
+				auto parentWorld = unrealBoneWorldTransforms[parentBoneIndex];
+				logValue(TEXT("parent: "), parentWorld);
+				auto invParent = parentWorld.Inverse();
+				logValue(TEXT("invParent: "), invParent);
+				unrealLocalMat = unrealLocalMat * invParent;
+			}
+			logValue(TEXT("unrealLocalMat: "), unrealLocalMat);
+
 			FTransform boneTransform;
 			//auto boneTransform = unityWorldToUe(srcBone.pose);
-			boneTransform.SetFromMatrix(unrealPose);
+			boneTransform.SetFromMatrix(unrealLocalMat);
 
 			refSkelModifier.Add(boneInfo, boneTransform);
 		}
@@ -88,7 +123,7 @@ void MeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonMesh &jso
 
 		for(int inflIndex = 0; inflIndex < jsonInfluencesPerVertex; inflIndex++){
 			auto dataOffset = inflIndex + vertIndex * jsonInfluencesPerVertex;
-			auto boneIdx = jsonMesh.boneIndexes[dataOffset];
+			auto boneIdx = jsonMesh.boneIndexes[dataOffset]; 
 			auto boneWeight = jsonMesh.boneWeights[dataOffset];
 			if (boneWeight == 0.0f)
 				continue;

@@ -386,7 +386,7 @@ LinearColorArray JsonObjects::toLinearColorArray(const JsonValPtrs &inData){
 MatrixArray JsonObjects::toMatrixArray(const JsonValPtrs &inData){
 	MatrixArray result;
 	for(auto cur: inData){
-		FMatrix val;
+		FMatrix val = FMatrix::Identity;
 		if (cur.IsValid()){
 			val = toMatrix(*cur);
 		}

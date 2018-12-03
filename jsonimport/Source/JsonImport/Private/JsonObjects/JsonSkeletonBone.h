@@ -4,9 +4,11 @@
 class JsonSkeletonBone{
 public:
 	FString name;
-	int parent = -1;
-	FMatrix pose;
-	FMatrix invPose;
+	int id = -1;
+	int parentId = -1;
+	FMatrix world = FMatrix::Identity;
+	FMatrix local = FMatrix::Identity;
+	FMatrix rootRelative = FMatrix::Identity;
 
 	void load(JsonObjPtr data);
 	JsonSkeletonBone(JsonObjPtr data){

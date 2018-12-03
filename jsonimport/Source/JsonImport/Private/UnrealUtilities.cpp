@@ -226,7 +226,7 @@ FMatrix UnrealUtilities::unityWorldToUe(const FMatrix &unityWorld){
 	xAxis = unityToUe(xAxis);
 	yAxis = unityToUe(yAxis);
 	zAxis = unityToUe(zAxis);
-	FMatrix ueMatrix;
+	FMatrix ueMatrix = FMatrix::Identity;//Well, wow. I expected matrix to have a local constructor.
 	ueMatrix.SetAxes(&zAxis, &xAxis, &yAxis, &pos);
 	return ueMatrix;
 }

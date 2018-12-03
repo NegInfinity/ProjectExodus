@@ -1,4 +1,6 @@
-﻿using UnityEngine;
+﻿//#define JSON_SKELETON_EXTRA_DATA
+
+using UnityEngine;
 using UnityEditor;
 using System.Collections.Generic;
 
@@ -17,6 +19,17 @@ namespace SceneExport{
 			public int id = -1;
 			public int parentId = -1;
 			public string name = "";
+			
+		#if JSON_SKELETON_EXTRA_DATA
+			public Vector3 localPosition = Vector3.zero;
+			public Vector3 localScale = Vector3.one;
+			public Quaternion localRotation = Quaternion.identity;
+			
+			public Vector3 position = Vector3.zero;
+			public Vector3 lossyScale = Vector3.one;
+			public Quaternion rotation = Quaternion.identity;
+		#endif
+			
 			public Matrix4x4 world = Matrix4x4.identity;
 			public Matrix4x4 local = Matrix4x4.identity;
 			public Matrix4x4 rootRelative = Matrix4x4.identity;
@@ -24,6 +37,16 @@ namespace SceneExport{
 				writer.writeKeyVal("name", name);
 				writer.writeKeyVal("id", id);
 				writer.writeKeyVal("parentId", parentId);
+				
+			#if JSON_SKELETON_EXTRA_DATA
+				writer.writeKeyVal("localPosition", localPosition);
+				writer.writeKeyVal("localScale", localScale);
+				writer.writeKeyVal("localRotation", localRotation);
+				writer.writeKeyVal("position", position);
+				writer.writeKeyVal("lossyScale", lossyScale);
+				writer.writeKeyVal("rotation", rotation);
+			#endif
+				
 				writer.writeKeyVal("world", world);
 				writer.writeKeyVal("local", local);
 				writer.writeKeyVal("rootRelative", rootRelative);
@@ -33,6 +56,7 @@ namespace SceneExport{
 				name = name_;
 				id = id_;
 				parentId = parentId_;
+								
 				world = world_;
 				local = local_;
 				rootRelative = rootRelative_;
@@ -83,8 +107,19 @@ namespace SceneExport{
 					localMatrix = invParent * worldMatrix;
 				}
 				
-				var newBone = new Bone(curBone.name, boneIndex, parentId, worldMatrix, localMatrix, rootRelativeMatrix);
-				bones.Add(newBone);
+				var newJsonBone = new Bone(curBone.name, boneIndex, parentId, worldMatrix, localMatrix, rootRelativeMatrix);
+				
+			#if JSON_SKELETON_EXTRA_DATA
+				newJsonBone.position = curBone.position;
+				newJsonBone.rotation= curBone.rotation;
+				newJsonBone.lossyScale = curBone.lossyScale;
+				
+				newJsonBone.localPosition = curBone.localPosition;
+				newJsonBone.localRotation = curBone.localRotation;
+				newJsonBone.localScale = curBone.localScale;
+			#endif
+				
+				bones.Add(newJsonBone);
 			}			
 		}
 		

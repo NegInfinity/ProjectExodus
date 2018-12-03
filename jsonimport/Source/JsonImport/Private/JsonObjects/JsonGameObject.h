@@ -14,8 +14,8 @@ public:
 	FVector localPosition;
 	FQuat localRotation;
 	FVector localScale;
-	FMatrix worldMatrix;
-	FMatrix localMatrix;
+	FMatrix worldMatrix = FMatrix::Identity;
+	FMatrix localMatrix = FMatrix::Identity;
 	int32 parentId;
 	int32 meshId;
 
@@ -65,7 +65,7 @@ public:
 		return renderers.Num() > 0;
 	}
 
-	FMatrix ueWorldMatrix;
+	FMatrix ueWorldMatrix = FMatrix::Identity;
 	FString ueName;
 
 	void load(JsonObjPtr jsonData);
