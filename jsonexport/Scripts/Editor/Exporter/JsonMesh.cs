@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using UnityEditor;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SceneExport{
 	[System.Serializable]
@@ -8,6 +9,7 @@ namespace SceneExport{
 		public int index;
 		public float weight;
 		public float[] deltaVerts = null;
+		//public List<float> deltaVerts = new List<float>();
 		public float[] deltaTangents = null;
 		public float[] deltaNormals = null;
 		
@@ -21,6 +23,27 @@ namespace SceneExport{
 			writer.endObject();
 		}
 		
+		public JsonBlendShapeFrame(JsonBlendShapeFrame other){
+			index = other.index;
+			weight = other.weight;
+			
+			deltaVerts = null;
+			deltaTangents = null;
+			deltaNormals = null;
+			
+			if (other.deltaVerts != null)
+				deltaVerts = other.deltaVerts.ToArray();
+			if (other.deltaTangents != null)
+				deltaVerts = other.deltaTangents.ToArray();
+			if (other.deltaNormals != null)
+				deltaVerts = other.deltaNormals.ToArray();
+			
+			//deltaVerts = 
+		}
+		
+		public JsonBlendShapeFrame(){
+		}
+		
 		public JsonBlendShapeFrame(Mesh mesh, int shapeIndex, int frameIndex){
 			index = frameIndex;
 			weight = mesh.GetBlendShapeFrameWeight(shapeIndex, frameIndex);
@@ -29,7 +52,7 @@ namespace SceneExport{
 			var dTangents = new Vector3[mesh.vertexCount];
 			
 			mesh.GetBlendShapeFrameVertices(shapeIndex, frameIndex, dVerts, dNorms, dTangents);
-			deltaVerts = dVerts.toFloatArray();
+			deltaVerts = dVerts.toFloatArray();//dVerts.toFloatArray();
 			deltaNormals = dNorms.toFloatArray();
 			deltaTangents = dTangents.toFloatArray();
 		}
@@ -49,6 +72,14 @@ namespace SceneExport{
 			writer.writeKeyVal("numFrames", numFrames);
 			writer.writeKeyVal("frames", frames);
 			writer.endObject();
+		}
+		
+		public JsonBlendShape(JsonBlendShape other){
+			name = other.name;
+			index = other.index;
+			numFrames = other.numFrames;
+			
+			frames = other.frames.Select((arg) => new JsonBlendShapeFrame(arg)).ToList();
 		}
 		
 		public JsonBlendShape(Mesh mesh, int index_){
@@ -71,6 +102,7 @@ namespace SceneExport{
 	public class JsonMesh: IFastJsonValue{
 		public static readonly int vertsPerLine = 4;
 		public static readonly int trianglesPerLine = 4;
+		public static readonly int bonesPerVertex = 4;//only 4 of them in unity.
 	
 		public int id = -1;
 		public string name;
@@ -115,10 +147,282 @@ namespace SceneExport{
 				writer.writeKeyVal("triangles", triangles, 3 * trianglesPerLine);
 				writer.endObject();
 			}
+			
+			public SubMesh(SubMesh other){
+				triangles = other.triangles.copyArray();
+			}
+			
+			public SubMesh(){
+			}
 		};
 
 		public List<SubMesh> subMeshes = new List<SubMesh>();
 		public int subMeshCount = 0;
+
+		/*
+		static void processArray<T>(T[] arg, System.Func<T, T> callback){
+			if (callback == null)
+				throw new System.ArgumentNullException("callback");
+			if (arg == null)
+				return;
+			for(int i = 0; i < arg.Length; i++)
+				arg[i] = callback(arg[i]);
+		}
+		*/
+		
+		static void processFloats3(float[] args, System.Func<Vector3, Vector3> callback){
+			if (callback == null)
+				throw new System.ArgumentNullException("callback");
+				
+			if (args == null)
+				return;
+			for(int i = 0; (i + 2) < args.Length; i += 3){
+				var v = new Vector3(args[i], args[i+1], args[i+2]);
+				var v1 = callback(v);
+				args[i] = v1.x;
+				args[i+1] = v1.y;
+				args[i+2] = v1.z;
+			}
+		}		
+		
+		static void processFloats4(float[] args, System.Func<Vector4, Vector4> callback){
+			if (callback == null)
+				throw new System.ArgumentNullException("callback");
+				
+			if (args == null)
+				return;
+				
+			for(int i = 0; (i + 3) < args.Length; i += 4){
+				var v = new Vector4(args[i], args[i+1], args[i+2], args[i+3]);
+				var v1 = callback(v);
+				args[i] = v1.x;
+				args[i+1] = v1.y;
+				args[i+2] = v1.z;
+				args[i+3] = v1.w;
+			}
+		}		
+		
+		static void processFloats2(float[] args, System.Func<Vector2, Vector2> callback){
+			if (callback == null)
+				throw new System.ArgumentNullException("callback");
+				
+			if (args == null)
+				return;
+				
+			for(int i = 0; (i + 1) < args.Length; i += 2){
+				var v = new Vector4(args[i], args[i+1]);
+				var v1 = callback(v);
+				args[i] = v1.x;
+				args[i+1] = v1.y;
+			}
+		}
+		
+		static Vector4 transformTangent(Matrix4x4 matrix, Vector4 tangent){
+			var v3 = new Vector3(tangent.x, tangent.y, tangent.z);
+			v3 = matrix.MultiplyVector(v3);
+			return new Vector4(v3.x, v3.y, v3.z, tangent.w);
+		}
+		
+		public void transformWith(Matrix4x4 matrix){
+			processFloats3(verts, (arg) => matrix.MultiplyPoint(arg));
+			processFloats3(normals, (arg) => matrix.MultiplyVector(arg));
+			processFloats4(tangents, (arg) => transformTangent(matrix, arg)	);
+			
+			for(int blendShapeIndex = 0; blendShapeIndex < blendShapes.Count; blendShapeIndex++){
+				var blendShape = blendShapes[blendShapeIndex];
+				for(int blendFrameIndex = 0; blendFrameIndex < blendShape.frames.Count; blendFrameIndex++){
+					var blendFrame = blendShape.frames[blendFrameIndex];					
+					processFloats3(blendFrame.deltaVerts, (arg) => matrix.MultiplyVector(arg));
+					processFloats3(blendFrame.deltaNormals, (arg) => matrix.MultiplyVector(arg));
+					processFloats3(blendFrame.deltaTangents, (arg) => matrix.MultiplyVector(arg));
+				}
+			}
+			var invMatrix = matrix.inverse;
+			for(int i = 0; i < bindPoses.Count; i++){
+				bindPoses[i] = matrix * bindPoses[i];
+			}
+			for(int i = 0; i < inverseBindPoses.Count; i++){
+				inverseBindPoses[i] = inverseBindPoses[i] * invMatrix;				
+			}
+		}
+		
+		public bool isSkeletalMesh(){
+			return (boneWeights != null)
+				&& (boneIndexes != null)
+				&& (boneWeights.Count > 0)
+				&& (boneIndexes.Count > 0)
+				&& (bindPoses != null)
+				&& (bindPoses.Count > 0);
+		}
+		
+		Vector3 linearBlend(Vector3 arg, List<Matrix4x4> matrices, int weightIndex, bool point){
+			Vector3 result = Vector3.zero;
+			
+			int baseOffset = weightIndex * bonesPerVertex;
+			
+			float total = 0.0f;
+			for(int i = 0; i < bonesPerVertex; i++){
+				total += boneWeights[baseOffset + i];				
+			} 
+			
+			float scaleFactor = (total != 0.0f) ? 1.0f/total: 1.0f;
+			for(int i = 0; i < bonesPerVertex; i++){
+				var curWeight = boneWeights[baseOffset + i];				
+				if (curWeight == 0.0f)
+					continue;
+				var curTransformIndex = boneIndexes[baseOffset + i];
+				var curTransform = matrices[curTransformIndex] * inverseBindPoses[curTransformIndex];
+				
+				var vert = point ? curTransform.MultiplyPoint(arg): curTransform.MultiplyVector(arg);
+				result += vert * curWeight;				
+			}
+			
+			return result;
+		}
+		
+		public static Vector4 getIdxVector4(float[] floats, int vertIndex){
+			var baseOffset = vertIndex * 4;
+			return new Vector4(
+				floats[baseOffset], floats[baseOffset + 1], floats[baseOffset + 2], floats[baseOffset + 3]);
+		}
+		
+		public static void setIdxVector4(float[] floats, int vertIndex, Vector4 newVal){
+			var baseOffset = vertIndex * 4;
+			floats[baseOffset] = newVal.x;
+			floats[baseOffset + 1] = newVal.y;
+			floats[baseOffset + 2] = newVal.z;
+			floats[baseOffset + 3] = newVal.w;
+		}
+		
+		public static Vector3 getIdxVector3(float[] floats, int vertIndex){
+			var baseOffset = vertIndex * 3;
+			return new Vector3(floats[baseOffset], floats[baseOffset + 1], floats[baseOffset + 2]);
+		}
+		
+		public static void setIdxVector3(float[] floats, int vertIndex, Vector3 newVal){
+			var baseOffset = vertIndex * 3;
+			floats[baseOffset] = newVal.x;
+			floats[baseOffset + 1] = newVal.y;
+			floats[baseOffset + 2] = newVal.z;
+		}
+		
+		public static Vector2 getIdxVector2(float[] floats, int vertIndex){
+			var baseOffset = vertIndex * 2;
+			return new Vector3(floats[baseOffset], floats[baseOffset + 1]);
+		}
+		
+		public static void setIdxVector2(float[] floats, int vertIndex, Vector2 newVal){
+			var baseOffset = vertIndex * 2;
+			floats[baseOffset] = newVal.x;
+			floats[baseOffset + 1] = newVal.y;
+		}
+		
+		public void transformSkeletalMesh(List<Matrix4x4> matrices){
+			if (matrices == null)
+				throw new System.ArgumentNullException("matrices");
+			if (matrices.Count != bindPoses.Count){
+				throw new System.ArgumentException(
+					string.Format("Mismatched number of matrices on mesh {2}. {0} provided vs {1} required", 
+						matrices.Count, bindPoses.Count, name));
+			}
+			
+			if (!isSkeletalMesh()){
+				throw new System.ArgumentException(string.Format("Non-skeletal meshes cannot be transformed by matrix list. Mesh name {0}",
+					name));
+			}
+			
+			for(int i = 0; i < vertexCount; i++){
+				var origVert = getIdxVector3(verts, i);
+				setIdxVector3(verts, i, linearBlend(origVert, matrices, i, true));
+			}
+			
+			if (normals != null){
+				for(int i = 0; i < vertexCount; i++){
+					var origNormal = getIdxVector3(verts, i);
+					setIdxVector3(verts, i, linearBlend(origNormal, matrices, i, false));
+				}
+			}
+			
+			if (tangents != null){
+				for(int i = 0; i < vertexCount; i++){
+					var origTangent = getIdxVector4(tangents, i);
+					var v3 = new Vector3(origTangent.x, origTangent.y, origTangent.z);
+					var v3new = linearBlend(v3, matrices, i, false);
+					setIdxVector4(tangents, i, new Vector4(v3new.x, v3new.y, v3new.z, origTangent.w));
+				}
+			}
+			
+			///aaah, this is going to be painful.
+			for(int blendShapeIndex = 0; blendShapeIndex < blendShapes.Count; blendShapeIndex++){
+				var curBlendShape = blendShapes[blendShapeIndex];
+				for(int blendFrameIndex = 0; blendFrameIndex < curBlendShape.frames.Count; blendFrameIndex++){
+					var blendFrame = curBlendShape.frames[blendFrameIndex];
+					bool hasVerts = (blendFrame.deltaVerts != null) && (blendFrame.deltaVerts.Length > 0);
+					bool hasNormals = (blendFrame.deltaVerts != null) && (blendFrame.deltaVerts.Length > 0);
+					bool hasTangents = (blendFrame.deltaVerts != null) && (blendFrame.deltaVerts.Length > 0);
+					for(int vertIndex = 0; vertIndex < vertexCount; vertIndex++){
+						if(hasVerts){
+							var delta = getIdxVector3(blendFrame.deltaVerts, vertIndex);
+							var newDelta = linearBlend(delta, matrices, vertIndex, false);
+							setIdxVector3(blendFrame.deltaVerts, vertIndex, newDelta);
+						}
+						if(hasNormals){
+							var deltaN = getIdxVector3(blendFrame.deltaNormals, vertIndex);
+							var newDeltaN = linearBlend(deltaN, matrices, vertIndex, false);
+							setIdxVector3(blendFrame.deltaVerts, vertIndex, newDeltaN);
+						}
+						if(hasTangents){
+							var deltaT = getIdxVector3(blendFrame.deltaTangents, vertIndex);
+							var newDeltaT = linearBlend(deltaT, matrices, vertIndex, false);
+							setIdxVector3(blendFrame.deltaTangents, vertIndex, newDeltaT);
+						}
+					}
+				}
+			}
+		}
+		
+		public JsonMesh(JsonMesh other){
+			if (other == null)
+				throw new System.ArgumentNullException();
+			id = other.id;
+			name = other.name;
+			path = other.path;
+			materials = other.materials.ToList();
+			readable = other.readable;
+			vertexCount = other.vertexCount;
+			
+			colors = other.colors.copyArray();
+			verts = other.verts.copyArray();
+			tangents = other.tangents.copyArray();
+			
+			uv0 = other.uv0.copyArray();
+			uv1 = other.uv1.copyArray();
+			uv2 = other.uv2.copyArray();
+			uv3 = other.uv3.copyArray();
+			uv4 = other.uv4.copyArray();
+			uv5 = other.uv5.copyArray();
+			uv6 = other.uv6.copyArray();
+			uv7 = other.uv7.copyArray();
+			
+			boneWeights = other.boneWeights.ToList();
+			boneIndexes = other.boneIndexes.ToList();
+			
+			defaultSkeletonId = other.defaultSkeletonId;
+			
+			defaultBoneNames = other.defaultBoneNames.ToList();
+			blendShapeCount = other.blendShapeCount;
+			blendShapes = other.blendShapes.Select((arg) => new JsonBlendShape(arg)).ToList();
+			
+			bindPoses = other.bindPoses.ToList();
+			inverseBindPoses = other.inverseBindPoses.ToList();
+			
+			bindPoses = other.bindPoses.ToList();
+			inverseBindPoses = other.inverseBindPoses.ToList();
+			
+			subMeshes = other.subMeshes.Select((arg) => new SubMesh(arg)).ToList();
+			
+			subMeshCount = other.subMeshCount;
+		}
 			
 		public void writeRawJsonValue(FastJsonWriter writer){
 			writer.beginRawObject();

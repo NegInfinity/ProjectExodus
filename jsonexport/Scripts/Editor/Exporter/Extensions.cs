@@ -1,8 +1,15 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SceneExport{
 	static class Extensions{
+		static public Val[] copyArray<Val>(this Val[] arg){
+			if (arg == null)
+				return null;
+			return arg.ToArray();
+		}
+		
 		static public Val getValOrGenerate<Key, Val>(this IDictionary<Key, Val> dict, Key key, System.Func<Key, Val> generator){
 			if (generator == null)
 				throw new System.ArgumentNullException("generator");

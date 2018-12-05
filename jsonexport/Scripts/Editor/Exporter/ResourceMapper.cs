@@ -7,10 +7,26 @@ namespace SceneExport{
 	public class ResourceMapper{
 		public ObjectMapper<Texture> textures = new ObjectMapper<Texture>();
 		public ObjectMapper<Mesh> meshes = new ObjectMapper<Mesh>();
+		
+		public ObjectMapper<MeshStorageKey> storedMeshes = new ObjectMapper<MeshStorageKey>();
+		
 		public ObjectMapper<Material> materials = new ObjectMapper<Material>();
 		public ObjectMapper<Cubemap> cubemaps = new ObjectMapper<Cubemap>();
 		public ObjectMapper<AudioClip> audioClips = new ObjectMapper<AudioClip>();
 		//public ObjectMapper<JsonSkeleton> skeletons = new ObjectMapper<JsonSkeleton>();
+
+		[System.Serializable]
+		public struct MeshStorageKey{
+			public Mesh mesh;
+			public GameObject prefab;
+			public Transform skeletonRoot;
+			
+			public MeshStorageKey(Mesh mesh_, GameObject prefab_ = null, Transform skeletonRoot_ = null){
+				mesh = mesh_;
+				prefab = prefab_;
+				skeletonRoot = skeletonRoot_;
+			}
+		};
 
 		[System.Serializable]
 		public class MeshDefaultSkeletonData{
@@ -25,6 +41,7 @@ namespace SceneExport{
 		
 		Dictionary<Transform, JsonSkeleton> jsonSkeletons = new Dictionary<Transform, JsonSkeleton>();
 		
+		//Dictionary<MeshStorageKey, 
 		Dictionary<Mesh, MeshDefaultSkeletonData> meshDefaultSkeletonData = new Dictionary<Mesh, MeshDefaultSkeletonData>();
 		/*
 		Dictionary<Mesh, Transform> meshDefaultSkeletonRoots = new Dictionary<Mesh, Transform>();
