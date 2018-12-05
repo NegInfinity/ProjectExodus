@@ -161,7 +161,7 @@ Let's proceed with first attempt, which does not take this madness scenario into
 				*/
 				curTransform = skipToFirstAnimatedNode(curTransform);
 					
-				var animatorNode = curTransform.GetComponentInParent<Animator>();
+				//var animatorNode = curTransform.GetComponentInParent<Animator>();
 				if (first){
 					rootTransform = curTransform;
 					first = false;
@@ -344,6 +344,9 @@ Let's proceed with first attempt, which does not take this madness scenario into
 			result.name = findSkeletonName(skeletonRoot);
 		}
 		
+		/*
+		This will try to find skeleton root, and it will try to find it within object prefab, if possible.
+		*/
 		public static Transform findSkeletonRoot(SkinnedMeshRenderer meshRend){
 			if (!meshRend)
 				throw new System.ArgumentNullException("meshRend");

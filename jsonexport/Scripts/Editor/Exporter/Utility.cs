@@ -3,6 +3,43 @@ using System.Collections.Generic;
 
 namespace SceneExport{
 	public static class Utility{
+		public static bool isNullOrEmpty<T>(this T[] arg){
+			return (arg == null) || (arg.Length == 0);
+		}
+		
+		public static Transform findChildByName(this Transform root, string name){
+			if (!root)
+				throw new System.ArgumentNullException("root");
+				
+			if (root.name == name)
+				return root;
+			foreach(Transform child in root){
+				if (!child)
+					continue;
+				var childResult = findChildByName(child, name);
+				if (childResult)
+					return childResult;					
+			}
+				
+			return null;
+		}
+		
+		static public List<Transform> findNamedTransforms<Container>(Container names, Transform root) where Container: ICollection<string>{
+			if (!root)
+				throw new System.ArgumentNullException("root");
+			var result = new List<Transform>();
+			foreach(var curName in names){
+				var curChild = findChildByName(root, curName);
+				if (!curChild)
+					Debug.LogWarningFormat(
+						string.Format("Could not locate child \"{0}\" by name in transform root \"{1}\"", curName, root)
+					);
+						
+				result.Add(curChild);
+			}
+			
+			return result;
+		}
 		/*
 		public static Value getValueGenerate<Key, Value, Dict>(this Dict dict, Key key, System.Func<Value> generator)
 				where Dict: IDictionary<Key, Value>{*/ //Bah

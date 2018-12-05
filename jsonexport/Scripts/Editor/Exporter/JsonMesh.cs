@@ -33,10 +33,10 @@ namespace SceneExport{
 			
 			if (other.deltaVerts != null)
 				deltaVerts = other.deltaVerts.ToArray();
-			if (other.deltaTangents != null)
-				deltaVerts = other.deltaTangents.ToArray();
 			if (other.deltaNormals != null)
-				deltaVerts = other.deltaNormals.ToArray();
+				deltaNormals = other.deltaNormals.ToArray();
+			if (other.deltaTangents != null)
+				deltaTangents = other.deltaTangents.ToArray();
 			
 			//deltaVerts = 
 		}
@@ -267,7 +267,7 @@ namespace SceneExport{
 			
 			float scaleFactor = (total != 0.0f) ? 1.0f/total: 1.0f;
 			for(int i = 0; i < bonesPerVertex; i++){
-				var curWeight = boneWeights[baseOffset + i];				
+				var curWeight = boneWeights[baseOffset + i] * scaleFactor;				
 				if (curWeight == 0.0f)
 					continue;
 				var curTransformIndex = boneIndexes[baseOffset + i];
@@ -306,6 +306,55 @@ namespace SceneExport{
 			floats[baseOffset + 2] = newVal.z;
 		}
 		
+		public delegate Data IndexedDataProcessorCallback<Data>(Data arg, int argIndex);
+		
+		/*
+		We need to fold it into one generic function, at some point.
+		*/
+		public static void processFloats2(float[] floats, IndexedDataProcessorCallback<Vector2> callback){
+			if (floats == null)
+				return;
+			if (callback == null)
+				throw new System.ArgumentNullException("callback");
+			for(int offset = 0, index = 0; offset < (floats.Length - 1); offset += 2, index++){
+				var src = new Vector2(floats[offset], floats[offset + 1]);
+				var dst = callback(src, index);
+				floats[offset + 0] = dst.x;
+				floats[offset + 1] = dst.y;
+			}
+		} 
+		
+		public static void processFloats3(float[] floats, IndexedDataProcessorCallback<Vector3> callback){
+			if (floats == null)
+				return;
+			if (callback == null)
+				throw new System.ArgumentNullException("callback");
+			for(int offset = 0, index = 0; offset < (floats.Length - 2); offset += 3, index++){
+				var src = new Vector3(floats[offset], floats[offset + 1], floats[offset + 2]);
+				var dst = callback(src, index);
+				floats[offset + 0] = dst.x;
+				floats[offset + 1] = dst.y;
+				floats[offset + 2] = dst.z;				
+			}
+		} 
+		
+		public static void processFloats4(float[] floats, IndexedDataProcessorCallback<Vector4> callback){
+			if (floats == null)
+				return;
+			if (callback == null)
+				throw new System.ArgumentNullException("callback");
+			for(int offset = 0, index = 0; offset < (floats.Length - 3); offset += 4, index++){
+				var src = new Vector4(floats[offset], floats[offset + 1], floats[offset + 2], floats[offset + 3]);
+				
+				var dst = callback(src, index);
+				
+				floats[offset + 0] = dst.x;
+				floats[offset + 1] = dst.y;
+				floats[offset + 2] = dst.z;				
+				floats[offset + 3] = dst.w;
+			}
+		} 
+		
 		public static Vector2 getIdxVector2(float[] floats, int vertIndex){
 			var baseOffset = vertIndex * 2;
 			return new Vector3(floats[baseOffset], floats[baseOffset + 1]);
@@ -315,6 +364,45 @@ namespace SceneExport{
 			var baseOffset = vertIndex * 2;
 			floats[baseOffset] = newVal.x;
 			floats[baseOffset + 1] = newVal.y;
+		}
+		
+		public void setBindPosesFromTransforms(List<Transform> bones, Transform root){
+			if (bones == null)
+				throw new System.ArgumentException("bones");
+			if (bones.Count != bindPoses.Count){
+				throw new System.ArgumentException(
+					string.Format("Mismatched number of transform on mesh {2}. {0} provided vs {1} requried",
+						bones.Count, bindPoses.Count, name)
+				);
+			}
+			if (!root){
+				for(int i = 0; i < bones.Count; i++){
+					var curBone = bones[i];
+					bindPoses[i] = curBone.worldToLocalMatrix;
+					inverseBindPoses[i] = curBone.localToWorldMatrix;
+				}
+			}
+			else{
+				var rootMatrix = root.localToWorldMatrix;
+				var rootInvMatrix = root.worldToLocalMatrix;
+				if (root.parent){
+					var parentMatrix = root.parent.localToWorldMatrix;
+					var parentInvMatrix = root.parent.worldToLocalMatrix;
+					
+					rootMatrix = parentInvMatrix * rootMatrix;
+					rootInvMatrix = rootInvMatrix * parentMatrix;
+				}
+				
+				for(int i = 0; i < bones.Count; i++){
+					var curBone = bones[i];
+					
+					var boneTransform = rootInvMatrix * curBone.localToWorldMatrix;
+					var boneInvTransform = curBone.worldToLocalMatrix * rootMatrix;
+					
+					bindPoses[i] = boneInvTransform;
+					inverseBindPoses[i] = boneTransform;
+				}
+			}
 		}
 		
 		public void transformSkeletalMesh(List<Matrix4x4> matrices){
@@ -331,52 +419,17 @@ namespace SceneExport{
 					name));
 			}
 			
-			for(int i = 0; i < vertexCount; i++){
-				var origVert = getIdxVector3(verts, i);
-				setIdxVector3(verts, i, linearBlend(origVert, matrices, i, true));
-			}
-			
-			if (normals != null){
-				for(int i = 0; i < vertexCount; i++){
-					var origNormal = getIdxVector3(verts, i);
-					setIdxVector3(verts, i, linearBlend(origNormal, matrices, i, false));
-				}
-			}
-			
-			if (tangents != null){
-				for(int i = 0; i < vertexCount; i++){
-					var origTangent = getIdxVector4(tangents, i);
-					var v3 = new Vector3(origTangent.x, origTangent.y, origTangent.z);
-					var v3new = linearBlend(v3, matrices, i, false);
-					setIdxVector4(tangents, i, new Vector4(v3new.x, v3new.y, v3new.z, origTangent.w));
-				}
-			}
-			
-			///aaah, this is going to be painful.
+			processFloats3(verts, (vert, idx) => linearBlend(vert, matrices, idx, true));
+			processFloats3(normals, (norm, idx) => linearBlend(norm, matrices, idx, false));
+			processFloats4(tangents, (tang, idx) => linearBlend(tang.getVector3(), matrices, idx, false).toVector4(tang.w));
+						
 			for(int blendShapeIndex = 0; blendShapeIndex < blendShapes.Count; blendShapeIndex++){
 				var curBlendShape = blendShapes[blendShapeIndex];
 				for(int blendFrameIndex = 0; blendFrameIndex < curBlendShape.frames.Count; blendFrameIndex++){
 					var blendFrame = curBlendShape.frames[blendFrameIndex];
-					bool hasVerts = (blendFrame.deltaVerts != null) && (blendFrame.deltaVerts.Length > 0);
-					bool hasNormals = (blendFrame.deltaVerts != null) && (blendFrame.deltaVerts.Length > 0);
-					bool hasTangents = (blendFrame.deltaVerts != null) && (blendFrame.deltaVerts.Length > 0);
-					for(int vertIndex = 0; vertIndex < vertexCount; vertIndex++){
-						if(hasVerts){
-							var delta = getIdxVector3(blendFrame.deltaVerts, vertIndex);
-							var newDelta = linearBlend(delta, matrices, vertIndex, false);
-							setIdxVector3(blendFrame.deltaVerts, vertIndex, newDelta);
-						}
-						if(hasNormals){
-							var deltaN = getIdxVector3(blendFrame.deltaNormals, vertIndex);
-							var newDeltaN = linearBlend(deltaN, matrices, vertIndex, false);
-							setIdxVector3(blendFrame.deltaVerts, vertIndex, newDeltaN);
-						}
-						if(hasTangents){
-							var deltaT = getIdxVector3(blendFrame.deltaTangents, vertIndex);
-							var newDeltaT = linearBlend(deltaT, matrices, vertIndex, false);
-							setIdxVector3(blendFrame.deltaTangents, vertIndex, newDeltaT);
-						}
-					}
+					processFloats3(blendFrame.deltaVerts, (arg, idx) => linearBlend(arg, matrices, idx, false));
+					processFloats3(blendFrame.deltaNormals, (arg, idx) => linearBlend(arg, matrices, idx, false));
+					processFloats3(blendFrame.deltaTangents, (arg, idx) => linearBlend(arg, matrices, idx, false));
 				}
 			}
 		}
@@ -462,8 +515,9 @@ namespace SceneExport{
 			writer.endObject();			
 		}
 
-		public JsonMesh(Mesh mesh, ResourceMapper exp){
-			id = exp.findMeshId(mesh);//exp.meshes.findId(mesh);
+		public JsonMesh(ResourceMapper.MeshStorageKey meshKey, int id_, ResourceMapper exp){
+			id = id_;//exp.findMeshId(mesh);//exp.meshes.findId(mesh);
+			var mesh = meshKey.mesh;
 			name = mesh.name;
 			//Debug.LogFormat("Processing mesh {0}", name);
 			var filePath = AssetDatabase.GetAssetPath(mesh);
@@ -484,8 +538,6 @@ namespace SceneExport{
 				return;
 			}
 			#endif
-			
-			
 			
 			vertexCount = mesh.vertexCount;
 			if (vertexCount <= 0)
@@ -515,8 +567,8 @@ namespace SceneExport{
 			
 			boneWeights.Clear();
 			boneIndexes.Clear();
-			defaultSkeletonId = exp.getDefaultSkeletonId(mesh);
-			defaultBoneNames = exp.getDefaultBoneNames(mesh);
+			defaultSkeletonId = exp.getDefaultSkeletonId(meshKey);
+			defaultBoneNames = exp.getDefaultBoneNames(meshKey);
 			
 			var srcWeights = mesh.boneWeights;
 			if ((srcWeights != null) && (srcWeights.Length > 0)){

@@ -4,6 +4,18 @@ using System.Linq;
 
 namespace SceneExport{
 	static class Extensions{
+		public static Vector3 getVector3(this Vector4 arg){
+			return new Vector3(arg.x, arg.y, arg.z);
+		}
+		
+		public static Vector3 getXyz(this Vector4 arg){
+			return new Vector3(arg.x, arg.y, arg.z);
+		}
+		
+		public static Vector4 toVector4(this Vector3 arg, float w){
+			return new Vector4(arg.x, arg.y, arg.z, w);
+		}
+		
 		static public Val[] copyArray<Val>(this Val[] arg){
 			if (arg == null)
 				return null;

@@ -6,14 +6,10 @@ using System.Linq;
 namespace SceneExport{
 	public class ResourceMapper{
 		public ObjectMapper<Texture> textures = new ObjectMapper<Texture>();
-		public ObjectMapper<Mesh> meshes = new ObjectMapper<Mesh>();
-		
-		public ObjectMapper<MeshStorageKey> storedMeshes = new ObjectMapper<MeshStorageKey>();
 		
 		public ObjectMapper<Material> materials = new ObjectMapper<Material>();
 		public ObjectMapper<Cubemap> cubemaps = new ObjectMapper<Cubemap>();
 		public ObjectMapper<AudioClip> audioClips = new ObjectMapper<AudioClip>();
-		//public ObjectMapper<JsonSkeleton> skeletons = new ObjectMapper<JsonSkeleton>();
 
 		[System.Serializable]
 		public struct MeshStorageKey{
@@ -27,7 +23,7 @@ namespace SceneExport{
 				skeletonRoot = skeletonRoot_;
 			}
 		};
-
+		
 		[System.Serializable]
 		public class MeshDefaultSkeletonData{
 			public Transform defaultRoot;
@@ -38,16 +34,18 @@ namespace SceneExport{
 				defaultBoneNames = defaultBoneNames_;
 			}
 		};
-		
-		Dictionary<Transform, JsonSkeleton> jsonSkeletons = new Dictionary<Transform, JsonSkeleton>();
-		
-		//Dictionary<MeshStorageKey, 
-		Dictionary<Mesh, MeshDefaultSkeletonData> meshDefaultSkeletonData = new Dictionary<Mesh, MeshDefaultSkeletonData>();
+
 		/*
-		Dictionary<Mesh, Transform> meshDefaultSkeletonRoots = new Dictionary<Mesh, Transform>();
-		Dictionary<Mesh, List<string>> meshDefaultBoneNames = new Dictionary<Mesh, List<string>>();
+			Well, do to differences in handling unity's adn unreal skeletal meshes, we can no longer use naked mesh to uniquely id
+			mesh being used.
+			
+			So we're going to pair it with prefab root and.... I guess skeleton root as well.
+			This won't be needed for non-skinned meshes, of course.
 		*/
-		//Dictionary<Mesh, int> defaultSkeletonIds = new Dictionary<Mesh, int>();		
+		Dictionary<Transform, JsonSkeleton> jsonSkeletons = new Dictionary<Transform, JsonSkeleton>();
+		public ObjectMapper<MeshStorageKey> meshes = new ObjectMapper<MeshStorageKey>();
+		//Dictionary<Mesh, MeshDefaultSkeletonData> meshDefaultSkeletonData = new Dictionary<Mesh, MeshDefaultSkeletonData>();
+		Dictionary<MeshStorageKey, MeshDefaultSkeletonData> meshDefaultSkeletonData = new Dictionary<MeshStorageKey, MeshDefaultSkeletonData>();
 		Dictionary<Mesh, List<Material>> meshMaterials = new Dictionary<Mesh, List<Material>>();
 		
 		public HashSet<string> resources = new HashSet<string>();
@@ -108,42 +106,50 @@ namespace SceneExport{
 		}
 
 		public int getMeshId(Mesh obj){
-			return meshes.getId(obj, true);
+			var key = new MeshStorageKey(obj);
+			return meshes.getId(key, true);
 		}
 		
 		public int findMeshId(Mesh obj){
-			return meshes.getId(obj, false);
+			var key = new MeshStorageKey(obj);
+			return meshes.getId(key, false);
 		}
 		
-		public List<string> getDefaultBoneNames(Mesh mesh){
-			var tmp = meshDefaultSkeletonData.getValOrDefault(mesh, null);
+		public List<string> getDefaultBoneNames(MeshStorageKey key){
+			var tmp = meshDefaultSkeletonData.getValOrDefault(
+				key, null);
 			if (tmp == null)
 				return new List<string>();
 			return tmp.defaultBoneNames.ToList();
 		}
 		
-		public int getDefaultSkeletonId(Mesh obj){
-			var defaultData = meshDefaultSkeletonData.getValOrDefault(obj, null);
+		/*
+		public List<string> getDefaultBoneNames(Mesh mesh){
+			return getDefaultBoneNames(new MeshStorageKey(mesh));
+		}
+		*/
+		
+		public JsonSkeleton getDefaultSkeleton(MeshStorageKey key){
+			var defaultData = meshDefaultSkeletonData.getValOrDefault(key, null);
 			if (defaultData == null)
-				return ExportUtility.invalidId;
-			/*
-			var transform = meshDefaultSkeletonRoots.getValOrDefault(obj, null);
-			if (!transform)
-				return ExportUtility.invalidId;*/
+				return null;
 				
 			var skel = jsonSkeletons.getValOrDefault(defaultData.defaultRoot, null);
+			return skel;
+		}
+		
+		public int getDefaultSkeletonId(MeshStorageKey key){
+			var skel = getDefaultSkeleton(key);
 			if (skel == null)
 				return ExportUtility.invalidId;
-				
 			return skel.id;
-			//return defaultSkeletonIds.getValOrDefault(obj, -1);
-			/*
-			JsonSkeleton skel = null;
-			if (!meshSkeletons.TryGetValue(obj, out skel))
-				return -1;
-			return skel.id;
-			*/
 		}
+		
+		/*
+		public int getDefaultSkeletonId(Mesh meshObj){
+			return getDefaultSkeletonId(new MeshStorageKey(meshObj));
+		}
+		*/
 		
 		public int getMaterialId(Material obj){
 			return materials.getId(obj, true);
@@ -181,10 +187,11 @@ namespace SceneExport{
 			}
 		}
 
-		int getOrRegMeshId(GameObject obj, Mesh mesh){
+		int getOrRegMeshId(MeshStorageKey meshKey, GameObject obj, Mesh mesh){
 			if (!mesh)
 				return ExportUtility.invalidId;
-			int result = meshes.getId(mesh, true, null);
+			//var meshKey = new MeshStorageKey(mesh);
+			int result = meshes.getId(meshKey, true, null);
 			if (meshMaterials.ContainsKey(mesh))
 				return result;
 			var r = obj.GetComponent<Renderer>();
@@ -194,13 +201,25 @@ namespace SceneExport{
 			return result;
 		}
 		
+		public MeshStorageKey buildMeshKey(SkinnedMeshRenderer meshRend, bool includeSkeleton){
+			var mesh = meshRend.sharedMesh;
+			 
+			 var prefabRoot = PrefabUtility.FindPrefabRoot(meshRend.gameObject);
+			 
+			 Transform skeletonRoot = null;
+			 if (includeSkeleton){
+			 	skeletonRoot = JsonSkeletonBuilder.findSkeletonRoot(meshRend);
+			 }
+			 return new MeshStorageKey(mesh, prefabRoot, skeletonRoot);
+		}
+		
 		public int getOrRegMeshId(SkinnedMeshRenderer meshRend){
 			var mesh = meshRend.sharedMesh;
 			if (!mesh)
 				return ExportUtility.invalidId;
 				
-			//if (!meshDefaultSkeletonRoots.ContainsKey(mesh)){
-			if (!meshDefaultSkeletonData.ContainsKey(mesh)){				
+			var meshKey = buildMeshKey(meshRend, true);
+			if (!meshDefaultSkeletonData.ContainsKey(meshKey)){				
 				var rootTransform = JsonSkeletonBuilder.findSkeletonRoot(meshRend);
 				if (!rootTransform)
 					throw new System.ArgumentException(
@@ -209,7 +228,7 @@ namespace SceneExport{
 				var boneNames = meshRend.bones.Select((arg) => arg.name).ToList();
 				
 				var defaultData = new MeshDefaultSkeletonData(rootTransform, boneNames);
-				meshDefaultSkeletonData.Add(mesh, defaultData);
+				meshDefaultSkeletonData.Add(meshKey, defaultData);
 				
 				if (!jsonSkeletons.ContainsKey(rootTransform)){
 					var newSkel = JsonSkeletonBuilder.buildFromRootTransform(rootTransform);
@@ -223,18 +242,7 @@ namespace SceneExport{
 				//meshDefaultSkeletonRoots.Add(mesh, rootTransform);
 			}
 			
-			/*
-			if (!defaultSkeletonIds.ContainsKey(mesh)){
-				var skel = JsonSkeletonBuilder.extractOriginalSkeleton(meshRend, null);
-				if (skel != null){
-					var skelId = skeletons.registerObject(skel);
-					skel.id = skelId;
-					defaultSkeletonIds.Add(mesh, skelId);
-				}
-			}
-			*/
-			
-			return getOrRegMeshId(meshRend.gameObject, mesh);
+			return getOrRegMeshId(meshKey, meshRend.gameObject, mesh);
 		}
 		
 		public int getOrRegMeshId(MeshFilter meshFilter){
@@ -242,7 +250,7 @@ namespace SceneExport{
 			if (!mesh)
 				return ExportUtility.invalidId;
 				
-			return getOrRegMeshId(meshFilter.gameObject, mesh);
+			return getOrRegMeshId(new MeshStorageKey(mesh), meshFilter.gameObject, mesh);
 		}
 		
 		public int getPrefabObjectId(GameObject obj, bool createMissing){
@@ -343,9 +351,12 @@ namespace SceneExport{
 			return result;
 		}		
 		
+		public delegate ReturnType IndexedObjectConverter<SrcType, ReturnType> (SrcType src, int index);
+		
 		static List<string> saveResourcesToPath<ClassType, ObjType>(string baseDir, 
 				List<ObjType> objects, 
-				System.Func<ObjType, ClassType> converter, 
+				IndexedObjectConverter<ObjType, ClassType> converter,
+				//System.Func<ObjType, ClassType> converter, 
 				System.Func<ClassType, string> nameFunc, string baseName, bool showGui) 
 				where ClassType: IFastJsonValue{
 				
@@ -361,7 +372,7 @@ namespace SceneExport{
 								string.Format("Saving file #{0} of resource type {1}", i + 1, baseName), 
 								"Writing json data", i, objects.Count);
 						}
-						var jsonObj = converter(objects[i]);	
+						var jsonObj = converter(objects[i], i);	
 						string fileName;
 						if (nameFunc != null){
 							fileName = makeJsonResourcePath(baseName, nameFunc(jsonObj), i);	
@@ -384,18 +395,138 @@ namespace SceneExport{
 			}
 		}
 		
+		static bool isSkeletalMesh(Mesh mesh){
+			return mesh
+				&& ((mesh.bindposes.Length > 0)
+				||(mesh.blendShapeCount > 0)
+				||(mesh.boneWeights.Length > 0));
+				/*
+					Any of those indicate that this is likely a skeletal mesh, as blendhsape rendering goes through
+					skinned mesh too.
+					Although setting bone weighs but not bindposes woudl probably mean
+					someone has a sick sense of humor.
+				*/
+		}
+		
+		static float getMaxDifference(Matrix4x4 m1, Matrix4x4 m2){
+			float maxDiff = 0.0f;
+			for(int i = 0; i < 16; i++){
+				var diff = Mathf.Abs(m1[i] - m2[i]);
+				maxDiff = Mathf.Max(maxDiff, diff);
+			}
+			return maxDiff;
+		}
+		
+		JsonMesh makeJsonMesh(MeshStorageKey meshKey, int id){
+			var result = new JsonMesh(meshKey, id, this);
+			if (!meshKey.skeletonRoot || !meshKey.prefab)
+				return result;
+			
+			if (!isSkeletalMesh(meshKey.mesh)){
+				return result;
+			}
+			
+			const float matrixEpsilon = 0.00001f; //I'll consider matrices equivalent if this is below this threshold
+			
+			var boneTransforms = Utility.findNamedTransforms(result.defaultBoneNames, meshKey.skeletonRoot);
+			for(int i = 0; i < boneTransforms.Count; i++){
+				if (!boneTransforms[i]){
+					Debug.LogWarningFormat(
+						string.Format("Could not locate bone {0}({1}) on mesh {2}", 
+						result.defaultBoneNames[i], i, meshKey.mesh)
+					);
+				}
+			}
+			
+			//let's check if we even NEED transformation.
+			//First, bones.
+			bool largeBoneTransformFound = false;
+			bool largeRootTransformFound = false;
+			{
+				for(int i = 0; i < boneTransforms.Count; i++){
+					var curBone = boneTransforms[i];
+					var inverseMatrix  = curBone.worldToLocalMatrix;
+					var bindPose = meshKey.mesh.bindposes[i];
+					
+					var diff = getMaxDifference(inverseMatrix, bindPose);
+					if (diff > matrixEpsilon){
+						largeBoneTransformFound = true;
+						Debug.LogFormat(
+							string.Format("Large transform found on mesh {0}, mesh will be transformed to accomodate",
+								meshKey.mesh.name));
+						break;
+					}
+				}
+			}
+
+			//Then, root			
+			{
+				var maxRootDiff = getMaxDifference(Matrix4x4.identity, meshKey.skeletonRoot.localToWorldMatrix);
+				if (maxRootDiff < matrixEpsilon){
+					Debug.LogFormat(
+						string.Format("Root matrix nearly identical to original. Max difference {0}. Skipping transformation.", maxRootDiff));
+					largeRootTransformFound = true;
+				}
+			}
+			
+			if (!largeBoneTransformFound && !largeRootTransformFound){
+				return result;
+			}
+			
+			//Oooh boy. Here it comes. The transformation.
+			/*
+				The fact the mesh has both prefab and skeleton root specified indicats that it is skeletal.
+				
+				To accomodate for unreal approach to skinning, we now need to transform it into root space of our prefab.
+			*/
+			
+			var transformed = new JsonMesh(result);
+			
+			var transformMatrices = new List<Matrix4x4>();
+			var rootTransform = meshKey.skeletonRoot.transform.localToWorldMatrix;
+			var invRootTransform = meshKey.skeletonRoot.transform.worldToLocalMatrix;
+			var oldBindPoses = meshKey.mesh.bindposes;
+			var rootParentTransform = Matrix4x4.identity;
+			var rootParentInvTransform = Matrix4x4.identity;
+			
+			if (meshKey.skeletonRoot.parent){
+				var rootParent = meshKey.skeletonRoot.parent;
+				rootParentTransform = rootParent.localToWorldMatrix;
+				rootParentInvTransform = rootParent.worldToLocalMatrix;
+			}
+			
+			for(int boneIndex = 0; boneIndex < transformed.bindPoses.Count; boneIndex++){
+				var newTransformMatrix = Matrix4x4.identity;
+				
+				var curBone = boneTransforms[boneIndex];
+				if (curBone){
+					newTransformMatrix = 
+						rootParentInvTransform * curBone.localToWorldMatrix * meshKey.mesh.bindposes[boneIndex];
+						//invRootTransform * curBone.localToWorldMatrix * meshKey.mesh.bindposes[boneIndex];
+				}
+				
+				transformMatrices.Add(newTransformMatrix);
+			}
+			
+			transformed.transformSkeletalMesh(transformMatrices);
+			transformed.setBindPosesFromTransforms(boneTransforms, meshKey.skeletonRoot);
+			
+			//
+			return transformed;
+		}
+		
 		public JsonExternResourceList saveResourceToFolder(string baseDir, bool showGui, List<JsonScene> scenes, Logger logger){		
 			Logger.makeValid(ref logger);
 			var result = new JsonExternResourceList();
 			
 			result.scenes = saveResourcesToPath(baseDir, scenes, 
-				(objData) => objData, (obj) => obj.name, "scene", showGui);
+				(objData, i) => objData, (obj) => obj.name, "scene", showGui);
 			result.terrains = saveResourcesToPath(baseDir, terrains.objectList, 
-				(objData) => new JsonTerrainData(objData, this), (obj) => obj.name, "terrainData", showGui);
+				(objData, i) => new JsonTerrainData(objData, this), (obj) => obj.name, "terrainData", showGui);
 			result.meshes = saveResourcesToPath(baseDir, meshes.objectList, 
-				(objData) => new JsonMesh(objData, this), (obj) => obj.name, "mesh", showGui);
+				(meshKey, id) => makeJsonMesh(meshKey, id), (obj) => obj.name, "mesh", showGui);
 			result.materials = saveResourcesToPath(baseDir, materials.objectList, 
-				(objData) => {
+				(objData, i) => {
 					var mat = new JsonMaterial(objData, this);
 					if (!mat.supportedShader){
 						logger.logWarningFormat("Possibly unsupported shader \"{0}\" in material \"{1}\"(#{2}, path \"{3}\"). " + 
@@ -405,20 +536,20 @@ namespace SceneExport{
 					return mat; 
 				}, (obj) => obj.name, "material", showGui);
 			result.textures = saveResourcesToPath(baseDir, textures.objectList, 
-				(objData) => new JsonTexture(objData, this), (obj) => obj.name, "texture", showGui);
+				(objData, id) => new JsonTexture(objData, this), (obj) => obj.name, "texture", showGui);
 			result.cubemaps = saveResourcesToPath(baseDir, cubemaps.objectList, 
-				(objData) => new JsonCubemap(objData, this), (obj) => obj.name, "cubemap", showGui);
+				(objData, id) => new JsonCubemap(objData, this), (obj) => obj.name, "cubemap", showGui);
 			result.audioClips = saveResourcesToPath(baseDir, audioClips.objectList, 
-				(objData) => new JsonAudioClip(objData, this), (obj) => obj.name, "audioClip", showGui);
+				(objData, id) => new JsonAudioClip(objData, this), (obj) => obj.name, "audioClip", showGui);
 				
 			var skeletons = jsonSkeletons.Values.ToList();
 			skeletons.Sort((x, y) => x.id.CompareTo(y.id));
 			result.skeletons = saveResourcesToPath(baseDir, skeletons, 
-				(objData) => objData, (obj) => obj.name, "skeleton", showGui);			
+				(objData, id) => objData, (obj) => obj.name, "skeleton", showGui);			
 				
 			var prefabList = makePrefabList();
 			result.prefabs = saveResourcesToPath(baseDir, prefabList, 
-				(objData) => objData, (obj) => obj.name, "prefab", showGui);
+				(objData, id) => objData, (obj) => obj.name, "prefab", showGui);
 			/*result.prefabs = saveResourcesToPath(baseDir, prefabs.objectMap, 
 				(objData) => new JsonPref"prefab");*/
 			result.resources = new List<string>(resources);
@@ -434,8 +565,9 @@ namespace SceneExport{
 				result.terrains.Add(new JsonTerrainData(cur, this));
 			}
 			
-			foreach(var cur in meshes.objectList){
-				result.meshes.Add(new JsonMesh(cur, this));
+			for(int i = 0; i < meshes.objectList.Count; i++){
+				var cur = meshes.objectList[i];
+				result.meshes.Add(new JsonMesh(cur, i, this));
 			}
 
 			foreach(var cur in materials.objectList){
