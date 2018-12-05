@@ -75,6 +75,7 @@ void JsonMesh::load(JsonObjPtr data){
 	//TArray<FMatrix> bindPoses;
 	//TArray<FMatrix> inverseBindPoses;
 
+
 	JSON_GET_VAR(data, subMeshCount);
 	getJsonObjArray(data, subMeshes, "subMeshes");
 }
@@ -106,4 +107,26 @@ FString JsonMesh::makeUnrealMeshName() const{
 		result = FString::Printf(TEXT("%s_%d"), *name, id);
 	}
 	return result;
+}
+
+const FVector JsonMesh::getVertex(int index) const{
+	return getIdxVector3(verts, index);
+}
+
+const FVector JsonMesh::getNormal(int index) const{
+	if (!normals.Num())
+		return FVector::ZeroVector;
+	return getIdxVector3(normals, index);
+}
+
+FVector JsonBlendShapeFrame::getDeltaVert(int index) const{
+	return getIdxVector3(deltaVerts, index);
+}
+
+FVector JsonBlendShapeFrame::getDeltaTangent(int index) const{
+	return getIdxVector3(deltaTangents, index);
+}
+
+FVector JsonBlendShapeFrame::getDeltaNormal(int index) const{
+	return getIdxVector3(deltaNormals, index);
 }

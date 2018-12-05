@@ -10,6 +10,10 @@ public:
 	FloatArray deltaTangents;
 	FloatArray deltaNormals;
 
+	FVector getDeltaVert(int index) const;
+	FVector getDeltaTangent(int index) const;
+	FVector getDeltaNormal(int index) const;
+
 	void load(JsonObjPtr data);
 	JsonBlendShapeFrame(JsonObjPtr data){
 		load(data);
@@ -64,6 +68,21 @@ public:
 	FloatArray uv5;
 	FloatArray uv6;
 	FloatArray uv7;
+
+	bool hasColors() const{
+		return (colors.Num() > 0);
+	}
+
+	bool hasNormals() const{
+		return (normals.Num() > 0);
+	}
+
+	bool hasTangents() const{
+		return (tangents.Num() > 0);
+	}
+
+	const FVector getVertex(int index) const;
+	const FVector getNormal(int index) const;
 
 	int getNumTexCoords() const{
 		const int maxNumCoords = 8;

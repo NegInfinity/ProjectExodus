@@ -5,9 +5,11 @@
 #include "Runtime/Engine/Public/Rendering/SkeletalMeshModel.h"
 #include "Runtime/Engine/Classes/Materials/Material.h"
 #include "Runtime/Engine/Classes/Animation/Skeleton.h"
+#include "Runtime/Engine/Classes/Animation/MorphTarget.h"
 
 using namespace UnrealUtilities;
 
+#if 0
 static void fillTestSkinMeshDirect(USkeletalMesh* skelMesh){
 	UE_LOG(JsonLog, Warning, TEXT("Starting skin mesh test"));
 	auto importModel = skelMesh->GetImportedModel();
@@ -155,11 +157,11 @@ static void fillTestSkinMeshDirect(USkeletalMesh* skelMesh){
 	//FassetDatabase
 
 	skelMesh->Skeleton = skeleton;
-	
 
 	skelMesh->MarkPackageDirty();
 	skelMesh->PostLoad();
 }
+#endif
 
 static void fillTestSkinMeshWithMeshTools(USkeletalMesh* skelMesh){
 	FlushRenderingCommands();
@@ -238,15 +240,25 @@ static void fillTestSkinMeshWithMeshTools(USkeletalMesh* skelMesh){
 	TArray<FText> buildWarnMessages;
 	TArray<FName> buildWarnNames;
 
+	TArray<FMorphTargetDelta> originalDeltas;
+
 	TArray<FVector2D> uvs;
 	meshPoints.Add(FVector(0.0f, -100.0f, 100.0f));
 	uvs.Add(FVector2D(0.0f, 1.0f));
+	originalDeltas.Add(FMorphTargetDelta{FVector(0.0f, -100.0f, 100.0f), FVector(0.0f, 0.0f, 0.0f), 0});
+
 	meshPoints.Add(FVector(0.0f, 100.0f, 100.0f));
 	uvs.Add(FVector2D(1.0f, 1.0f));
+	originalDeltas.Add(FMorphTargetDelta{FVector(0.0f, 100.0f, 100.0f), FVector(0.0f, 0.0f, 0.0f), 1});
+
 	meshPoints.Add(FVector(0.0f, -100.0f, -100.0f));
 	uvs.Add(FVector2D(0.0f, 0.0f));
+	originalDeltas.Add(FMorphTargetDelta{FVector(0.0f, -100.0f, -100.0f), FVector(0.0f, 0.0f, 0.0f), 2});
+
 	meshPoints.Add(FVector(0.0f, 100.0f, -100.0f));
 	uvs.Add(FVector2D(1.0f, 0.0f));
+	originalDeltas.Add(FMorphTargetDelta{FVector(0.0f, 100.0f, -100.0f), FVector(0.0f, 0.0f, 0.0f), 3});
+
 	FVector norm(-1.0f, 0.0f, 0.0f);
 	FVector tanU(0.0f, 1.0f, 0.0f);
 	FVector tanV(0.0f, 0.0f, 1.0f);
@@ -332,7 +344,89 @@ static void fillTestSkinMeshWithMeshTools(USkeletalMesh* skelMesh){
 	skelMesh->Skeleton = skeleton;
 	FAssetRegistryModule::AssetCreated(skeleton);
 	skeleton->MarkPackageDirty();
+
+	/*
+	auto morphTarget = NewObject<UMorphTarget>(skelMesh->GetOuter());
+	FAssetRegistryModule::AssetCreated(morphTarget);
+	*/
+	/*
+	TArray<FMorphTargetDelta> deltas;
+	auto morphLodModel = skelMesh->GetImportedModel()->LODModels[0];
+	*/
+
+	for(int shapeIndex = 0; shapeIndex < 5; shapeIndex++){
+		auto morphTarget = NewObject<UMorphTarget>(skelMesh->GetOuter());
+		FAssetRegistryModule::AssetCreated(morphTarget);
+
+		TArray<FMorphTargetDelta> deltas;
+		const auto morphModel = skelMesh->GetImportedModel();
+		const auto &morphLodModel = morphModel->LODModels[0];
+
+		bool all = shapeIndex == 4;
+
+		//morphLodModel.
+		//UE_LOG(JsonLog, Log, TEXT(""), morephModel->);
+		UE_LOG(JsonLog, Log, TEXT("morphLodModel.MeshToImportVertexMap.Num() -> %d"), morphLodModel.MeshToImportVertexMap.Num());
+		for(int vertIndex = 0; vertIndex < morphLodModel.MeshToImportVertexMap.Num(); vertIndex++){
+			auto deltaIndex = morphLodModel.MeshToImportVertexMap[vertIndex];
+			UE_LOG(JsonLog, Log, TEXT("vertIndex %d => %d"), deltaIndex);
+			auto origIndex = originalDeltas[deltaIndex];
+			auto origDelta = originalDeltas[deltaIndex];
+			if (!all && (shapeIndex != deltaIndex))
+				continue;
+			auto newDelta = origDelta;
+			newDelta.SourceIdx = vertIndex;
+			//deltas.Add(FMorphTargetDelta{origDelta.PositionDelta, origDelta.TangentZDelta, 
+			//deltas.Add(origDelta);
+			deltas.Add(newDelta);
+		}
+	#if 0
+		UE_LOG(JsonLog, Log, TEXT("morphLodModel.MeshToImportVertexMap.Num() -> %d"), morphLodModel.MeshToImportVertexMap.Num());
+		for(int vertIndex = 0; vertIndex < morphLodModel.IndexBuffer.Num(); vertIndex++){
+		//for(int vertIndex = 0; vertIndex < morphLodModel.MeshToImportVertexMap.Num(); vertIndex++){
+			auto curIndex = morphLodModel.IndexBuffer[vertIndex];
+			//auto deltaIndex = morphLodModel.MeshToImportVertexMap[vertIndex];
+			auto deltaIndex = morphLodModel.MeshToImportVertexMap[curIndex];
+			UE_LOG(JsonLog, Log, TEXT("vertIndex %d => %d"), deltaIndex);
+			auto origIndex = originalDeltas[deltaIndex];
+		//for(int deltaIndex = 0; deltaIndex < originalDeltas.Num(); deltaIndex++){
+			auto origDelta = originalDeltas[deltaIndex];
+			if (!all && (shapeIndex != deltaIndex))
+				continue;
+			deltas.Add(origDelta);
+		}
+	#endif
+		morphTarget->PopulateDeltas(deltas, 0, morphLodModel.Sections);
+		morphTarget->MarkPackageDirty();
+		auto registrationResult = skelMesh->RegisterMorphTarget(morphTarget);
+	}
+
+	/*
+	for(int deltaIndex = 0; deltaIndex < originalDeltas.Num(); deltaIndex++){
+		auto origDelta = originalDeltas[i];
+		deltas.Add(origDelta);
+	}
+	*/
+
+	/*
+	auto &dstDelta = deltas.AddDefaulted_GetRef();
+	dstDelta.PositionDelta = FVector(100.0f, 0.0f, 0.0f);
+	dstDelta.TangentZDelta = FVector(0.0f, 0.0f, 0.0f);
 	
+	for(int i = 0; i < meshPoints.Num(); i++){
+		auto &dstDelta = deltas.AddDefaulted_GetRef();
+		dstDelta.PositionDelta = FVector(100.0f, 0.0f, 0.0f);
+		dstDelta.TangentZDelta = FVector(0.0f, 0.0f, 0.0f);
+		dstDelta.SourceIdx = 0;
+	}
+	*/
+
+	/*
+	morphTarget->PopulateDeltas(deltas, 0, morphLodModel.Sections);
+	morphTarget->MarkPackageDirty();
+	auto registrationResult = skelMesh->RegisterMorphTarget(morphTarget);
+	*/
+
 	skelMesh->PostEditChange();
 
 	skelMesh->MarkPackageDirty();

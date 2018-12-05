@@ -6,6 +6,8 @@
 #include "JsonImporter.h"
 #include "JsonObjects/loggers.h"
 
+#include "Runtime/Engine/Classes/Animation/MorphTarget.h"
+
 using namespace UnrealUtilities;
 using namespace JsonObjects;
 
@@ -44,38 +46,24 @@ void MeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonMesh &jso
 		UE_LOG(JsonLog, Warning, TEXT("Skeleton not found on skinned mesh \"%s\"(%d)"), *jsonMesh.name, jsonMesh.id);
 		return;
 	}
-	//auto jsonSkel = 
+
 	auto jsonSkel = importer->getSkeleton(skelId);
 	if (!jsonSkel){
 		UE_LOG(JsonLog, Warning, TEXT("Json skeleton not found on \"%s\"(%d), skeletonid: %d"), *jsonMesh.name, jsonMesh.id, skelId);
 		return;
 	}
 
-	//TMap<FString, int> mappedBoneNames;
 	TMap<int, int> meshToSkeletonBoneMap;
 	for(int boneIndex = 0; boneIndex < jsonMesh.defaultBoneNames.Num(); boneIndex++){
 		const auto &curName = jsonMesh.defaultBoneNames[boneIndex];
-		/*
-		if (curName.IsEmpty()){
-			UE_LOG(JsonLog, Warning, TEXT("Invalid bone name #%d on mesh \"%s\""), 
-				boneIndex, *jsonMesh.name);
-			continue;
-		}
-		*/
 		const auto skeletonBoneIndex = jsonSkel->findBoneIndex(curName);
 		if (skeletonBoneIndex < 0){
 			UE_LOG(JsonLog, Warning, TEXT("Bone \"%s\" not found while processing mesh \"%s\""), 
 				*curName, *jsonMesh.name);
 			continue;
 		}
-		//mappedBoneNames.Add(curName, skeletonBoneIndex);
 		meshToSkeletonBoneMap.Add(boneIndex, skeletonBoneIndex);
 	}
-	/*
-	for(const auto& curName: jsonSkel->defaultBoneNames){
-
-		mappedNames.Add(cur, 
-	}*/
 
 	auto& refSkeleton = skelMesh->RefSkeleton;
 	refSkeleton.Empty();
@@ -132,6 +120,8 @@ void MeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonMesh &jso
 			refSkelModifier.Add(boneInfo, boneTransform);
 		}
 	}
+
+	TArray<UMorphTarget*> morphTargets;
 
 	TArray<SkeletalMeshImportData::FVertInfluence> meshInfluences;
 	TArray<SkeletalMeshImportData::FMeshWedge> meshWedges;
@@ -244,11 +234,88 @@ void MeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonMesh &jso
 		UE_LOG(JsonLog, Warning, TEXT("Warning name: %s"), *warn.ToString());
 	}
 
-	auto skeleton = NewObject<USkeleton>(skelMesh->GetOuter());
+	auto skeleton = NewObject<USkeleton>(skelMesh->GetOuter(), *jsonSkel->name);
 	skeleton->MergeAllBonesToBoneTree(skelMesh);
 	skelMesh->Skeleton = skeleton;
 	FAssetRegistryModule::AssetCreated(skeleton);
 	skeleton->MarkPackageDirty();
+
+	bool needMorphInvalidate = false;
+
+	for(int blendShapeIndex = 0; blendShapeIndex < jsonMesh.blendShapes.Num(); blendShapeIndex++){
+		UE_LOG(JsonLog, Log, TEXT("Processing blend shape %d out of %d"), blendShapeIndex, jsonMesh.blendShapes.Num());
+		const auto &curBlendShape = jsonMesh.blendShapes[blendShapeIndex];
+		for(int blendFrameIndex = 0; blendFrameIndex < curBlendShape.frames.Num(); blendFrameIndex++){
+			auto morphName = FString::Printf(TEXT("%s_%s_s%d_f%d"), 
+				*jsonMesh.name, *curBlendShape.name, blendShapeIndex, blendFrameIndex);
+
+			const auto &blendFrame = curBlendShape.frames[blendFrameIndex];
+
+			auto morphTarget = NewObject<UMorphTarget>(skelMesh->GetOuter(), *morphName);
+			FAssetRegistryModule::AssetCreated(morphTarget);
+			morphTargets.Add(morphTarget);
+
+			TArray<FMorphTargetDelta> deltas;
+
+			///what do I do about the weight?
+			/*
+			for(int vertIndex = 0; vertIndex < blendFrame.deltaVerts.Num(); vertIndex++){
+				auto& dstDelta = deltas.AddDefaulted_GetRef();
+				dstDelta.SourceIdx = vertIndex;//Unity stores deltas for all verts
+				auto unityDeltaPos = getIdxVector3(blendFrame.deltaVerts, vertIndex);
+				auto unityDeltaNorm = getIdxVector3(blendFrame.deltaNormals, vertIndex);
+
+				dstDelta.PositionDelta = unityPosToUe(unityDeltaPos);
+				dstDelta.TangentZDelta = unityVecToUe(unityDeltaNorm);
+			}
+			*/
+			/*
+			auto& dstDelta = deltas.AddDefaulted_GetRef();
+			dstDelta.SourceIdx = 0;//vertIndex;//Unity stores deltas for all verts
+			dstDelta.PositionDelta = FVector(100.0f, 0.0f, 0.0f);
+			dstDelta.TangentZDelta = FVector::ZeroVector;
+			*/
+
+			auto importData = skelMesh->GetImportedModel();
+			const auto &lodModel = importData->LODModels[0];//TODO:  lod support.
+
+			FString modelData;
+
+			UE_LOG(JsonLog, Log, TEXT("Dumping model: %s"), *modelData);
+
+			for(int meshVertIdx = 0; meshVertIdx < lodModel.MeshToImportVertexMap.Num(); meshVertIdx++){
+				auto origVertIdx = lodModel.MeshToImportVertexMap[meshVertIdx];
+
+				auto& dstDelta = deltas.AddDefaulted_GetRef();
+				//dstDelta.SourceIdx = origVertIdx;//Unity stores deltas for all verts
+				dstDelta.SourceIdx = meshVertIdx;//Aaand nope. That was some stupid error. Mesh morph references the NEW verts, and not the original one...
+				auto unityDeltaPos = getIdxVector3(blendFrame.deltaVerts, origVertIdx);
+				auto unityDeltaNorm = getIdxVector3(blendFrame.deltaNormals, origVertIdx);
+
+				dstDelta.PositionDelta = unityPosToUe(unityDeltaPos);
+				dstDelta.TangentZDelta = unityVecToUe(unityDeltaNorm);
+
+				//for(const auto cur: lodModel.MeshToImportVertexMap){
+
+				//UE_LOG(JsonLog, Log, TEXT("Debug vert: %d"), cur);
+			}
+			//lodModel.MeshToImportVertexMap
+			//UE_LOG(JsonLog, Log, TEXT("Printing original vertices. Total number: %d"), lodModel.RawPointIndices.Nu
+
+			morphTarget->PopulateDeltas(deltas, 0, lodModel.Sections);
+
+			morphTarget->MarkPackageDirty();
+
+			auto registrationResult = skelMesh->RegisterMorphTarget(morphTarget);
+			needMorphInvalidate = needMorphInvalidate | registrationResult;
+			UE_LOG(JsonLog, Log, TEXT("Registration result: %d. Target %s (%d), frame %d"),
+				(int)registrationResult, *curBlendShape.name, blendShapeIndex, blendFrameIndex);
+		}
+	}
+
+	if (needMorphInvalidate){
+		skelMesh->InitMorphTargetsAndRebuildRenderData();
+	}
 
 	skelMesh->PostEditChange();
 	skelMesh->MarkPackageDirty();
