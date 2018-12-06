@@ -383,7 +383,7 @@ Let's proceed with first attempt, which does not take this madness scenario into
 		
 		public static JsonSkeleton extractOriginalSkeleton(SkinnedMeshRenderer meshRend, Logger logger){
 			Logger.makeValid(ref logger);
-			var rootPrefab = PrefabUtility.FindPrefabRoot(meshRend.gameObject);
+			var rootPrefab = ExportUtility.getLinkedRootPrefabAsset(meshRend.gameObject);//PrefabUtility.FindPrefabRoot(meshRend.gameObject);
 			if (!rootPrefab){
 				//now what?
 				logger.logWarningFormat("Could not find original prefab for meshRenderer {0}({1})," 

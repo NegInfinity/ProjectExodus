@@ -11,7 +11,7 @@ namespace SceneExport{
 		
 		public delegate bool HierarchyWalker(GameObject curObj);
 		
-		public static GameObject getLinkedRootPrefab(GameObject obj){
+		public static GameObject getLinkedRootPrefabAsset(GameObject obj){
 			var prefab = getLinkedPrefab(obj);
 			if (!prefab)
 				return null;

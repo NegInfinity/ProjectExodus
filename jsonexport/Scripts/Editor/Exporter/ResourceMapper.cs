@@ -13,9 +13,39 @@ namespace SceneExport{
 
 		[System.Serializable]
 		public struct MeshStorageKey{
-			public Mesh mesh;
-			public GameObject prefab;
-			public Transform skeletonRoot;
+			public readonly Mesh mesh;//Immutability, huh. Ugh.
+			public readonly GameObject prefab;
+			public readonly Transform skeletonRoot;
+			
+			public override string ToString(){
+				return string.Format("[MeshStorageKey]{{ mesh: {0}({1}); prefab: {2}({3}); skeletonRoot: {4}({5}) }}", 
+					mesh, mesh ? mesh.GetInstanceID(): 0, 
+					prefab, prefab ? prefab.GetInstanceID(): 0, 
+					skeletonRoot, skeletonRoot ? skeletonRoot.GetInstanceID(): 0
+				);
+			}
+			
+			public override int GetHashCode(){
+				int hash = 17;
+				hash = hash * 23 + (mesh ? mesh.GetHashCode(): 0);
+				hash = hash * 23 + (prefab ? prefab.GetHashCode(): 0);
+				hash = hash * 23 + (skeletonRoot ? skeletonRoot.GetHashCode(): 0);
+				return hash;
+			}
+			
+			public override bool Equals(object obj){
+				if (obj is MeshStorageKey){
+					return this.Equals((MeshStorageKey)obj);
+				}
+				
+				return false;
+			}
+			
+			public bool Equals(MeshStorageKey other){
+				return (mesh == other.mesh) 
+					&& (prefab == other.prefab)
+					&& (skeletonRoot == other.skeletonRoot);					
+			}
 			
 			public MeshStorageKey(Mesh mesh_, GameObject prefab_ = null, Transform skeletonRoot_ = null){
 				mesh = mesh_;
@@ -188,12 +218,17 @@ namespace SceneExport{
 		}
 
 		int getOrRegMeshId(MeshStorageKey meshKey, GameObject obj, Mesh mesh){
-			if (!mesh)
+			Debug.LogFormat("getOrRegMeshId: {0}, {1}, {2}", meshKey, obj, mesh);
+			if (!mesh){
+				Debug.LogFormat("Mesh is null");
 				return ExportUtility.invalidId;
+			}
 			//var meshKey = new MeshStorageKey(mesh);
 			int result = meshes.getId(meshKey, true, null);
+			Debug.LogFormat("id found: {0}", result);
 			if (meshMaterials.ContainsKey(mesh))
 				return result;
+							
 			var r = obj.GetComponent<Renderer>();
 			if (r){
 				meshMaterials[mesh] = new List<Material>(r.sharedMaterials);
@@ -204,11 +239,21 @@ namespace SceneExport{
 		public MeshStorageKey buildMeshKey(SkinnedMeshRenderer meshRend, bool includeSkeleton){
 			var mesh = meshRend.sharedMesh;
 			 
+			 /*
+			 Subtle. FindPrefabRoot does not find the root of the original object, but rather a root of object currently being processed.
+			 Meaning if you apply it to an instanced prefab, it'll find root of that that instanced prefab in the scene, and not the original asset
+			 */
 			 var prefabRoot = PrefabUtility.FindPrefabRoot(meshRend.gameObject);
+			 var linkedPrefabRoot = PrefabUtility.GetCorrespondingObjectFromSource(prefabRoot) as GameObject;
+			 if (linkedPrefabRoot)
+			 	prefabRoot = linkedPrefabRoot;
 			 
 			 Transform skeletonRoot = null;
 			 if (includeSkeleton){
 			 	skeletonRoot = JsonSkeletonBuilder.findSkeletonRoot(meshRend);
+			 	var skeletonPrefab = PrefabUtility.GetCorrespondingObjectFromSource(skeletonRoot) as Transform;
+			 	if (skeletonPrefab)
+			 		skeletonRoot = skeletonPrefab;
 			 }
 			 return new MeshStorageKey(mesh, prefabRoot, skeletonRoot);
 		}
@@ -288,7 +333,7 @@ namespace SceneExport{
 		public int getRootPrefabId(GameObject obj, bool createMissing){
 			if (!obj)
 				return ExportUtility.invalidId;
-			var rootPrefab = ExportUtility.getLinkedRootPrefab(obj);
+			var rootPrefab = ExportUtility.getLinkedRootPrefabAsset(obj);
 			if (!rootPrefab)
 				return ExportUtility.invalidId;
 			
