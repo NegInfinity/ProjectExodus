@@ -5,100 +5,6 @@ using System.Linq;
 
 namespace SceneExport{
 	[System.Serializable]
-	public class JsonBlendShapeFrame: IFastJsonValue{
-		public int index;
-		public float weight;
-		public float[] deltaVerts = null;
-		//public List<float> deltaVerts = new List<float>();
-		public float[] deltaTangents = null;
-		public float[] deltaNormals = null;
-		
-		public void writeRawJsonValue(FastJsonWriter writer){
-			writer.beginRawObject();
-			writer.writeKeyVal("index", index);
-			writer.writeKeyVal("weight", weight);
-			writer.writeKeyVal("deltaVerts", deltaVerts, 3 * JsonMesh.vertsPerLine);
-			writer.writeKeyVal("deltaNormals", deltaNormals, 3 * JsonMesh.vertsPerLine);
-			writer.writeKeyVal("deltaTangents", deltaTangents, 3 * JsonMesh.vertsPerLine);
-			writer.endObject();
-		}
-		
-		public JsonBlendShapeFrame(JsonBlendShapeFrame other){
-			index = other.index;
-			weight = other.weight;
-			
-			deltaVerts = null;
-			deltaTangents = null;
-			deltaNormals = null;
-			
-			if (other.deltaVerts != null)
-				deltaVerts = other.deltaVerts.ToArray();
-			if (other.deltaNormals != null)
-				deltaNormals = other.deltaNormals.ToArray();
-			if (other.deltaTangents != null)
-				deltaTangents = other.deltaTangents.ToArray();
-			
-			//deltaVerts = 
-		}
-		
-		public JsonBlendShapeFrame(){
-		}
-		
-		public JsonBlendShapeFrame(Mesh mesh, int shapeIndex, int frameIndex){
-			index = frameIndex;
-			weight = mesh.GetBlendShapeFrameWeight(shapeIndex, frameIndex);
-			var dVerts = new Vector3[mesh.vertexCount];
-			var dNorms = new Vector3[mesh.vertexCount];
-			var dTangents = new Vector3[mesh.vertexCount];
-			
-			mesh.GetBlendShapeFrameVertices(shapeIndex, frameIndex, dVerts, dNorms, dTangents);
-			deltaVerts = dVerts.toFloatArray();//dVerts.toFloatArray();
-			deltaNormals = dNorms.toFloatArray();
-			deltaTangents = dTangents.toFloatArray();
-		}
-	};
-
-	[System.Serializable]
-	public class JsonBlendShape: IFastJsonValue{
-		public string name = "";
-		public int index = -1;
-		public int numFrames = 0;
-		public List<JsonBlendShapeFrame> frames = new List<JsonBlendShapeFrame>();
-		
-		public void writeRawJsonValue(FastJsonWriter writer){
-			writer.beginRawObject();
-			writer.writeKeyVal("name", name);
-			writer.writeKeyVal("index", index);
-			writer.writeKeyVal("numFrames", numFrames);
-			writer.writeKeyVal("frames", frames);
-			writer.endObject();
-		}
-		
-		public JsonBlendShape(JsonBlendShape other){
-			name = other.name;
-			index = other.index;
-			numFrames = other.numFrames;
-			
-			frames = other.frames.Select((arg) => new JsonBlendShapeFrame(arg)).ToList();
-		}
-		
-		public JsonBlendShape(Mesh mesh, int index_){
-			if (!mesh){
-				throw new System.ArgumentNullException("mesh");
-			}
-			index = index_;
-			if ((index < 0) || (index >= mesh.blendShapeCount)){
-				throw new System.ArgumentException("Invalid blendshape index", "index_");
-			}
-			name = mesh.GetBlendShapeName(index);
-			numFrames = mesh.GetBlendShapeFrameCount(index);
-			for(int frameIndex = 0; frameIndex < numFrames; frameIndex++){
-				frames.Add(new JsonBlendShapeFrame(mesh, index, frameIndex));
-			}
-		}
-	}
-
-	[System.Serializable]
 	public class JsonMesh: IFastJsonValue{
 		public static readonly int vertsPerLine = 4;
 		public static readonly int trianglesPerLine = 4;
@@ -137,7 +43,6 @@ namespace SceneExport{
 		public List<JsonBlendShape> blendShapes = new List<JsonBlendShape>();
 		
 		public List<Matrix4x4> bindPoses = new List<Matrix4x4>();
-		public List<Matrix4x4> inverseBindPoses = new List<Matrix4x4>();
 
 		[System.Serializable]
 		public class SubMesh: IFastJsonValue{
@@ -223,7 +128,44 @@ namespace SceneExport{
 			return new Vector4(v3.x, v3.y, v3.z, tangent.w);
 		}
 		
-		public void transformWith(Matrix4x4 matrix){
+		public delegate Matrix4x4 BindPoseProcessDelegate(Matrix4x4 pose, int index);
+		
+		public void processBindPoses(BindPoseProcessDelegate callback){
+			if (callback == null)
+				throw new System.ArgumentNullException("callback");
+			bindPoses = bindPoses.Select((arg, i) => callback(arg, i)).ToList();
+		}
+		
+		/*
+		Dumb function that directly multiplies bindPoses with provided matrices.
+		*/
+		public void transformBindPoses(Matrix4x4 preMul, Matrix4x4 postMul){
+			/*				
+				inverse(worldMatrix * inverse(bindPose)) ==>
+				bindPose * inverse(worldMatrix).
+				
+				Hmm.
+				
+				So, original vertex transform was: (RTL)
+				targetBoneTransform * bindPoseTransfrom
+				
+				We introduce new multiplier into equation, and now we rotate the mesh.
+				BindPoses should go along with it. 
+				
+				So....
+				bindPose = inverse(meshTransform * inverse(bindPose));
+				So....
+				bindPose * inverse(meshTransform)
+				Yet I somehow get incorrect scaling factors in resulting mesh. 
+				What am I missing?
+			*/
+			//var invMatrix = matrix.inverse;
+			for(int i = 0; i < bindPoses.Count; i++){
+				bindPoses[i] = postMul * bindPoses[i] * preMul;
+			}
+		}
+		
+		public void transformMeshWith(Matrix4x4 matrix){
 			processFloats3(verts, (arg) => matrix.MultiplyPoint(arg));
 			processFloats3(normals, (arg) => matrix.MultiplyVector(arg));
 			processFloats4(tangents, (arg) => transformTangent(matrix, arg)	);
@@ -237,13 +179,7 @@ namespace SceneExport{
 					processFloats3(blendFrame.deltaTangents, (arg) => matrix.MultiplyVector(arg));
 				}
 			}
-			var invMatrix = matrix.inverse;
-			for(int i = 0; i < bindPoses.Count; i++){
-				bindPoses[i] = matrix * bindPoses[i];
-			}
-			for(int i = 0; i < inverseBindPoses.Count; i++){
-				inverseBindPoses[i] = inverseBindPoses[i] * invMatrix;				
-			}
+			
 		}
 		
 		public bool isSkeletalMesh(){
@@ -255,7 +191,7 @@ namespace SceneExport{
 				&& (bindPoses.Count > 0);
 		}
 		
-		Vector3 linearBlend(Vector3 arg, List<Matrix4x4> matrices, int weightIndex, bool point){
+		public Vector3 linearBlend(Vector3 arg, List<Matrix4x4> matrices, int weightIndex, bool point){
 			Vector3 result = Vector3.zero;
 			
 			int baseOffset = weightIndex * bonesPerVertex;
@@ -271,99 +207,13 @@ namespace SceneExport{
 				if (curWeight == 0.0f)
 					continue;
 				var curTransformIndex = boneIndexes[baseOffset + i];
-				var curTransform = matrices[curTransformIndex] * inverseBindPoses[curTransformIndex];
+				var curTransform = matrices[curTransformIndex] * bindPoses[curTransformIndex];//inverseBindPoses[curTransformIndex];
 				
 				var vert = point ? curTransform.MultiplyPoint(arg): curTransform.MultiplyVector(arg);
 				result += vert * curWeight;				
 			}
 			
 			return result;
-		}
-		
-		public static Vector4 getIdxVector4(float[] floats, int vertIndex){
-			var baseOffset = vertIndex * 4;
-			return new Vector4(
-				floats[baseOffset], floats[baseOffset + 1], floats[baseOffset + 2], floats[baseOffset + 3]);
-		}
-		
-		public static void setIdxVector4(float[] floats, int vertIndex, Vector4 newVal){
-			var baseOffset = vertIndex * 4;
-			floats[baseOffset] = newVal.x;
-			floats[baseOffset + 1] = newVal.y;
-			floats[baseOffset + 2] = newVal.z;
-			floats[baseOffset + 3] = newVal.w;
-		}
-		
-		public static Vector3 getIdxVector3(float[] floats, int vertIndex){
-			var baseOffset = vertIndex * 3;
-			return new Vector3(floats[baseOffset], floats[baseOffset + 1], floats[baseOffset + 2]);
-		}
-		
-		public static void setIdxVector3(float[] floats, int vertIndex, Vector3 newVal){
-			var baseOffset = vertIndex * 3;
-			floats[baseOffset] = newVal.x;
-			floats[baseOffset + 1] = newVal.y;
-			floats[baseOffset + 2] = newVal.z;
-		}
-		
-		public delegate Data IndexedDataProcessorCallback<Data>(Data arg, int argIndex);
-		
-		/*
-		We need to fold it into one generic function, at some point.
-		*/
-		public static void processFloats2(float[] floats, IndexedDataProcessorCallback<Vector2> callback){
-			if (floats == null)
-				return;
-			if (callback == null)
-				throw new System.ArgumentNullException("callback");
-			for(int offset = 0, index = 0; offset < (floats.Length - 1); offset += 2, index++){
-				var src = new Vector2(floats[offset], floats[offset + 1]);
-				var dst = callback(src, index);
-				floats[offset + 0] = dst.x;
-				floats[offset + 1] = dst.y;
-			}
-		} 
-		
-		public static void processFloats3(float[] floats, IndexedDataProcessorCallback<Vector3> callback){
-			if (floats == null)
-				return;
-			if (callback == null)
-				throw new System.ArgumentNullException("callback");
-			for(int offset = 0, index = 0; offset < (floats.Length - 2); offset += 3, index++){
-				var src = new Vector3(floats[offset], floats[offset + 1], floats[offset + 2]);
-				var dst = callback(src, index);
-				floats[offset + 0] = dst.x;
-				floats[offset + 1] = dst.y;
-				floats[offset + 2] = dst.z;				
-			}
-		} 
-		
-		public static void processFloats4(float[] floats, IndexedDataProcessorCallback<Vector4> callback){
-			if (floats == null)
-				return;
-			if (callback == null)
-				throw new System.ArgumentNullException("callback");
-			for(int offset = 0, index = 0; offset < (floats.Length - 3); offset += 4, index++){
-				var src = new Vector4(floats[offset], floats[offset + 1], floats[offset + 2], floats[offset + 3]);
-				
-				var dst = callback(src, index);
-				
-				floats[offset + 0] = dst.x;
-				floats[offset + 1] = dst.y;
-				floats[offset + 2] = dst.z;				
-				floats[offset + 3] = dst.w;
-			}
-		} 
-		
-		public static Vector2 getIdxVector2(float[] floats, int vertIndex){
-			var baseOffset = vertIndex * 2;
-			return new Vector3(floats[baseOffset], floats[baseOffset + 1]);
-		}
-		
-		public static void setIdxVector2(float[] floats, int vertIndex, Vector2 newVal){
-			var baseOffset = vertIndex * 2;
-			floats[baseOffset] = newVal.x;
-			floats[baseOffset + 1] = newVal.y;
 		}
 		
 		public void setBindPosesFromTransforms(List<Transform> bones, Transform root){
@@ -379,7 +229,6 @@ namespace SceneExport{
 				for(int i = 0; i < bones.Count; i++){
 					var curBone = bones[i];
 					bindPoses[i] = curBone.worldToLocalMatrix;
-					inverseBindPoses[i] = curBone.localToWorldMatrix;
 				}
 			}
 			else{
@@ -396,11 +245,10 @@ namespace SceneExport{
 				for(int i = 0; i < bones.Count; i++){
 					var curBone = bones[i];
 					
-					var boneTransform = rootInvMatrix * curBone.localToWorldMatrix;
+					//var boneTransform = rootInvMatrix * curBone.localToWorldMatrix;
 					var boneInvTransform = curBone.worldToLocalMatrix * rootMatrix;
 					
 					bindPoses[i] = boneInvTransform;
-					inverseBindPoses[i] = boneTransform;
 				}
 			}
 		}
@@ -419,17 +267,17 @@ namespace SceneExport{
 					name));
 			}
 			
-			processFloats3(verts, (vert, idx) => linearBlend(vert, matrices, idx, true));
-			processFloats3(normals, (norm, idx) => linearBlend(norm, matrices, idx, false));
-			processFloats4(tangents, (tang, idx) => linearBlend(tang.getVector3(), matrices, idx, false).toVector4(tang.w));
+			verts.processFloats3((vert, idx) => linearBlend(vert, matrices, idx, true));
+			normals.processFloats3((norm, idx) => linearBlend(norm, matrices, idx, false));
+			tangents.processFloats4((tang, idx) => linearBlend(tang.getVector3(), matrices, idx, false).toVector4(tang.w));
 						
 			for(int blendShapeIndex = 0; blendShapeIndex < blendShapes.Count; blendShapeIndex++){
 				var curBlendShape = blendShapes[blendShapeIndex];
 				for(int blendFrameIndex = 0; blendFrameIndex < curBlendShape.frames.Count; blendFrameIndex++){
 					var blendFrame = curBlendShape.frames[blendFrameIndex];
-					processFloats3(blendFrame.deltaVerts, (arg, idx) => linearBlend(arg, matrices, idx, false));
-					processFloats3(blendFrame.deltaNormals, (arg, idx) => linearBlend(arg, matrices, idx, false));
-					processFloats3(blendFrame.deltaTangents, (arg, idx) => linearBlend(arg, matrices, idx, false));
+					blendFrame.deltaVerts.processFloats3((arg, idx) => linearBlend(arg, matrices, idx, false));
+					blendFrame.deltaNormals.processFloats3((arg, idx) => linearBlend(arg, matrices, idx, false));
+					blendFrame.deltaTangents.processFloats3((arg, idx) => linearBlend(arg, matrices, idx, false));
 				}
 			}
 		}
@@ -467,10 +315,6 @@ namespace SceneExport{
 			blendShapes = other.blendShapes.Select((arg) => new JsonBlendShape(arg)).ToList();
 			
 			bindPoses = other.bindPoses.ToList();
-			inverseBindPoses = other.inverseBindPoses.ToList();
-			
-			bindPoses = other.bindPoses.ToList();
-			inverseBindPoses = other.inverseBindPoses.ToList();
 			
 			subMeshes = other.subMeshes.Select((arg) => new SubMesh(arg)).ToList();
 			
@@ -500,7 +344,10 @@ namespace SceneExport{
 			writer.writeOptionalKeyVal("uv7", uv7, 2 * vertsPerLine);
 			
 			writer.writeOptionalKeyVal("bindPoses", bindPoses);
-			writer.writeOptionalKeyVal("inverseBindPoses", inverseBindPoses);
+			writer.writeOptionalKeyVal("inverseBindPoses", 
+				bindPoses.Select((arg) => arg.inverse).ToList());
+			writer.writeOptionalKeyVal("bindPoseTransforms", 
+				bindPoses.Select((arg) => new JsonTransform(arg, true)).ToList());
 			
 			writer.writeOptionalKeyVal("boneWeights", boneWeights, 4 * vertsPerLine);
 			writer.writeOptionalKeyVal("boneIndexes", boneIndexes, 4 * vertsPerLine);
@@ -515,7 +362,7 @@ namespace SceneExport{
 			writer.endObject();			
 		}
 
-		public JsonMesh(ResourceMapper.MeshStorageKey meshKey, int id_, ResourceMapper exp){
+		public JsonMesh(MeshStorageKey meshKey, int id_, ResourceMapper exp){
 			id = id_;//exp.findMeshId(mesh);//exp.meshes.findId(mesh);
 			var mesh = meshKey.mesh;
 			name = mesh.name;
@@ -591,15 +438,7 @@ namespace SceneExport{
 				blendShapes.Add(new JsonBlendShape(mesh, i));
 			}
 			
-			var srcPoses = mesh.bindposes;
-			foreach(var cur in srcPoses){
-				bindPoses.Add(cur);
-				var inverted = cur.inverse;
-				inverseBindPoses.Add(inverted);				
-			}
-			//blendShapeFrames = mesh.blend
-
-			//Debug.LogFormat("Processed mesh {0}", name);
+			bindPoses = mesh.bindposes.ToList();
 		}
 	}
 }

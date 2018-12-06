@@ -13,6 +13,7 @@ namespace SceneExport{
 		public Vector3 localScale = Vector3.one;
 		public Matrix4x4 worldMatrix = Matrix4x4.identity;
 		public Matrix4x4 localMatrix = Matrix4x4.identity;
+		
 		public List<int> children = new List<int>();
 		public int parent = -1;
 		public int mesh = -1;
@@ -58,6 +59,10 @@ namespace SceneExport{
 			writer.writeKeyVal("localScale", localScale);
 			writer.writeKeyVal("worldMatrix", worldMatrix);
 			writer.writeKeyVal("localMatrix", localMatrix);
+			
+			writer.writeKeyVal("localTransform", new JsonTransform(localMatrix));
+			writer.writeKeyVal("globalTransform", new JsonTransform(worldMatrix));
+			
 			writer.writeKeyVal("children", children);
 			writer.writeKeyVal("parent", parent);
 			writer.writeKeyVal("mesh", mesh);
@@ -99,7 +104,10 @@ namespace SceneExport{
 			localScale = obj.transform.localScale;
 			worldMatrix = obj.transform.localToWorldMatrix;
 			localMatrix = worldMatrix;
-
+			if (obj.transform.parent){
+				localMatrix = obj.transform.parent.worldToLocalMatrix * worldMatrix;
+			}
+			
 			isStatic = obj.isStatic;
 			var flags = GameObjectUtility.GetStaticEditorFlags(obj);
 			lightMapStatic = (flags & StaticEditorFlags.LightmapStatic) != 0;
@@ -117,24 +125,15 @@ namespace SceneExport{
 			prefabObjectId = resMap.getPrefabObjectId(obj, true);
 			prefabInstance = (prefType == PrefabType.PrefabInstance) || (prefType == PrefabType.ModelPrefabInstance);			
 
-			if (obj.transform.parent){
-				localMatrix = obj.transform.parent.worldToLocalMatrix * localMatrix;
-			}
 			renderer = JsonRendererData.makeRendererArray(obj.GetComponent<Renderer>(), resMap);
 			light = JsonLight.makeLightArray(obj.GetComponent<Light>());
 			reflectionProbes = 
 				ExportUtility.convertComponents<ReflectionProbe, JsonReflectionProbe>(obj,
-					(c) => {
-						/* ;*/
-						return new JsonReflectionProbe(c, resMap);
-					}
+					(c) => new JsonReflectionProbe(c, resMap)
 				);
 			terrains = 
 				ExportUtility.convertComponents<Terrain, JsonTerrain>(obj,
-					(c) => {
-						/*JsonTerrain.registerLinkedData(c); */
-						return new JsonTerrain(c, resMap);						
-					}
+					(c) => new JsonTerrain(c, resMap)
 				);
 				
 			skinRenderers = 

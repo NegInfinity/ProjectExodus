@@ -351,9 +351,13 @@ Let's proceed with first attempt, which does not take this madness scenario into
 			if (!meshRend)
 				throw new System.ArgumentNullException("meshRend");
 				
-			var skinRend = PrefabUtility.GetCorrespondingObjectFromSource(meshRend) as SkinnedMeshRenderer;
-			if (!skinRend)
-				skinRend = meshRend;
+			//Bah. We can end up here from prefab creator.
+			var skinRend = Utility.getSrcPrefabAssetObject(meshRend, false);
+			/*
+			var skinRend = meshRend;
+			var newSkinRend = PrefabUtility.GetCorrespondingObjectFromSource(meshRend) as SkinnedMeshRenderer;
+			if (newSkinRend)
+				skinRend = newSkinRend;*/
 				
 			var commonRoot = findSkinMeshCommonRoot(new SkinnedMeshRenderer[]{skinRend});
 			

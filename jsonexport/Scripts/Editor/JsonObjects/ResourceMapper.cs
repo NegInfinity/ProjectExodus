@@ -12,55 +12,14 @@ namespace SceneExport{
 		public ObjectMapper<AudioClip> audioClips = new ObjectMapper<AudioClip>();
 
 		[System.Serializable]
-		public struct MeshStorageKey{
-			public readonly Mesh mesh;//Immutability, huh. Ugh.
-			public readonly GameObject prefab;
-			public readonly Transform skeletonRoot;
-			
-			public override string ToString(){
-				return string.Format("[MeshStorageKey]{{ mesh: {0}({1}); prefab: {2}({3}); skeletonRoot: {4}({5}) }}", 
-					mesh, mesh ? mesh.GetInstanceID(): 0, 
-					prefab, prefab ? prefab.GetInstanceID(): 0, 
-					skeletonRoot, skeletonRoot ? skeletonRoot.GetInstanceID(): 0
-				);
-			}
-			
-			public override int GetHashCode(){
-				int hash = 17;
-				hash = hash * 23 + (mesh ? mesh.GetHashCode(): 0);
-				hash = hash * 23 + (prefab ? prefab.GetHashCode(): 0);
-				hash = hash * 23 + (skeletonRoot ? skeletonRoot.GetHashCode(): 0);
-				return hash;
-			}
-			
-			public override bool Equals(object obj){
-				if (obj is MeshStorageKey){
-					return this.Equals((MeshStorageKey)obj);
-				}
-				
-				return false;
-			}
-			
-			public bool Equals(MeshStorageKey other){
-				return (mesh == other.mesh) 
-					&& (prefab == other.prefab)
-					&& (skeletonRoot == other.skeletonRoot);					
-			}
-			
-			public MeshStorageKey(Mesh mesh_, GameObject prefab_ = null, Transform skeletonRoot_ = null){
-				mesh = mesh_;
-				prefab = prefab_;
-				skeletonRoot = skeletonRoot_;
-			}
-		};
-		
-		[System.Serializable]
 		public class MeshDefaultSkeletonData{
 			public Transform defaultRoot;
-			public List<string> defaultBoneNames;			
+			public Transform meshNodeTransform;
+			public List<string> defaultBoneNames;	
 			
-			public MeshDefaultSkeletonData(Transform defaultRoot_, List<string> defaultBoneNames_){
+			public MeshDefaultSkeletonData(Transform defaultRoot_, Transform meshNodeTransform_, List<string> defaultBoneNames_){
 				defaultRoot = defaultRoot_;
+				meshNodeTransform = meshNodeTransform_;
 				defaultBoneNames = defaultBoneNames_;
 			}
 		};
@@ -153,14 +112,12 @@ namespace SceneExport{
 			return tmp.defaultBoneNames.ToList();
 		}
 		
-		/*
-		public List<string> getDefaultBoneNames(Mesh mesh){
-			return getDefaultBoneNames(new MeshStorageKey(mesh));
-		}
-		*/
+		public MeshDefaultSkeletonData getDefaultSkeletonData(MeshStorageKey key){
+			return meshDefaultSkeletonData.getValOrDefault(key, null);
+		}		
 		
 		public JsonSkeleton getDefaultSkeleton(MeshStorageKey key){
-			var defaultData = meshDefaultSkeletonData.getValOrDefault(key, null);
+			var defaultData = getDefaultSkeletonData(key);
 			if (defaultData == null)
 				return null;
 				
@@ -174,12 +131,6 @@ namespace SceneExport{
 				return ExportUtility.invalidId;
 			return skel.id;
 		}
-		
-		/*
-		public int getDefaultSkeletonId(Mesh meshObj){
-			return getDefaultSkeletonId(new MeshStorageKey(meshObj));
-		}
-		*/
 		
 		public int getMaterialId(Material obj){
 			return materials.getId(obj, true);
@@ -218,14 +169,14 @@ namespace SceneExport{
 		}
 
 		int getOrRegMeshId(MeshStorageKey meshKey, GameObject obj, Mesh mesh){
-			Debug.LogFormat("getOrRegMeshId: {0}, {1}, {2}", meshKey, obj, mesh);
+			//Debug.LogFormat("getOrRegMeshId: {0}, {1}, {2}", meshKey, obj, mesh);
 			if (!mesh){
-				Debug.LogFormat("Mesh is null");
+				//Debug.LogFormat("Mesh is null");
 				return ExportUtility.invalidId;
 			}
 			//var meshKey = new MeshStorageKey(mesh);
 			int result = meshes.getId(meshKey, true, null);
-			Debug.LogFormat("id found: {0}", result);
+			//Debug.LogFormat("id found: {0}", result);
 			if (meshMaterials.ContainsKey(mesh))
 				return result;
 							
@@ -243,17 +194,24 @@ namespace SceneExport{
 			 Subtle. FindPrefabRoot does not find the root of the original object, but rather a root of object currently being processed.
 			 Meaning if you apply it to an instanced prefab, it'll find root of that that instanced prefab in the scene, and not the original asset
 			 */
+			 
+			 var prefabRoot = Utility.getSrcPrefabAssetObject(PrefabUtility.FindPrefabRoot(meshRend.gameObject), false);
+			 
+			 /*
 			 var prefabRoot = PrefabUtility.FindPrefabRoot(meshRend.gameObject);
 			 var linkedPrefabRoot = PrefabUtility.GetCorrespondingObjectFromSource(prefabRoot) as GameObject;
 			 if (linkedPrefabRoot)
 			 	prefabRoot = linkedPrefabRoot;
+			 */
 			 
 			 Transform skeletonRoot = null;
 			 if (includeSkeleton){
+			 	skeletonRoot = Utility.getSrcPrefabAssetObject(JsonSkeletonBuilder.findSkeletonRoot(meshRend), false);
+			 	/*
 			 	skeletonRoot = JsonSkeletonBuilder.findSkeletonRoot(meshRend);
 			 	var skeletonPrefab = PrefabUtility.GetCorrespondingObjectFromSource(skeletonRoot) as Transform;
 			 	if (skeletonPrefab)
-			 		skeletonRoot = skeletonPrefab;
+			 		skeletonRoot = skeletonPrefab;*/
 			 }
 			 return new MeshStorageKey(mesh, prefabRoot, skeletonRoot);
 		}
@@ -272,7 +230,16 @@ namespace SceneExport{
 						
 				var boneNames = meshRend.bones.Select((arg) => arg.name).ToList();
 				
-				var defaultData = new MeshDefaultSkeletonData(rootTransform, boneNames);
+				var meshNode = Utility.getSrcPrefabAssetObject(meshRend.gameObject.transform, false);
+				/*
+				var meshNode = meshRend.gameObject.transform;
+				var tmpPrefabMeshNode = PrefabUtility.GetCorrespondingObjectFromSource(meshNode);
+				var prefabMeshNode = tmpPrefabMeshNode as Transform;
+				if (prefabMeshNode)
+					meshNode = prefabMeshNode;*/
+				
+				//var defaultData = new MeshDefaultSkeletonData(rootTransform, prefabMeshNode, boneNames);
+				var defaultData = new MeshDefaultSkeletonData(rootTransform, meshNode, boneNames);
 				meshDefaultSkeletonData.Add(meshKey, defaultData);
 				
 				if (!jsonSkeletons.ContainsKey(rootTransform)){
@@ -462,17 +429,82 @@ namespace SceneExport{
 			return maxDiff;
 		}
 		
-		JsonMesh makeJsonMesh(MeshStorageKey meshKey, int id){
-			var result = new JsonMesh(meshKey, id, this);
-			if (!meshKey.skeletonRoot || !meshKey.prefab)
-				return result;
-			
-			if (!isSkeletalMesh(meshKey.mesh)){
-				return result;
+		static readonly float matrixEpsilon = 0.00001f; //I'll consider matrices equivalent if this is below this threshold
+		
+		JsonMesh fixSkinMeshRootBoneTransform(MeshStorageKey meshKey, JsonMesh srcMesh){
+			//let's check if we even NEED transformation.
+			//Root			
+			bool largeRootTransformFound = false;
+			{
+				var maxRootDiff = getMaxDifference(Matrix4x4.identity, meshKey.skeletonRoot.localToWorldMatrix);
+				if (maxRootDiff > matrixEpsilon){
+					Debug.LogFormat(
+						string.Format("Large root matrix transform difference foune on mesh {0}, mesh will be transformed to accomodate",
+							meshKey.mesh.name));
+					largeRootTransformFound = true;
+				}
 			}
 			
-			const float matrixEpsilon = 0.00001f; //I'll consider matrices equivalent if this is below this threshold
+			if (!largeRootTransformFound)
+				return srcMesh;
 			
+			/*
+				We're now bringing skleletal mesh into rootSpace. 
+			*/
+			var srcRootTransform = meshKey.prefab.transform.localToWorldMatrix;
+			var srcRootInvTransform = meshKey.prefab.transform.worldToLocalMatrix;
+			/*
+				Aw, damn it. Sksleton root is not going to cut it. We need mesh node itself.
+				
+				So, in unity it is, by default: (Right to left notation)				
+				ResultTransform = targetBoneTransform * bindPose * meshTransform. 				
+			*/
+			var skelData = getDefaultSkeletonData(meshKey);
+			if (skelData == null){
+				throw new System.ArgumentException(
+					string.Format("Coudl not locate default skeleton data for {0}", meshKey));
+			}
+				
+			if (!skelData.meshNodeTransform){
+				throw new System.ArgumentException(
+					string.Format("mesh node transform is not set for {0}", meshKey)
+				);
+			}
+				
+			var nodeMatrix = skelData.meshNodeTransform.localToWorldMatrix;
+			var nodeInvMatrix = skelData.meshNodeTransform.worldToLocalMatrix;
+				
+			//var relativeMatrix = Utility.getRelativeMatrix(skelData.meshNodeTransform, meshKey.prefab.transform);
+			var transformMatrix = srcRootInvTransform * nodeMatrix;
+				
+			var newMesh = new JsonMesh(srcMesh);
+			newMesh.transformMeshWith(transformMatrix);
+			
+			var meshMatrix = Utility.getRelativeMatrix(skelData.meshNodeTransform, meshKey.prefab.transform);
+			var meshInvMatrix = Utility.getRelativeInverseMatrix(skelData.meshNodeTransform, meshKey.prefab.transform);
+			
+			newMesh.processBindPoses((bindPose, index) => {
+				//var result = bindPose;
+				/*
+				Givent that i'm getting error that's squarely factor of 10 while bones themselves have scale factor of 100
+				(thanks, fbx exporter), it means I failed to accomodate for removal of mesh transform. Let's see...
+				*/
+				var newTransform = meshInvMatrix * bindPose;
+				Debug.LogFormat("Converting bindpose {0}:\noriginal:\n{1}\nnew:\n{2}\nmesh:\n{3}\nmeshInv:\n{4}\nroot:\n{5}\nrootInv:\n{6}", 
+					index, bindPose, newTransform, meshMatrix, meshInvMatrix, srcRootTransform, srcRootInvTransform);
+				//Debug.LogFormat("Bone transform:\n{0}\nboneInverse:\n{1}\nBoneRootRelative:\n{2}\nBoneInverseRootRelative:\n{3}",
+					
+				//return result;
+				return newTransform;
+			});
+			//newMesh.bindPoses = 
+			//newMesh.transformWith(transformMatrix);
+			
+			return newMesh;
+		}
+		
+		JsonMesh fixSkinMeshPosedBones(MeshStorageKey meshKey, JsonMesh srcMesh){
+			var result = srcMesh;
 			var boneTransforms = Utility.findNamedTransforms(result.defaultBoneNames, meshKey.skeletonRoot);
 			for(int i = 0; i < boneTransforms.Count; i++){
 				if (!boneTransforms[i]){
@@ -482,41 +514,56 @@ namespace SceneExport{
 					);
 				}
 			}
+			var rootNode = meshKey.prefab.transform;
 			
-			//let's check if we even NEED transformation.
-			//First, bones.
 			bool largeBoneTransformFound = false;
-			bool largeRootTransformFound = false;
 			{
-				for(int i = 0; i < boneTransforms.Count; i++){
-					var curBone = boneTransforms[i];
-					var inverseMatrix  = curBone.worldToLocalMatrix;
-					var bindPose = meshKey.mesh.bindposes[i];
+				var srcRootTransform = meshKey.skeletonRoot.localToWorldMatrix;
+				//var srcRootInvTransform = meshKey.skeletonRoot.worldToLocalMatrix;
+				for(int boneIndex = 0; boneIndex < boneTransforms.Count; boneIndex++){
+					var curBone = boneTransforms[boneIndex];
 					
-					var diff = getMaxDifference(inverseMatrix, bindPose);
+					var curBoneMatrix = Utility.getRelativeMatrix(curBone, rootNode);
+					var curBoneInvMatrix = Utility.getRelativeInverseMatrix(curBone, rootNode);
+					
+					var bindPose = srcMesh.bindPoses[boneIndex];
+					Debug.LogFormat("curBone: {0}({1})\nmatrix:\n{2}\ninvMatrix:\n{3}\nbindPose:\n{4}\ninvBindPose:\n{5}\nroot:\n{6}\ninvRoot:\n{7}\n",
+						boneIndex, curBone.name, curBoneMatrix, curBoneInvMatrix, bindPose, bindPose.inverse, 
+						srcRootTransform, srcRootTransform.inverse);
+					
+					/*
+					var curBone = Utility.getRelativeMatrix(boneTransforms[boneIndex], ;
+					var inverseMatrix  = curBone.worldToLocalMatrix * srcRootTransform;
+					var bindPose = srcMesh.bindPoses[boneIndex];//meshKey.mesh.bindposes[i]; ///NOPE. We're done tweaking the mesh at this point.
+					var diff = getMaxDifference(inverseMatrix, bindPose);					
+					Debug.LogFormat("index:{0}({1})\ninverseMatrix:\n{2}\nbindPose:\n{3}\nboneMatrix:\n{4}\nsrcRoot:\n{5}\ndiff: {6}\nepsilon: {7}",
+						boneIndex, curBone.name, inverseMatrix, bindPose, curBone.worldToLocalMatrix, srcRootTransform, diff, matrixEpsilon);
+					*/
+					
+					var curPose = bindPose;
+					var desiredPose = curBoneInvMatrix;
+					var diff = getMaxDifference(curPose, desiredPose);
+					Debug.LogFormat("bindPose:\n{0}\ndesiredPose:\n{1}\ndiff: {2}; epsilon: {3}\n", 
+						curPose, desiredPose, diff, matrixEpsilon);
+					
 					if (diff > matrixEpsilon){
 						largeBoneTransformFound = true;
-						Debug.LogFormat(
-							string.Format("Large transform found on mesh {0}, mesh will be transformed to accomodate",
-								meshKey.mesh.name));
-						break;
+						Debug.LogFormat("Large transform found");
+						//break;
 					}
 				}
 			}
-
-			//Then, root			
-			{
-				var maxRootDiff = getMaxDifference(Matrix4x4.identity, meshKey.skeletonRoot.localToWorldMatrix);
-				if (maxRootDiff < matrixEpsilon){
-					Debug.LogFormat(
-						string.Format("Root matrix nearly identical to original. Max difference {0}. Skipping transformation.", maxRootDiff));
-					largeRootTransformFound = true;
-				}
-			}
 			
-			if (!largeBoneTransformFound && !largeRootTransformFound){
+			if (!largeBoneTransformFound){
 				return result;
 			}
+			else{
+				Debug.LogFormat(
+					string.Format("Large transform difference found on mesh {0}, mesh will be transformed to accomodate",
+						meshKey.mesh.name));
+			}
+			
+			return result;//disable it for now.
 			
 			//Oooh boy. Here it comes. The transformation.
 			/*
@@ -546,7 +593,7 @@ namespace SceneExport{
 				var curBone = boneTransforms[boneIndex];
 				if (curBone){
 					newTransformMatrix = 
-						rootParentInvTransform * curBone.localToWorldMatrix * meshKey.mesh.bindposes[boneIndex];
+						rootParentInvTransform * curBone.localToWorldMatrix * srcMesh.bindPoses[boneIndex];//meshKey.mesh.bindposes[boneIndex];
 						//invRootTransform * curBone.localToWorldMatrix * meshKey.mesh.bindposes[boneIndex];
 				}
 				
@@ -555,9 +602,29 @@ namespace SceneExport{
 			
 			transformed.transformSkeletalMesh(transformMatrices);
 			transformed.setBindPosesFromTransforms(boneTransforms, meshKey.skeletonRoot);
-			
 			//
 			return transformed;
+		}
+		
+		JsonMesh makeJsonMesh(MeshStorageKey meshKey, int id){
+			var result = new JsonMesh(meshKey, id, this);
+			if (!meshKey.skeletonRoot || !meshKey.prefab)
+				return result;
+			
+			if (!isSkeletalMesh(meshKey.mesh)){
+				return result;
+			}
+			
+			/*
+				Doing this in steps, as it is possible to have root transform issue and then somehow no bindpose issues.
+				I mean, miracles can happen, right?
+			*/
+			result = fixSkinMeshRootBoneTransform(meshKey, result);
+			
+			//Currently disabled
+			//result = fixSkinMeshPosedBones(meshKey, result);
+			
+			return result;
 		}
 		
 		public JsonExternResourceList saveResourceToFolder(string baseDir, bool showGui, List<JsonScene> scenes, Logger logger){		
