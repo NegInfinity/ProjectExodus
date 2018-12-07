@@ -76,13 +76,19 @@ void JsonImporter::importSkeletalMesh(const JsonMesh &jsonMesh, int32 meshId){
 	auto mesh = createAssetObject<USkeletalMesh>(unrealMeshName, &desiredDir, this, 
 		[&](USkeletalMesh *mesh){
 			MeshBuilder meshBuilder;
-			meshBuilder.setupSkeletalMesh(mesh, jsonMesh, this, [&](auto &materials){
-				materials.Empty();
-				for(auto matId: jsonMesh.materials){
-					UMaterialInterface *material = loadMaterialInterface(matId);
-					materials.Add(material);
+			meshBuilder.setupSkeletalMesh(mesh, jsonMesh, this, 
+				[&](auto &materials){
+					materials.Empty();
+					for(auto matId: jsonMesh.materials){
+						UMaterialInterface *material = loadMaterialInterface(matId);
+						materials.Add(material);
+					}
+				},
+				[&](const JsonSkeleton& jsonSkel, USkeleton *skel){
+					check(skel);
+					registerSkeleton(jsonSkel.id, skel);
 				}
-			});
+			);
 		},
 		[&](auto pkg, auto objName){
 			return NewObject<USkeletalMesh>(pkg, FName(*objName), RF_Standalone|RF_Public);
@@ -113,62 +119,6 @@ void JsonImporter::importMesh(const JsonMesh &jsonMesh, int32 meshId){
 		importSkeletalMesh(jsonMesh, meshId);
 	}
 }
-
-
-#if 0
-void JsonImporter::importMesh(const JsonMesh &jsonMesh, int32 meshId){
-	UE_LOG(JsonLog, Log, TEXT("Mesh data: Verts: %d; submeshes: %d; materials: %d; colors %d; normals: %d"), 
-		jsonMesh.verts.Num(), jsonMesh.subMeshes.Num(), jsonMesh.colors.Num(), jsonMesh.normals.Num());
-	UE_LOG(JsonLog, Log, TEXT("Mesh data: uv0: %d; uv1: %d; uv2: %d; uv3: %d; uv4: %d; uv5: %d; uv6: %d; uv7: %d;"),
-		jsonMesh.uv0.Num(), jsonMesh.uv1.Num(), jsonMesh.uv2.Num(), jsonMesh.uv3.Num(), 
-		jsonMesh.uv4.Num(), jsonMesh.uv5.Num(), jsonMesh.uv6.Num(), jsonMesh.uv7.Num());
-	
-	if (jsonMesh.verts.Num() <= 0){
-		UE_LOG(JsonLog, Warning, TEXT("No verts, cannot create mesh!"));
-		return;
-	}
-
-	FString sanitizedMeshName;
-	FString sanitizedPackageName;
-
-	FString meshName = jsonMesh.makeUnrealMeshName();
-		
-	UStaticMesh *existingMesh = nullptr;
-
-	UPackage *meshPackage = createPackage(
-		meshName, jsonMesh.path, assetRootPath, FString("Mesh"), 
-		&sanitizedPackageName, &sanitizedMeshName, &existingMesh);
-	if (existingMesh){
-		meshIdMap.Add(jsonMesh.id, existingMesh->GetPathName());
-		UE_LOG(JsonLog, Log, TEXT("Found existing mesh: %s (package %s)"), *sanitizedMeshName, *sanitizedPackageName);
-		//we should probably disable and rethink this part.
-		return;
-	}
-
-	UStaticMesh* mesh = NewObject<UStaticMesh>(meshPackage, FName(*sanitizedMeshName), RF_Standalone|RF_Public);
-
-	if (!mesh){
-		UE_LOG(JsonLog, Warning, TEXT("Couldn't create mesh"));
-		return;
-	}
-
-	MeshBuilder meshBuilder;
-	meshBuilder.setupMesh(mesh, jsonMesh, [&](auto &materials){
-		materials.Empty();
-		for(auto matId: jsonMesh.materials){
-			UMaterialInterface *material = loadMaterialInterface(matId);
-			materials.Add(material);
-		}
-	});
-
-	if (mesh){
-		auto meshPath = mesh->GetPathName();
-		meshIdMap.Add(jsonMesh.id, meshPath);
-		FAssetRegistryModule::AssetCreated(mesh);
-		meshPackage->SetDirtyFlag(true);
-	}
-}
-#endif
 
 void JsonImporter::importMesh(JsonObjPtr obj, int32 meshId){
 	UE_LOG(JsonLog, Log, TEXT("Importing mesh %d"), meshId);

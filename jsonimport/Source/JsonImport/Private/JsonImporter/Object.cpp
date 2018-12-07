@@ -93,13 +93,40 @@ void JsonImporter::importObject(const JsonGameObject &jsonGameObj , int32 objId,
 		processLights(workData, jsonGameObj, parentActor, folderPath);
 
 	if (jsonGameObj.hasMesh())
-		processMesh(workData, jsonGameObj, objId, parentActor, folderPath);
+		processStaticMesh(workData, jsonGameObj, objId, parentActor, folderPath);
 
 	if (jsonGameObj.hasTerrain())
 		processTerrains(workData, jsonGameObj, parentActor, folderPath);
+
+	if (jsonGameObj.hasSkinMeshes())
+		processSkinMeshes(workData, jsonGameObj, parentActor, folderPath);
 }
 
-void JsonImporter::processMesh(ImportWorkData &workData, const JsonGameObject &jsonGameObj, int objId, AActor *parentActor, const FString& folderPath){
+void JsonImporter::processSkinRenderer(ImportWorkData &workData, const JsonGameObject &gameObj, 
+		const JsonSkinRenderer &skinRend, AActor *parentActor, const FString &folderPath){
+
+	UE_LOG(JsonLog, Log, TEXT("Importing skin mesh %d for object %s"), skinRend.meshId, *gameObj.name);
+	if (skinRend.meshId < 0)
+		return;
+
+	auto foundMeshPath = skinMeshIdMap.Find(skinRend.meshId);
+	if (!foundMeshPath){
+		UE_LOG(JsonLog, Log, TEXT("Could not locate skin mesh %d for object %s"), skinRend.meshId, *gameObj.name);
+		return;
+	}
+
+	//workData.world
+}
+
+
+void JsonImporter::processSkinMeshes(ImportWorkData &workData, const JsonGameObject &gameObj, AActor *parentActor, const FString &folderPath){
+	for(const auto &jsonSkin: gameObj.skinRenderers){
+		processSkinRenderer(workData, gameObj, jsonSkin, parentActor, folderPath);
+	}
+}
+
+
+void JsonImporter::processStaticMesh(ImportWorkData &workData, const JsonGameObject &jsonGameObj, int objId, AActor *parentActor, const FString& folderPath){
 	if (!jsonGameObj.hasMesh())
 		return;
 
@@ -208,6 +235,112 @@ void JsonImporter::processMesh(ImportWorkData &workData, const JsonGameObject &j
 	worldMesh->MarkComponentsRenderStateDirty();
 }
 
+//void setupReflectionCapture(UReflectionCaptureComponent *reflComponent, const JsonReflectionProbe &probe);
+void JsonImporter::setupReflectionCapture(ImportWorkData &workData, const JsonGameObject &gameObj, 
+	const JsonReflectionProbe &probe, int32 objId, AActor *parentActor, const FString &folderPath){
+	FMatrix captureMatrix = gameObj.ueWorldMatrix;
+
+	FVector ueCenter = unityPosToUe(probe.center);
+	FVector ueSize = unitySizeToUe(probe.size);
+	FVector xAxis, yAxis, zAxis;
+	captureMatrix.GetScaledAxes(xAxis, yAxis, zAxis);
+	auto origin = captureMatrix.GetOrigin();
+	//origin += xAxis * ueCenter.X * 100.0f + yAxis * ueCenter.Y * 100.0f + zAxis * ueCenter.Z * 100.0f;
+	origin += xAxis * ueCenter.X + yAxis * ueCenter.Y + zAxis * ueCenter.Z;
+
+	auto sphereInfluence = FMath::Max3(ueSize.X, ueSize.Y, ueSize.Z) * 0.5f;
+	if (probe.boxProjection){
+		xAxis *= ueSize.X * 0.5f;
+		yAxis *= ueSize.Y * 0.5f;
+		zAxis *= ueSize.Z * 0.5f;
+	}
+
+	captureMatrix.SetOrigin(origin);
+	captureMatrix.SetAxes(&xAxis, &yAxis, &zAxis);
+
+	//bool realtime = mode == "Realtime";
+	bool baked = (probe.mode == "Baked");
+	if (!baked){
+		UE_LOG(JsonLog, Warning, TEXT("Realtime reflections are not supported. object %s(%d)"), *gameObj.ueName, objId);
+	}
+
+	FTransform captureTransform;
+	captureTransform.SetFromMatrix(captureMatrix);
+	UReflectionCaptureComponent *reflComponent = 0;
+
+	auto preInit = [&](AReflectionCapture *refl){
+		if (!refl) 
+			return;
+		refl->SetActorLabel(gameObj.ueName);
+		auto moveResult = refl->SetActorTransform(captureTransform, false, nullptr, ETeleportType::ResetPhysics);
+		logValue("Actor move result: ", moveResult);
+	};
+
+	auto postInit = [&](AReflectionCapture *refl){
+		if (!refl)
+			return;
+		refl->MarkComponentsRenderStateDirty();
+		setActorHierarchy(refl, parentActor, folderPath, workData, gameObj);
+	};
+
+	auto setupComponent = [&](UReflectionCaptureComponent *reflComponent) -> void{
+		if (!reflComponent)
+			return;
+		reflComponent->Brightness = probe.intensity;
+		reflComponent->ReflectionSourceType = EReflectionSourceType::CapturedScene;
+		if (probe.mode == "Custom"){
+			reflComponent->ReflectionSourceType = EReflectionSourceType::SpecifiedCubemap;
+			auto cube = getCubemap(probe.customCubemapId);
+			if (!cube){
+				UE_LOG(JsonLog, Warning, TEXT("Custom cubemap not set on reflection probe on object \"%s\"(%d)"),
+					*gameObj.ueName, objId);
+			}
+			else
+				reflComponent->Cubemap = cube;
+			//UE_LOG(JsonLog, Warning, TEXT("Cubemaps are not yet fully supported: %s(%d)"), *gameObj.ueName, objId);
+		}
+		if (probe.mode == "Realtime"){
+			UE_LOG(JsonLog, Warning, TEXT("Realtime reflection probes are not support: %s(%d)"), *gameObj.ueName, objId);
+		}
+	};
+
+	if (!probe.boxProjection){
+		auto sphereActor = createActor<ASphereReflectionCapture>(workData, captureTransform, TEXT("sphere capture"));
+		if (sphereActor){
+			preInit(sphereActor);
+
+			auto captureComp = sphereActor->GetCaptureComponent();
+			reflComponent = captureComp;
+			auto* sphereComp = Cast<USphereReflectionCaptureComponent>(captureComp);
+			if (sphereComp){
+				sphereComp->InfluenceRadius = sphereInfluence;
+			}
+			setupComponent(sphereComp);
+			postInit(sphereActor);
+		}
+	}
+	else{
+		auto boxActor = createActor<ABoxReflectionCapture>(workData, captureTransform, TEXT("box reflection capture"));
+		if (boxActor){
+			preInit(boxActor);
+
+			auto captureComp = boxActor->GetCaptureComponent();
+			reflComponent = captureComp;
+			auto *boxComp = Cast<UBoxReflectionCaptureComponent>(captureComp);
+			if (boxComp){
+				boxComp->BoxTransitionDistance = unityDistanceToUe(probe.blendDistance * 0.5f);
+			}
+			setupComponent(boxComp);
+
+			//TODO: Cubemaps
+			/*if (isStatic)
+				actor->SetMobility(EComponentMobility::Static);*/
+			postInit(boxActor);
+		}
+	}
+}
+
+
 void JsonImporter::processReflectionProbes(ImportWorkData &workData, const JsonGameObject &gameObj, int32 objId, AActor *parentActor, const FString &folderPath){
 	if (!gameObj.hasProbes())
 		return;
@@ -219,97 +352,64 @@ void JsonImporter::processReflectionProbes(ImportWorkData &workData, const JsonG
 
 	for (int i = 0; i < gameObj.probes.Num(); i++){
 		const auto &probe = gameObj.probes[i];
-
-		FMatrix captureMatrix = gameObj.ueWorldMatrix;
-
-		FVector ueCenter = unityPosToUe(probe.center);
-		FVector ueSize = unitySizeToUe(probe.size);
-		FVector xAxis, yAxis, zAxis;
-		captureMatrix.GetScaledAxes(xAxis, yAxis, zAxis);
-		auto origin = captureMatrix.GetOrigin();
-		//origin += xAxis * ueCenter.X * 100.0f + yAxis * ueCenter.Y * 100.0f + zAxis * ueCenter.Z * 100.0f;
-		origin += xAxis * ueCenter.X + yAxis * ueCenter.Y + zAxis * ueCenter.Z;
-
-		auto sphereInfluence = FMath::Max3(ueSize.X, ueSize.Y, ueSize.Z) * 0.5f;
-		if (probe.boxProjection){
-			xAxis *= ueSize.X * 0.5f;
-			yAxis *= ueSize.Y * 0.5f;
-			zAxis *= ueSize.Z * 0.5f;
-		}
-
-		captureMatrix.SetOrigin(origin);
-		captureMatrix.SetAxes(&xAxis, &yAxis, &zAxis);
-
-		//bool realtime = mode == "Realtime";
-		bool baked = (probe.mode == "Baked");
-		if (!baked){
-			UE_LOG(JsonLog, Warning, TEXT("Realtime reflections are not supported. object %s(%d)"), *gameObj.ueName, objId);
-		}
-
-		FTransform captureTransform;
-		captureTransform.SetFromMatrix(captureMatrix);
-		UReflectionCaptureComponent *reflComponent = 0;
-		if (!probe.boxProjection){
-			auto actor = createActor<ASphereReflectionCapture>(workData, captureTransform, TEXT("sphere capture"));
-			if (actor){
-				actor->SetActorLabel(gameObj.ueName);
-				auto moveResult = actor->SetActorTransform(captureTransform, false, nullptr, ETeleportType::ResetPhysics);
-				logValue("Actor move result: ", moveResult);
-
-				auto captureComp = actor->GetCaptureComponent();
-				reflComponent = captureComp;
-				auto* sphereComp = Cast<USphereReflectionCaptureComponent>(captureComp);
-				if (sphereComp){
-					sphereComp->InfluenceRadius = sphereInfluence;
-				}
-				//reflComponent->Influence
-				actor->MarkComponentsRenderStateDirty();
-				setActorHierarchy(actor, parentActor, folderPath, workData, gameObj);
-			}
-		}
-		else{
-			auto actor = createActor<ABoxReflectionCapture>(workData, captureTransform, TEXT("box reflection capture"));
-			if (actor){
-				actor->SetActorLabel(gameObj.ueName);
-				auto moveResult = actor->SetActorTransform(captureTransform, false, nullptr, ETeleportType::ResetPhysics);
-				logValue("Actor move result: ", moveResult);
-
-				auto captureComp = actor->GetCaptureComponent();
-				reflComponent = captureComp;
-				//captureComp->Brightness = intensity;
-				auto *boxComp = Cast<UBoxReflectionCaptureComponent>(captureComp);
-				if (boxComp){
-					boxComp->BoxTransitionDistance = unityDistanceToUe(probe.blendDistance * 0.5f);
-				}
-
-				//TODO: Cubemaps
-				/*if (isStatic)
-					actor->SetMobility(EComponentMobility::Static);*/
-				actor->MarkComponentsRenderStateDirty();
-				setActorHierarchy(actor, parentActor, folderPath, workData, gameObj);
-			}
-		}
-		if (reflComponent){
-			reflComponent->Brightness = probe.intensity;
-			reflComponent->ReflectionSourceType = EReflectionSourceType::CapturedScene;
-			if (probe.mode == "Custom"){
-				reflComponent->ReflectionSourceType = EReflectionSourceType::SpecifiedCubemap;
-				auto cube = getCubemap(probe.customCubemapId);
-				if (!cube){
-					UE_LOG(JsonLog, Warning, TEXT("Custom cubemap not set on reflection probe on object \"%s\"(%d)"),
-						*gameObj.ueName, objId);
-				}
-				else
-					reflComponent->Cubemap = cube;
-				//UE_LOG(JsonLog, Warning, TEXT("Cubemaps are not yet fully supported: %s(%d)"), *gameObj.ueName, objId);
-			}
-			if (probe.mode == "Realtime"){
-				UE_LOG(JsonLog, Warning, TEXT("Realtime reflection probes are not support: %s(%d)"), *gameObj.ueName, objId);
-			}
-			//reflComp->
-		}
+		setupReflectionCapture(workData, gameObj, gameObj.probes[i], objId, parentActor, folderPath);
 	}
 }
+
+void JsonImporter::setupPointLightComponent(UPointLightComponent *pointLight, const JsonLight &jsonLight){
+	//light->SetIntensity(lightIntensity * 2500.0f);//100W lamp per 1 point of intensity
+
+	pointLight->SetIntensity(jsonLight.intensity);
+	pointLight->bUseInverseSquaredFalloff = false;
+	//pointLight->LightFalloffExponent = 2.0f;
+	pointLight->SetLightFalloffExponent(2.0f);
+
+	pointLight->SetLightColor(jsonLight.color);
+	float attenRadius = jsonLight.range*100.0f;//*ueAttenuationBoost;//those are fine
+	pointLight->AttenuationRadius = attenRadius;
+	pointLight->SetAttenuationRadius(attenRadius);
+	pointLight->CastShadows = jsonLight.castsShadows;//lightCastShadow;// != FString("None");
+}
+
+void JsonImporter::setupSpotLightComponent(USpotLightComponent *spotLight, const JsonLight &jsonLight){
+	//spotLight->SetIntensity(lightIntensity * 2500.0f);//100W lamp per 1 point of intensity
+	spotLight->SetIntensity(jsonLight.intensity);
+	spotLight->bUseInverseSquaredFalloff = false;
+	//spotLight->LightFalloffExponent = 2.0f;
+	spotLight->SetLightFalloffExponent(2.0f);
+
+
+	spotLight->SetLightColor(jsonLight.color);
+	float attenRadius = jsonLight.range*100.0f;//*ueAttenuationBoost;
+	spotLight->AttenuationRadius = attenRadius;
+	spotLight->SetAttenuationRadius(attenRadius);
+	spotLight->CastShadows = jsonLight.castsShadows;//lightCastShadow;// != FString("None");
+	//spotLight->InnerConeAngle = lightSpotAngle * 0.25f;
+	spotLight->InnerConeAngle = 0.0f;
+	spotLight->OuterConeAngle = jsonLight.spotAngle * 0.5f;
+	//spotLight->SetVisibility(params.visible);
+}
+
+void JsonImporter::setupDirLightComponent(ULightComponent *dirLight, const JsonLight &jsonLight){
+	//light->SetIntensity(lightIntensity * 2500.0f);//100W lamp per 1 point of intensity
+	dirLight->SetIntensity(jsonLight.intensity);
+	//light->bUseInverseSquaredFalloff = false;
+	//light->LightFalloffExponent = 2.0f;
+	//light->SetLightFalloffExponent(2.0f);
+
+	dirLight->SetLightColor(jsonLight.color);
+	//float attenRadius = lightRange*100.0f;//*ueAttenuationBoost;
+	//light->AttenuationRadius = attenRadius;
+	//light->SetAttenuationRadius(attenRadius);
+	dirLight->CastShadows = jsonLight.castsShadows;// != FString("None");
+	//light->InnerConeAngle = lightSpotAngle * 0.25f;
+
+	//light->InnerConeAngle = 0.0f;
+	//light->OuterConeAngle = lightSpotAngle * 0.5f;
+
+	//light->SetVisibility(params.visible);
+}
+
 
 void JsonImporter::processLight(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonLight &jsonLight, AActor *parentActor, const FString& folderPath){
 	UE_LOG(JsonLog, Log, TEXT("Creating light"));
@@ -317,97 +417,38 @@ void JsonImporter::processLight(ImportWorkData &workData, const JsonGameObject &
 	FTransform lightTransform;
 	lightTransform.SetFromMatrix(gameObj.ueWorldMatrix);
 
+	ALight *actor = nullptr;
 	if (jsonLight.lightType == "Point"){
-		auto actor = createActor<APointLight>(workData, lightTransform, TEXT("point light"));
-		if (actor){
-			actor->SetActorLabel(gameObj.ueName, true);
-
-			auto light = actor->PointLightComponent;
-			//light->SetIntensity(lightIntensity * 2500.0f);//100W lamp per 1 point of intensity
-
-			light->SetIntensity(jsonLight.intensity);
-			light->bUseInverseSquaredFalloff = false;
-			//light->LightFalloffExponent = 2.0f;
-			light->SetLightFalloffExponent(2.0f);
-
-			light->SetLightColor(jsonLight.color);
-			float attenRadius = jsonLight.range*100.0f;//*ueAttenuationBoost;//those are fine
-			light->AttenuationRadius = attenRadius;
-			light->SetAttenuationRadius(attenRadius);
-			light->CastShadows = jsonLight.castsShadows;//lightCastShadow;// != FString("None");
-			//light->SetVisibility(params.visible);
-			if (gameObj.isStatic)
-				actor->SetMobility(EComponentMobility::Static);
-			actor->MarkComponentsRenderStateDirty();
-
-			//createdActors.Add(actor);
-			setActorHierarchy(actor, parentActor, folderPath, workData, gameObj);
+		auto pointActor = createActor<APointLight>(workData, lightTransform, TEXT("point light"));
+		actor = pointActor;
+		if (pointActor){
+			auto light = pointActor->PointLightComponent;
+			setupPointLightComponent(light, jsonLight);
 		}
 	}
 	else if (jsonLight.lightType == "Spot"){
-		auto actor = createActor<ASpotLight>(workData, lightTransform, TEXT("spot light"));
+		auto spotActor = createActor<ASpotLight>(workData, lightTransform, TEXT("spot light"));
+		actor = spotActor;
 		if (actor){
-			actor->SetActorLabel(gameObj.ueName, true);
-
-			auto light = actor->SpotLightComponent;
-			//light->SetIntensity(lightIntensity * 2500.0f);//100W lamp per 1 point of intensity
-			light->SetIntensity(jsonLight.intensity);
-			light->bUseInverseSquaredFalloff = false;
-			//light->LightFalloffExponent = 2.0f;
-			light->SetLightFalloffExponent(2.0f);
-
-
-			light->SetLightColor(jsonLight.color);
-			float attenRadius = jsonLight.range*100.0f;//*ueAttenuationBoost;
-			light->AttenuationRadius = attenRadius;
-			light->SetAttenuationRadius(attenRadius);
-			light->CastShadows = jsonLight.castsShadows;//lightCastShadow;// != FString("None");
-			//light->InnerConeAngle = lightSpotAngle * 0.25f;
-			light->InnerConeAngle = 0.0f;
-			light->OuterConeAngle = jsonLight.spotAngle * 0.5f;
-			//light->SetVisibility(params.visible);
-			if (gameObj.isStatic)
-				actor->SetMobility(EComponentMobility::Static);
-			actor->MarkComponentsRenderStateDirty();
-
-			//createdActors.Add(actor);
-			setActorHierarchy(actor, parentActor, folderPath, workData, gameObj);
+			auto light = spotActor->SpotLightComponent;
+			setupSpotLightComponent(light, jsonLight);
 		}
 	}
 	else if (jsonLight.lightType == "Directional"){
 		auto dirLightActor = createActor<ADirectionalLight>(workData, lightTransform, TEXT("directional light"));
+		actor = dirLightActor;
 		if (dirLightActor){
-			dirLightActor->SetActorLabel(gameObj.ueName, true);
-
-			logValue("Dir light rotation (Euler): ", dirLightActor->GetActorRotation().Euler());
-			logValue("Dir light transform: ", dirLightActor->GetActorTransform().ToMatrixWithScale());
-			logValue("Dir light scale: ", dirLightActor->GetActorScale3D());
-			logValue("Dir light location: ", dirLightActor->GetActorLocation());
-
 			auto light = dirLightActor->GetLightComponent();
-			//light->SetIntensity(lightIntensity * 2500.0f);//100W lamp per 1 point of intensity
-			light->SetIntensity(jsonLight.intensity);
-			//light->bUseInverseSquaredFalloff = false;
-			//light->LightFalloffExponent = 2.0f;
-			//light->SetLightFalloffExponent(2.0f);
-
-			light->SetLightColor(jsonLight.color);
-			//float attenRadius = lightRange*100.0f;//*ueAttenuationBoost;
-			//light->AttenuationRadius = attenRadius;
-			//light->SetAttenuationRadius(attenRadius);
-			light->CastShadows = jsonLight.castsShadows;// != FString("None");
-			//light->InnerConeAngle = lightSpotAngle * 0.25f;
-
-			//light->InnerConeAngle = 0.0f;
-			//light->OuterConeAngle = lightSpotAngle * 0.5f;
-
-			//light->SetVisibility(params.visible);
-			if (gameObj.isStatic)
-				dirLightActor->SetMobility(EComponentMobility::Static);
-			dirLightActor->MarkComponentsRenderStateDirty();
-
-			setActorHierarchy(dirLightActor, parentActor, folderPath, workData, gameObj);
+			setupDirLightComponent(light, jsonLight);
 		}
+	}
+
+	if (actor){
+		actor->SetActorLabel(gameObj.ueName, true);
+		if (gameObj.isStatic)
+			actor->SetMobility(EComponentMobility::Static);
+		setActorHierarchy(actor, parentActor, folderPath, workData, gameObj);
+		actor->MarkComponentsRenderStateDirty();
 	}
 }
 

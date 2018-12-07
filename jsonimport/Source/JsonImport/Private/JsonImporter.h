@@ -6,6 +6,7 @@
 #include "MaterialBuilder.h"
 #include "JsonObjects/JsonTerrainData.h"
 #include "JsonObjects/JsonSkeleton.h"
+#include "JsonObjects.h"
 
 class UMaterialExpression;
 class UMaterialExpressionParameter;
@@ -18,6 +19,23 @@ class UMaterial;
 class ALandscape;
 class ULandscapeLayerInfoObject;
 class ULandscapeGrassType;
+class APointLight;
+class ASpotLight;
+class ADirectionalLight;
+class UPointLightComponent;
+class USpotLightComponent;
+class UDirectionalLightComponent;
+class USphereReflectionCaptureComponent;
+class UBoxReflectionCaptureComponent;
+class UReflectionCaptureComponent;
+
+/*
+struct ParentingData{
+	AActor *parent = nullptr;
+	FString folderPath;
+
+};
+*/
 
 class JsonImporter{
 protected:
@@ -35,6 +53,7 @@ protected:
 
 	TArray<JsonMaterial> jsonMaterials;
 	TMap<JsonId, JsonSkeleton> jsonSkeletons;
+	IdNameMap skeletonIdMap;
 
 	TMap<JsonId, JsonTerrainData> terrainDataMap;
 
@@ -47,14 +66,23 @@ protected:
 	ALandscape* createDefaultLandscape(UWorld *world);
 	*/
 
+	void setupReflectionCapture(ImportWorkData &workData, const JsonGameObject &gameObj, 
+		const JsonReflectionProbe &probe, int32 objId, AActor *parentActor, const FString &folderPath);
+
+	void setupPointLightComponent(UPointLightComponent *pointLight, const JsonLight &jsonLight);
+	void setupSpotLightComponent(USpotLightComponent *spotLight, const JsonLight &jsonLight);
+	void setupDirLightComponent(ULightComponent *dirLight, const JsonLight &jsonLight);
+
 	UWorld* importSceneObjectsAsWorld(const TArray<JsonGameObject> &sceneObjects, const FString &sceneName, const FString &scenePath);
 	void processReflectionProbes(ImportWorkData &workData, const JsonGameObject &gameObj, int32 objId, AActor *parentActor, const FString &folderPath);
 	void processLight(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonLight &light, AActor *parentActor, const FString& folderPath);
 	void processLights(ImportWorkData &workData, const JsonGameObject &gameObj, AActor *parentActor, const FString& folderPath);
-	void processMesh(ImportWorkData &workData, const JsonGameObject &gameObj, int objId, AActor *parentActor, const FString& folderPath);
+	void processStaticMesh(ImportWorkData &workData, const JsonGameObject &gameObj, int objId, AActor *parentActor, const FString& folderPath);
 
 	void processTerrain(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonTerrain &jsonTerrain, AActor *parentActor, const FString& folderPath);
 	void processTerrains(ImportWorkData &workData, const JsonGameObject &gameObj, AActor *parentActor, const FString& folderPath);
+	void processSkinMeshes(ImportWorkData &workData, const JsonGameObject &gameObj, AActor *parentActor, const FString &folderPath);
+	void processSkinRenderer(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonSkinRenderer &skinRend, AActor *parentActor, const FString &folderPath);
 
 	UWorld* importScene(const JsonScene &scene, bool createWorld);
 
@@ -75,6 +103,9 @@ protected:
 
 	//UWorld* importScene(const JsonScene &scene, bool createWorld) const;
 public:
+	USkeleton* getSkeletonObject(int32 id) const;
+	void registerSkeleton(int32 id, USkeleton *skel);
+
 	JsonMesh loadJsonMesh(int32 id) const;
 	const JsonMaterial* getJsonMaterial(int32 id) const;
 

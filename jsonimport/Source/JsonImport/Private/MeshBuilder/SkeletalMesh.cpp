@@ -14,7 +14,7 @@ using namespace JsonObjects;
 /*
 	Amusingly, the most useful file in figuring out how skeletal mesh configuraiton is supposed to work 
 */
-void MeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonMesh &jsonMesh, const JsonImporter *importer, std::function<void(TArray<FSkeletalMaterial> &meshMaterials)> materialSetup){
+void MeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonMesh &jsonMesh, const JsonImporter *importer, std::function<void(TArray<FSkeletalMaterial> &meshMaterials)> materialSetup, std::function<void(const JsonSkeleton&, USkeleton*)> onNewSkeleton){
 	check(skelMesh);
 	check(importer);
 	
@@ -160,12 +160,6 @@ void MeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonMesh &jso
 			dstInfl.Weight = boneWeight;
 			dstInfl.VertIndex = vertIndex;
 		}
-		/*
-		auto &dstInfl = meshInfluences.AddDefaulted_GetRef();
-		dstInfl.BoneIndex = 0;
-		dstInfl.Weight = 1.0f;
-		dstInfl.VertIndex = vertIndex;
-		*/
 	}
 
 	//should I just say "screw it" and load it via renderable sections? It would certainly work...
@@ -234,11 +228,31 @@ void MeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonMesh &jso
 		UE_LOG(JsonLog, Warning, TEXT("Warning name: %s"), *warn.ToString());
 	}
 
-	auto skeleton = NewObject<USkeleton>(skelMesh->GetOuter(), *jsonSkel->name);
-	skeleton->MergeAllBonesToBoneTree(skelMesh);
-	skelMesh->Skeleton = skeleton;
-	FAssetRegistryModule::AssetCreated(skeleton);
-	skeleton->MarkPackageDirty();
+	auto newSkelName = FString::Printf(TEXT("%s_%d"), *jsonSkel->name, jsonSkel->id);
+
+	auto foundSkeleton = importer->getSkeletonObject(jsonSkel->id);
+	if (!foundSkeleton){
+		auto desiredDir = FPaths::GetPath(jsonMesh.path);
+		auto skelName = FString::Printf(TEXT("%s_%s_%d"), *jsonSkel->name, TEXT("skel"), jsonSkel->id);
+		auto skeleton = createAssetObject<USkeleton>(
+			skelName, &desiredDir, importer, 
+			[&](auto arg){
+				arg->MergeAllBonesToBoneTree(skelMesh);
+			}, RF_Standalone|RF_Public
+		);//NewObject<USkeleton>(skelMesh->GetOuter(), *jsonSkel->name);
+		if (onNewSkeleton)
+			onNewSkeleton(*jsonSkel, skeleton);
+		skelMesh->Skeleton = skeleton;
+		/*
+		skeleton->MergeAllBonesToBoneTree(skelMesh);
+		skelMesh->Skeleton = skeleton;
+		FAssetRegistryModule::AssetCreated(skeleton);
+		skeleton->MarkPackageDirty();
+		*/
+	}
+	else{
+		skelMesh->Skeleton = foundSkeleton;
+	}
 
 	bool needMorphInvalidate = false;
 
@@ -257,25 +271,6 @@ void MeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonMesh &jso
 
 			TArray<FMorphTargetDelta> deltas;
 
-			///what do I do about the weight?
-			/*
-			for(int vertIndex = 0; vertIndex < blendFrame.deltaVerts.Num(); vertIndex++){
-				auto& dstDelta = deltas.AddDefaulted_GetRef();
-				dstDelta.SourceIdx = vertIndex;//Unity stores deltas for all verts
-				auto unityDeltaPos = getIdxVector3(blendFrame.deltaVerts, vertIndex);
-				auto unityDeltaNorm = getIdxVector3(blendFrame.deltaNormals, vertIndex);
-
-				dstDelta.PositionDelta = unityPosToUe(unityDeltaPos);
-				dstDelta.TangentZDelta = unityVecToUe(unityDeltaNorm);
-			}
-			*/
-			/*
-			auto& dstDelta = deltas.AddDefaulted_GetRef();
-			dstDelta.SourceIdx = 0;//vertIndex;//Unity stores deltas for all verts
-			dstDelta.PositionDelta = FVector(100.0f, 0.0f, 0.0f);
-			dstDelta.TangentZDelta = FVector::ZeroVector;
-			*/
-
 			auto importData = skelMesh->GetImportedModel();
 			const auto &lodModel = importData->LODModels[0];//TODO:  lod support.
 
@@ -287,17 +282,12 @@ void MeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonMesh &jso
 				auto origVertIdx = lodModel.MeshToImportVertexMap[meshVertIdx];
 
 				auto& dstDelta = deltas.AddDefaulted_GetRef();
-				//dstDelta.SourceIdx = origVertIdx;//Unity stores deltas for all verts
 				dstDelta.SourceIdx = meshVertIdx;//Aaand nope. That was some stupid error. Mesh morph references the NEW verts, and not the original one...
 				auto unityDeltaPos = getIdxVector3(blendFrame.deltaVerts, origVertIdx);
 				auto unityDeltaNorm = getIdxVector3(blendFrame.deltaNormals, origVertIdx);
 
 				dstDelta.PositionDelta = unityPosToUe(unityDeltaPos);
 				dstDelta.TangentZDelta = unityVecToUe(unityDeltaNorm);
-
-				//for(const auto cur: lodModel.MeshToImportVertexMap){
-
-				//UE_LOG(JsonLog, Log, TEXT("Debug vert: %d"), cur);
 			}
 			//lodModel.MeshToImportVertexMap
 			//UE_LOG(JsonLog, Log, TEXT("Printing original vertices. Total number: %d"), lodModel.RawPointIndices.Nu
@@ -320,4 +310,25 @@ void MeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonMesh &jso
 	skelMesh->PostEditChange();
 	skelMesh->MarkPackageDirty();
 	skelMesh->PostLoad();
+}
+
+USkeleton* JsonImporter::getSkeletonObject(int32 id) const{
+	auto found = skeletonIdMap.Find(id);
+	if (!found)
+		return nullptr;
+	return LoadObject<USkeleton>(nullptr, **found);
+}
+
+void JsonImporter::registerSkeleton(int32 id, USkeleton *skel){
+	check(skel);
+	check(id >= 0);
+
+	if (skeletonIdMap.Contains(id)){
+		UE_LOG(JsonLog, Log, TEXT("Duplicate skeleton registration for id %d"), id);
+		return;
+	}
+
+	auto path = skel->GetPathName();
+	skeletonIdMap.Add(id, path);
+	//auto outer = skel->
 }

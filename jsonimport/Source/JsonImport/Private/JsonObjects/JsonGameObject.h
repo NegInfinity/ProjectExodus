@@ -49,6 +49,10 @@ public:
 		return terrains.Num() > 0;
 	}
 
+	bool hasSkinMeshes() const{
+		return skinRenderers.Num() > 0;
+	}
+
 	bool hasMesh() const{
 		return meshId >= 0;
 	}

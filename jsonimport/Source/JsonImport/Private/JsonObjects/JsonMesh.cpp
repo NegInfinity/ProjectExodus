@@ -75,7 +75,6 @@ void JsonMesh::load(JsonObjPtr data){
 	//TArray<FMatrix> bindPoses;
 	//TArray<FMatrix> inverseBindPoses;
 
-
 	JSON_GET_VAR(data, subMeshCount);
 	getJsonObjArray(data, subMeshes, "subMeshes");
 }
