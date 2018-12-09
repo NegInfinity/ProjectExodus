@@ -243,10 +243,17 @@ Let's proceed with first attempt, which does not take this madness scenario into
 			var roots = new List<Transform>();
 			foreach(var curSkinRend in skinRenderers){
 				var curBones = curSkinRend.bones;
-				var curRoot = findCommonParent(curBones);
-				if (!curRoot){
-					throw new System.ArgumentException(
-						string.Format("Failed to find common parent in skin renderer {0}", curSkinRend));
+				Transform curRoot = null;
+				if (curBones.isNullOrEmpty()){
+					Debug.LogFormat("No bones on skinned mesh object {0}, assuming gameobject to be root", curSkinRend.gameObject);
+					curRoot = curSkinRend.gameObject.transform;
+				}
+				else{
+					curRoot = findCommonParent(curBones);
+					if (!curRoot){
+						throw new System.ArgumentException(
+							string.Format("Failed to find common parent in skin renderer {0}", curSkinRend));
+					}
 				}
 				roots.Add(curRoot);
 			}

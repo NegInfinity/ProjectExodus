@@ -28,6 +28,7 @@ class UDirectionalLightComponent;
 class USphereReflectionCaptureComponent;
 class UBoxReflectionCaptureComponent;
 class UReflectionCaptureComponent;
+class USkeleton;
 
 /*
 struct ParentingData{
@@ -133,6 +134,7 @@ public:
 
 	FString getMeshPath(JsonId id) const;
 	UStaticMesh *loadStaticMeshById(JsonId id) const;
+	USkeletalMesh *loadSkeletalMeshById(JsonId id) const;
 
 	void importProject(const FString& path);
 

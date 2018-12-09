@@ -58,6 +58,25 @@ namespace SceneExport{
 			valCount.Push(0);
 		}
 
+		public void beginRawObject(bool newLine){
+			if (newLine)
+				builder.AppendLine("{");
+			else			
+				builder.Append("{");
+			indent++;
+			valCount.Push(0);
+		}
+
+		public void endObject(bool writeLineIndent){
+			indent--;
+			if (writeLineIndent){
+				builder.AppendLine();
+				writeIndent();
+			}
+			builder.Append("}");
+			valCount.Pop();
+		}
+
 		public void endObject(){
 			indent--;
 			builder.AppendLine();
@@ -80,10 +99,14 @@ namespace SceneExport{
 			valCount.Pop();
 		}
 
-		public void writeKey(string key){
-			processComma();
+		public void writeKey(string key, bool indent){
+			processComma(indent);
 			writeString(key);
 			builder.Append(": ");
+		}
+		
+		public void writeKey(string key){
+			writeKey(key, true);
 		}
 		
 		public void beginKeyArray(string key){

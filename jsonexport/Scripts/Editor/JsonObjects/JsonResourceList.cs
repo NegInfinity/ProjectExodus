@@ -13,6 +13,10 @@ namespace SceneExport{
 		public List<JsonTerrainData> terrains = new List<JsonTerrainData>();
 		public List<JsonCubemap> cubemaps = new List<JsonCubemap>();
 		public List<JsonAudioClip> audioClips = new List<JsonAudioClip>();
+		
+		public List<JsonSkeleton> skeletons = new List<JsonSkeleton>();		
+		public List<JsonAnimatorController> animatorControllers = new List<JsonAnimatorController>();
+		public List<JsonAnimationClip> animationClips = new List<JsonAnimationClip>();
 		public List<string> resources = new List<string>();
 		
 		public override void writeJsonObjectFields(FastJsonWriter writer){
@@ -22,6 +26,8 @@ namespace SceneExport{
 			writer.writeKeyVal("meshes", meshes);
 			writer.writeKeyVal("textures", textures);
 			writer.writeKeyVal("cubemaps", cubemaps);
+			writer.writeKeyVal("animatorControllers", animatorControllers);
+			writer.writeKeyVal("animationClips", animationClips);
 			writer.writeKeyVal("audioClips", audioClips);
 			writer.writeKeyVal("resources", resources);
 		}

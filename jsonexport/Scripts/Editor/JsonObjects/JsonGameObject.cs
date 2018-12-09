@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEditor;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SceneExport{
 	[System.Serializable]
@@ -25,6 +26,7 @@ namespace SceneExport{
 		public JsonLight[] light = null;
 		public JsonReflectionProbe[] reflectionProbes = null;
 		public List<JsonSkinRendererData> skinRenderers = new List<JsonSkinRendererData>();
+		public List<JsonAnimator> animators = new List<JsonAnimator>();
 		
 		public JsonTerrain[] terrains = null;
 		
@@ -90,6 +92,7 @@ namespace SceneExport{
 			writer.writeKeyVal("light", light);
 			writer.writeKeyVal("reflectionProbes", reflectionProbes);
 			writer.writeKeyVal("skinRenderers", skinRenderers);
+			writer.writeKeyVal("animators", animators);
 			writer.writeKeyVal("terrains", terrains);
 			
 			writer.endObject();
@@ -139,6 +142,16 @@ namespace SceneExport{
 			skinRenderers = 
 				ExportUtility.convertComponentsList<SkinnedMeshRenderer, JsonSkinRendererData>(obj, 
 					(c) => new JsonSkinRendererData(c, objMap, resMap));
+					
+			///..... I think those can be replaced with linq queries (-_-)
+			/*
+			animators = obj.GetComponents<Animator>().Where((arg) => arg)
+				.Select((Animator arg) => new JsonAnimator(arg, resMap))
+				.ToList();*/
+				
+			animators = 
+				ExportUtility.convertComponentsList<Animator, JsonAnimator>(obj, 
+					(c) => new JsonAnimator(c, resMap));
 					
 			var meshFilter = obj.GetComponent<MeshFilter>();
 			if (meshFilter){

@@ -16,6 +16,7 @@
 #include "Engine/Classes/Components/SphereReflectionCaptureComponent.h"
 
 #include "Engine/StaticMeshActor.h"
+#include "Engine/Classes/Animation/SkeletalMeshActor.h"
 #include "Engine/Classes/Components/StaticMeshComponent.h"
 #include "LevelEditorViewport.h"
 #include "Factories/TextureFactory.h"
@@ -102,18 +103,79 @@ void JsonImporter::importObject(const JsonGameObject &jsonGameObj , int32 objId,
 		processSkinMeshes(workData, jsonGameObj, parentActor, folderPath);
 }
 
-void JsonImporter::processSkinRenderer(ImportWorkData &workData, const JsonGameObject &gameObj, 
+USkeletalMesh* JsonImporter::loadSkeletalMeshById(JsonId id) const{
+	auto foundPath = skinMeshIdMap.Find(id);
+	if (!foundPath){
+		UE_LOG(JsonLog, Warning, TEXT("Could not load skin mesh %d"), id);
+		return nullptr;
+	}
+
+	auto result = LoadObject<USkeletalMesh>(nullptr, **foundPath);
+	return result;
+
+	//if (!skel
+	//return nullptr;
+}
+
+void JsonImporter::processSkinRenderer(ImportWorkData &workData, const JsonGameObject &jsonGameObj, 
 		const JsonSkinRenderer &skinRend, AActor *parentActor, const FString &folderPath){
 
-	UE_LOG(JsonLog, Log, TEXT("Importing skin mesh %d for object %s"), skinRend.meshId, *gameObj.name);
+	UE_LOG(JsonLog, Log, TEXT("Importing skin mesh %d for object %s"), skinRend.meshId, *jsonGameObj.name);
 	if (skinRend.meshId < 0)
 		return;
 
 	auto foundMeshPath = skinMeshIdMap.Find(skinRend.meshId);
 	if (!foundMeshPath){
-		UE_LOG(JsonLog, Log, TEXT("Could not locate skin mesh %d for object %s"), skinRend.meshId, *gameObj.name);
+		UE_LOG(JsonLog, Log, TEXT("Could not locate skin mesh %d for object %s"), skinRend.meshId, *jsonGameObj.name);
 		return;
 	}
+
+	auto *skelMesh = loadSkeletalMeshById(skinRend.meshId);
+	if (!skelMesh){
+		UE_LOG(JsonLog, Error, TEXT("Coudl not load skinMesh %d on object %d(%s)"), skinRend.meshId, jsonGameObj.id, *jsonGameObj.name);
+		return;
+	}
+
+
+	/*
+	This is great.
+
+	Looks like there's major discrepancy in how components work in unity and unreal engine.
+
+	Unity skinned mesh acts as BOTH PoseableMesh and SkeletalMesh, meaning you can move individual bones around while they're being animated.
+	*/
+	FActorSpawnParameters spawnParams;
+	FTransform transform;
+	transform.SetFromMatrix(jsonGameObj.ueWorldMatrix);
+
+	ASkeletalMeshActor *meshActor = workData.world->SpawnActor<ASkeletalMeshActor>(ASkeletalMeshActor::StaticClass(), transform, spawnParams);
+	if (!meshActor){
+		UE_LOG(JsonLog, Warning, TEXT("Couldn't spawn skeletal actor"));
+		return;
+	}
+
+	meshActor->SetActorLabel(jsonGameObj.ueName, true);
+
+	USkeletalMeshComponent *meshComponent = meshActor->GetSkeletalMeshComponent();
+
+	meshComponent->SetSkeletalMesh(skelMesh, true);
+
+
+
+	/*
+	auto *meshObject = LoadObject<UStaticMesh>(0, *meshPath);
+	if (!meshObject){
+		UE_LOG(JsonLog, Warning, TEXT("Could not load mesh %s"), *meshPath);
+		return;
+	}
+
+	AStaticMeshActor *worldMesh = Cast<AStaticMeshActor>(meshActor);
+	//if params is static
+	if (!worldMesh){
+		UE_LOG(JsonLog, Warning, TEXT("Wrong actor class"));
+		return;
+	}
+	*/
 
 	//workData.world
 }

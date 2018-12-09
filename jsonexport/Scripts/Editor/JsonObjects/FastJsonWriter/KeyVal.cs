@@ -12,8 +12,18 @@ namespace SceneExport{
 			writeRawValue(val);
 		}
 
+		public void writeKeyVal(string key, int val, bool indent){
+			writeKey(key, indent);
+			writeRawValue(val);
+		}
+
 		public void writeKeyVal(string key, byte val){
 			writeKey(key);
+			writeRawValue(val);
+		}
+
+		public void writeKeyVal(string key, byte val, bool indent){
+			writeKey(key, indent);
 			writeRawValue(val);
 		}
 
@@ -22,8 +32,18 @@ namespace SceneExport{
 			writeRawValue(val);
 		}
 		
+		public void writeKeyVal(string key, float val, bool indent){
+			writeKey(key, indent);
+			writeRawValue(val);
+		}
+		
 		public void writeKeyVal(string key, string val){
 			writeKey(key);
+			writeRawValue(val);
+		}
+
+		public void writeKeyVal(string key, string val, bool indent){
+			writeKey(key, indent);
 			writeRawValue(val);
 		}
 
@@ -65,6 +85,23 @@ namespace SceneExport{
 		public void writeKeyVal(string key, Quaternion val){
 			writeKey(key);
 			writeRawValue(val);
+		}
+		
+		public delegate void RawValueWriterCallback<T>(T val, FastJsonWriter writer);
+		
+		public void writeKeyVal<T>(string key, T val, RawValueWriterCallback<T> callback){
+			writeKey(key);
+			callback(val, this);
+		}
+		
+		public void writeKeyVal<T>(string key, IEnumerable<T> e, RawValueWriterCallback<T> callback){
+			writeKey(key);
+			beginRawArray();
+			foreach(var cur in e){
+				processComma();
+				callback(cur, this);
+			}
+			endArray();			
 		}
 		
 		public void writeKeyVal<T>(string key, T val) where T: IFastJsonValue{
