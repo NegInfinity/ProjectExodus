@@ -15,6 +15,9 @@ namespace SceneExportTests{
 			if (GUILayout.Button("Sample")){
 				obj.samplePoints();
 			}
+			if (GUILayout.Button("Random")){
+				obj.buildRandomPoints();
+			}
 			if (GUILayout.Button("Clear")){
 				obj.clearPoints();
 			}
