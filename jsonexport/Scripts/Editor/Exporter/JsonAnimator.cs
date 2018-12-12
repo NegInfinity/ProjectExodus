@@ -117,7 +117,7 @@ namespace SceneExport{
 			var runtimeAnimator = animator.runtimeAnimatorController;
 			var editorAnimator = runtimeAnimator as UnityEditor.Animations.AnimatorController;
 						
-			animatorControllerId = resMap.getAnimatorControllerId(editorAnimator);
+			animatorControllerId = resMap.getAnimatorControllerId(editorAnimator, animator);
 			
 			humanBones = gatherHumanBones(animator);
 		}

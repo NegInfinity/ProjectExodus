@@ -40,7 +40,7 @@ namespace SceneExport{
 			writer.beginRawObject();
 			writer.writeKeyVal("name", name);
 			writer.writeKeyVal("path", path);
-			writer.writeKeyVal("id", id);
+			//writer.writeKeyVal("id", id);
 			
 			writer.writeKeyVal("parameters", parameters);
 			//writer.writeKeyVal("animations", animations);
@@ -51,16 +51,18 @@ namespace SceneExport{
 		public JsonAnimatorController(){
 		}
 		
-		public JsonAnimatorController(UnityEditor.Animations.AnimatorController controller_, int id_, ResourceMapper resMap){
+		public JsonAnimatorController(UnityEditor.Animations.AnimatorController controller_, Animator animator, int id_, ResourceMapper resMap){
 			controller = controller_;
 			if (!controller)
-				throw new System.ArgumentNullException("controller");
+				throw new System.ArgumentNullException("controller_");
+			if (!animator)
+				throw new System.ArgumentNullException("animator");
 			id = id_;
 			name = controller.name;
 			path = AssetDatabase.GetAssetPath(controller);
 			
 			parameters = controller.parameters.Select((arg) => new JsonAnimatorControllerParameter(arg)).ToList();
-			animationIds = controller.animationClips.Select((arg) => resMap.getAnimationClipId(arg)).ToList();
+			animationIds = controller.animationClips.Select((arg) => resMap.getAnimationClipId(arg, animator)).ToList();
 			//animations = controller.animationClips.Select((arg, idx) => new JsonAnimationClip(arg, idx)).ToList();
 		}
 	}	

@@ -4,6 +4,32 @@ using System.Linq;
 
 namespace SceneExport{
 	static class Extensions{
+		public static bool hasComponent<C>(this GameObject gameObj) where C: Component{
+			if (!gameObj)
+				throw new System.ArgumentNullException("gameObj");
+			return gameObj.GetComponent<C>();
+		}
+	
+		public static Vector3 abs(this Vector3 arg){
+			return new Vector3(
+				Mathf.Abs(arg.x), 
+				Mathf.Abs(arg.y), 
+				Mathf.Abs(arg.z)
+			);
+		}
+		
+		public static float maxElement(this Vector3 arg){
+			return Mathf.Max(arg.x, Mathf.Max(arg.y, arg.z));
+		}
+		
+		public static float minElement(this Vector3 arg){
+			return Mathf.Min(arg.x, Mathf.Min(arg.y, arg.z));
+		}
+		
+		public static float getMaxDifference(this Vector3 arg, Vector3 arg2){
+			return (arg2 - arg).abs().maxElement();
+		}
+		
 		public static Vector3 getVector3(this Vector4 arg){
 			return new Vector3(arg.x, arg.y, arg.z);
 		}

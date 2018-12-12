@@ -16,7 +16,9 @@ namespace SceneExport{
 		public Matrix4x4 localMatrix = Matrix4x4.identity;
 		
 		public List<int> children = new List<int>();
+		public List<string> childNames = new List<string>();
 		public int parent = -1;
+		public string parentName = "";
 		public int mesh = -1;
 		
 		public bool activeSelf = true;
@@ -66,7 +68,9 @@ namespace SceneExport{
 			writer.writeKeyVal("globalTransform", new JsonTransform(worldMatrix));
 			
 			writer.writeKeyVal("children", children);
+			writer.writeKeyVal("childNames", childNames);
 			writer.writeKeyVal("parent", parent);
+			writer.writeKeyVal("parentName", parentName);
 			writer.writeKeyVal("mesh", mesh);
 			writer.writeKeyVal("isStatic", isStatic);
 			writer.writeKeyVal("lightMapStatic", lightMapStatic);
@@ -165,9 +169,12 @@ namespace SceneExport{
 				}
 				//var childId = objMap.getId(curChild.gameObject); 
 				children.Add(childId);
+				childNames.Add(curChild.name);
 			}
-			if (obj.transform.parent)
+			if (obj.transform.parent){
+				parentName = obj.transform.parent.name;
 				parent = objMap.findId(obj.transform.parent.gameObject);
+			}
 		}
 	}
 }

@@ -14,7 +14,7 @@ namespace SceneExport{
 		public List<string> terrains = new List<string>();
 		public List<string> cubemaps = new List<string>();
 		public List<string> audioClips = new List<string>();
-		public List<string> animatorControllers = new List<string>();
+		//public List<string> animatorControllers = new List<string>();
 		public List<string> animationClips = new List<string>();
 		public List<string> resources = new List<string>();
 		
@@ -29,7 +29,7 @@ namespace SceneExport{
 			writer.writeKeyVal("cubemaps", cubemaps);
 			writer.writeKeyVal("audioClips", audioClips);
 			writer.writeKeyVal("audioClips", audioClips);
-			writer.writeKeyVal("animatorControllers", animatorControllers);
+			//writer.writeKeyVal("animatorControllers", animatorControllers);
 			writer.writeKeyVal("resources", resources);
 		}
 	}	

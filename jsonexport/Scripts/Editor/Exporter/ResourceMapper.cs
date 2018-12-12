@@ -10,10 +10,16 @@ namespace SceneExport{
 		public ObjectMapper<Material> materials = new ObjectMapper<Material>();
 		public ObjectMapper<Cubemap> cubemaps = new ObjectMapper<Cubemap>();
 		public ObjectMapper<AudioClip> audioClips = new ObjectMapper<AudioClip>();
-		public ObjectMapper<AnimationClip> animationClips = new ObjectMapper<AnimationClip>();
+		//public ObjectMapper<AnimationClip> animationClips = new ObjectMapper<AnimationClip>();
 		
+		public ObjectMapper<AnimationClipKey> animationClips = new ObjectMapper<AnimationClipKey>();
+		
+		public ObjectMapper<Animator> characterPrefabAnimators = new ObjectMapper<Animator>();
+		
+		public ObjectMapper<AnimatorControllerKey> animatorControllers = new ObjectMapper<AnimatorControllerKey>();
+		/*
 		public ObjectMapper<UnityEditor.Animations.AnimatorController> animatorControllers 
-			= new ObjectMapper<UnityEditor.Animations.AnimatorController>();
+			= new ObjectMapper<UnityEditor.Animations.AnimatorController>();*/
 
 		[System.Serializable]
 		public class MeshDefaultSkeletonData{
@@ -63,12 +69,12 @@ namespace SceneExport{
 			return null;
 		}
 		
-		public int findAnimatorControllerId(UnityEditor.Animations.AnimatorController obj){
-			return animatorControllers.getId(obj, false);
+		public int findAnimatorControllerId(UnityEditor.Animations.AnimatorController obj, Animator animator){
+			return animatorControllers.getId(new AnimatorControllerKey(obj, animator), false);
 		}
 		
-		public int getAnimatorControllerId(UnityEditor.Animations.AnimatorController obj){
-			return animatorControllers.getId(obj, true);
+		public int getAnimatorControllerId(UnityEditor.Animations.AnimatorController obj, Animator animator){
+			return animatorControllers.getId(new AnimatorControllerKey(obj, animator), true);
 		}
 		
 		public int getTerrainId(TerrainData data){
@@ -112,12 +118,12 @@ namespace SceneExport{
 			return meshes.getId(key, true);
 		}
 		
-		public int findAnimationClipId(AnimationClip animClip){
-			return animationClips.getId(animClip, false);
+		public int findAnimationClipId(AnimationClip animClip, Animator animator){
+			return animationClips.getId(new AnimationClipKey(animClip, animator), false);
 		}
 		
-		public int getAnimationClipId(AnimationClip animClip){
-			return animationClips.getId(animClip, true);
+		public int getAnimationClipId(AnimationClip animClip, Animator animator){
+			return animationClips.getId(new AnimationClipKey(animClip, animator), true);
 		}
 		
 		public int findMeshId(Mesh obj){
@@ -709,11 +715,12 @@ namespace SceneExport{
 			result.prefabs = saveResourcesToPath(baseDir, prefabList, 
 				(objData, id) => objData, (obj) => obj.name, "prefab", showGui);
 				
-			result.animatorControllers = saveResourcesToPath(baseDir, animatorControllers.objectList,
-				(objData, id) => new JsonAnimatorController(objData, id, this), (obj) => obj.name, "animatorController", showGui);
+			/*result.animatorControllers = saveResourcesToPath(baseDir, animatorControllers.objectList,
+				(objData, id) => new JsonAnimatorController(objData, id, this), (obj) => obj.name, "animatorController", showGui);*/
 				
 			result.animationClips = saveResourcesToPath(baseDir, animationClips.objectList,
-				(objData, id) => new JsonAnimationClip(objData, id), (obj) => obj.name, "animationClip", showGui);
+				(objData, id) => new JsonAnimationClip(objData.animClip, objData.animator, id, this), 
+				(obj) => obj.name, "animationClip", showGui);
 			/*result.prefabs = saveResourcesToPath(baseDir, prefabs.objectMap, 
 				(objData) => new JsonPref"prefab");*/
 			result.resources = new List<string>(resources);
@@ -751,9 +758,9 @@ namespace SceneExport{
 			}
 			
 			result.animatorControllers = animatorControllers.objectList
-				.Select((arg, idx) => new JsonAnimatorController(arg, idx, this)).ToList();
+				.Select((arg, idx) => new JsonAnimatorController(arg.controller, arg.animator, idx, this)).ToList();
 			result.animationClips = animationClips.objectList
-				.Select((arg1, idx) => new JsonAnimationClip(arg1, idx)).ToList();
+				.Select((arg1, idx) => new JsonAnimationClip(arg1.animClip, arg1.animator, idx, this)).ToList();
 				
 			result.resources = new List<string>(resources);
 			result.resources.Sort();

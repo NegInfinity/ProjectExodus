@@ -7,6 +7,19 @@ using UnityEditor.SceneManagement;
 
 namespace SceneExport{
 	public static class ExportUtility{
+		public static bool hasSupportedComponents(GameObject obj){
+			if (!obj)
+				throw new System.ArgumentNullException("obj");
+			return 
+				obj.hasComponent<MeshRenderer>()
+				||obj.hasComponent<Light>()
+				||obj.hasComponent<SkinnedMeshRenderer>()
+				||obj.hasComponent<ReflectionProbe>()
+				||obj.hasComponent<Terrain>()
+				//||obj.hasComponent<AudioSource>()
+			;
+		}
+	
 		public static readonly int invalidId = -1;
 		
 		public delegate bool HierarchyWalker(GameObject curObj);

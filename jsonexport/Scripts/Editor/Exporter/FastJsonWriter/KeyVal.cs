@@ -72,6 +72,11 @@ namespace SceneExport{
 			writeRawValue(val);
 		}
 		
+		public void writeKeyVal(string key, Vector3 val, bool indent){
+			writeKey(key, indent);
+			writeRawValue(val);
+		}
+		
 		public void writeKeyVal(string key, Vector4 val){
 			writeKey(key);
 			writeRawValue(val);
