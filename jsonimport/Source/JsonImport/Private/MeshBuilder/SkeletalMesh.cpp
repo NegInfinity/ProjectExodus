@@ -7,9 +7,12 @@
 #include "JsonObjects/loggers.h"
 
 #include "Runtime/Engine/Classes/Animation/MorphTarget.h"
+#include "Runtime/Engine/Classes/Animation/Skeleton.h"
+#include "Runtime/Engine/Classes/Engine/PreviewMeshCollection.h"
 
 using namespace UnrealUtilities;
 using namespace JsonObjects;
+
 
 /*
 	Amusingly, the most useful file in figuring out how skeletal mesh configuraiton is supposed to work 
@@ -272,20 +275,16 @@ void MeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonMesh &jso
 			[&](auto arg){
 				arg->MergeAllBonesToBoneTree(skelMesh);
 			}, RF_Standalone|RF_Public
-		);//NewObject<USkeleton>(skelMesh->GetOuter(), *jsonSkel->name);
+		);
 		if (onNewSkeleton)
 			onNewSkeleton(*jsonSkel, skeleton);
 		skelMesh->Skeleton = skeleton;
-		/*
-		skeleton->MergeAllBonesToBoneTree(skelMesh);
-		skelMesh->Skeleton = skeleton;
-		FAssetRegistryModule::AssetCreated(skeleton);
-		skeleton->MarkPackageDirty();
-		*/
 	}
 	else{
 		skelMesh->Skeleton = foundSkeleton;
 	}
+
+	auto collectionSkel = skelMesh->Skeleton;
 
 	bool needMorphInvalidate = false;
 
@@ -340,10 +339,68 @@ void MeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonMesh &jso
 		skelMesh->InitMorphTargetsAndRebuildRenderData();
 	}
 
+	registerPreviewMesh(skelMesh->Skeleton, skelMesh, jsonMesh);
+
 	skelMesh->PostEditChange();
 	skelMesh->MarkPackageDirty();
 	skelMesh->PostLoad();
 }
+
+void MeshBuilder::registerPreviewMesh(USkeleton *skel, USkeletalMesh *mesh, const JsonMesh &jsonMesh){
+	check(skel);
+	check(mesh);
+
+	auto previewMesh = skel->GetPreviewMesh();
+	auto collectionAsset = skel->GetAdditionalPreviewSkeletalMeshes();
+
+	//That's our mesh.
+	if (previewMesh == mesh)
+		return;
+	
+	UE_LOG(JsonLog, Log, TEXT("Preview mesh: %x; collection: %x"), previewMesh, collectionAsset);
+	//collection needed;
+	if (!previewMesh){
+		skel->SetPreviewMesh(mesh);
+		UE_LOG(JsonLog, Log, TEXT("Preview mesh set"));
+		UE_LOG(JsonLog, Log, TEXT("Preview mesh: %x; collection: %x"), skel->GetPreviewMesh(), skel->GetAdditionalPreviewSkeletalMeshes());
+		skel->MarkPackageDirty();
+		skel->PostEditChange();
+		return;
+	}
+
+	auto collection = Cast<UPreviewMeshCollection>(collectionAsset);
+
+	if (!collection){
+		auto desiredPath = FPaths::GetPath(jsonMesh.path);
+		check(skel);
+		auto skelPath = skel->GetPathName();
+
+		auto collectionPath = skelPath + TEXT("_collection");
+		
+		collection = createAssetObject<UPreviewMeshCollection>(skelPath, &desiredPath, nullptr, nullptr, RF_Standalone|RF_Public);
+		UE_LOG(JsonLog, Log, TEXT("Collection created: %x"), collection);
+		check(collection);
+		skel->SetAdditionalPreviewSkeletalMeshes(collection);
+	}
+
+	for(const auto& cur: collection->SkeletalMeshes){
+		if (cur.SkeletalMesh == mesh){
+			UE_LOG(JsonLog, Log, TEXT("Skeletal mesh %d(%s) is already a part of collection"), jsonMesh.id, *jsonMesh.name);
+			return;
+		}
+	}
+
+	auto& newVal = collection->SkeletalMeshes.AddDefaulted_GetRef();
+	newVal.SkeletalMesh = mesh;
+
+	collection->MarkPackageDirty();
+	collection->PostEditChange();
+
+	//collection->Mesh
+
+
+}
+
 
 USkeleton* JsonImporter::getSkeletonObject(int32 id) const{
 	auto found = skeletonIdMap.Find(id);
