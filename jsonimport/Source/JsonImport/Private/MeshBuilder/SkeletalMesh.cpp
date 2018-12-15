@@ -135,6 +135,7 @@ void MeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonMesh &jso
 
 	const int jsonInfluencesPerVertex = 4;
 
+	TArray<FString> remapErrors;
 	//Yes, it is possible to get "skinned" mesh with no bones. It will have blendshapes only.
 	bool hasBones = jsonMesh.boneIndexes.Num() > 0;
 	for(int vertIndex = 0; vertIndex < jsonMesh.vertexCount; vertIndex++){
@@ -155,8 +156,12 @@ void MeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonMesh &jso
 				auto skelBoneIdx = meshBoneIdx;
 				auto foundIdx = meshToSkeletonBoneMap.Find(meshBoneIdx);
 				if (!foundIdx){
+					remapErrors.Add(
+						FString::Printf(TEXT("Could not remap mesh bone index %d in vertex influence, errors are possible"),
+							meshBoneIdx));
+					/*
 					UE_LOG(JsonLog, Error, TEXT("Could not remap mesh bone index %d in vertex influence, errors are possible"),
-						meshBoneIdx);
+						meshBoneIdx);*/
 				}
 				else{
 					skelBoneIdx = *foundIdx;
@@ -166,6 +171,13 @@ void MeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonMesh &jso
 				dstInfl.Weight = boneWeight;
 				dstInfl.VertIndex = vertIndex;
 			}
+		}
+	}
+
+	if (remapErrors.Num()){
+		FString combinedMessage = FString::Printf(TEXT("Remap errors found while processing skeletal mesh %d(\"%s\")\n"), jsonMesh.id, *jsonMesh.name);
+		for(const auto& cur: remapErrors){
+			combinedMessage += FString::Printf(TEXT("%s\n"), *cur);
 		}
 	}
 
