@@ -23,6 +23,7 @@
 #include "JsonObjects/JsonExternResourceList.h"
 #include "JsonObjects/JsonProject.h"
 #include "JsonObjects/JsonScene.h"
+#include "JsonObjects/JsonAnimation.h"
 
 namespace JsonObjects{
 	JsonObjPtr loadJsonFromFile(const FString &filename);

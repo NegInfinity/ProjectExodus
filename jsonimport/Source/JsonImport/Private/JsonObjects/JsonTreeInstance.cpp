@@ -2,6 +2,8 @@
 #include "JsonTreeInstance.h"
 #include "macros.h"
 
+//#define JSON_ENABLE_VALUE_LOGGING
+
 JsonTreeInstance::JsonTreeInstance(JsonObjPtr data){
 	load(data);
 }

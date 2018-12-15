@@ -2,6 +2,8 @@
 #include "JsonTextureParams.h"
 #include "macros.h"
 
+#define JSON_ENABLE_VALUE_LOGGING
+
 void JsonTextureParams::load(JsonObjPtr data){
 	JSON_GET_VAR(data, name);
 	JSON_GET_VAR(data, imageHash);

@@ -122,6 +122,7 @@ FString MaterialBuilder::getBaseMaterialPath(const JsonMaterial &jsonMat) const{
 	FString defaultMatPath = TEXT("/JsonImport/exodusSolidMaterial");
 	FString transparentMatPath = TEXT("/JsonImport/exodusBlendMaterial");
 	FString maskedMatPath = TEXT("/JsonImport/exodusMaskMaterial");
+	UE_LOG(JsonLog, Log, TEXT("Selecting default mat path for: %s(%s)"), *jsonMat.name, *jsonMat.path);
 
 	auto baseMaterialPath = defaultMatPath;
 	if (jsonMat.isTransparentQueue()){
@@ -130,6 +131,7 @@ FString MaterialBuilder::getBaseMaterialPath(const JsonMaterial &jsonMat) const{
 	if (jsonMat.isAlphaTestQueue()){
 		baseMaterialPath = maskedMatPath;
 	}
+	UE_LOG(JsonLog, Log, TEXT("Path selected: %s"), *baseMaterialPath);
 	return baseMaterialPath;
 }
 

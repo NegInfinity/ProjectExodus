@@ -40,7 +40,7 @@ namespace SceneExport{
 			writer.beginRawObject();
 			writer.writeKeyVal("name", name);
 			writer.writeKeyVal("path", path);
-			//writer.writeKeyVal("id", id);
+			writer.writeKeyVal("id", id);
 			
 			writer.writeKeyVal("parameters", parameters);
 			//writer.writeKeyVal("animations", animations);

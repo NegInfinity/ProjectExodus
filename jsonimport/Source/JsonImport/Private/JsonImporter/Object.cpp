@@ -17,6 +17,7 @@
 
 #include "Engine/StaticMeshActor.h"
 #include "Engine/Classes/Animation/SkeletalMeshActor.h"
+#include "Engine/Classes/Components/PoseableMeshComponent.h"
 #include "Engine/Classes/Components/StaticMeshComponent.h"
 #include "LevelEditorViewport.h"
 #include "Factories/TextureFactory.h"
@@ -60,7 +61,7 @@ void setActorHierarchy(AActor *actor, AActor *parentActor, const FString& folder
 }
 
 void JsonImporter::importObject(const JsonGameObject &jsonGameObj , int32 objId, ImportWorkData &workData){
-	UE_LOG(JsonLog, Log, TEXT("Importing object %d"), objId);
+	//UE_LOG(JsonLog, Log, TEXT("Importing object %d"), objId);
 
 	FString folderPath;
 
@@ -78,7 +79,7 @@ void JsonImporter::importObject(const JsonGameObject &jsonGameObj , int32 objId,
 		}
 	}
 
-	UE_LOG(JsonLog, Log, TEXT("Folder path for object: %d: %s"), jsonGameObj.id, *folderPath);
+	//UE_LOG(JsonLog, Log, TEXT("Folder path for object: %d: %s"), jsonGameObj.id, *folderPath);
 	workData.objectFolderPaths.Add(jsonGameObj.id, childFolderPath);
 
 
@@ -160,7 +161,10 @@ void JsonImporter::processSkinRenderer(ImportWorkData &workData, const JsonGameO
 
 	meshComponent->SetSkeletalMesh(skelMesh, true);
 
-
+	auto poseableComp = NewObject<UPoseableMeshComponent>();
+	poseableComp->AttachToComponent(meshActor->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+	poseableComp->SetSkeletalMesh(skelMesh);
+	poseableComp->CopyPoseFromSkeletalComponent(meshActor->GetSkeletalMeshComponent());
 
 	/*
 	auto *meshObject = LoadObject<UStaticMesh>(0, *meshPath);

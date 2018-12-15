@@ -9,6 +9,7 @@ namespace SceneExport{
 	public class JsonHumanBone: IFastJsonValue{
 		public string boneName;
 		public string objectName;
+		public string objectPath;
 		//public int objectId = -1;
 		public int objInstanceId = -1;
 		public int transfInstanceId = -1;
@@ -17,6 +18,7 @@ namespace SceneExport{
 			writer.beginRawObject(false);
 			writer.writeKeyVal("boneName", boneName, false);
 			writer.writeKeyVal("objectName", objectName, false);
+			writer.writeKeyVal("objectPath", objectPath, false);
 			//writer.writeKeyVal("objectId", objectId, false);				
 			writer.writeKeyVal("objInstanceId", objInstanceId, false);
 			writer.writeKeyVal("transfInstanceId", transfInstanceId, false);
@@ -37,6 +39,7 @@ namespace SceneExport{
 			transfInstanceId = boneObjTransform.GetInstanceID();
 			objInstanceId = boneObjTransform.gameObject.GetInstanceID();
 			objectName = boneObjTransform.gameObject.name;
+			objectPath = boneObjTransform.getScenePath(animator.transform);
 		}
 	}
 		

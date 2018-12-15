@@ -7,6 +7,7 @@ namespace SceneExport{
 	[System.Serializable]
 	public class JsonGameObject: IFastJsonValue{
 		public string name;
+		public string scenePath;
 		public int instanceId = -1;
 		public int id = -1;
 		public Vector3 localPosition = Vector3.zero;
@@ -58,6 +59,9 @@ namespace SceneExport{
 			writer.writeKeyVal("name", name);
 			writer.writeKeyVal("instanceId", instanceId);
 			writer.writeKeyVal("id", id);
+			
+			writer.writeKeyVal("scenePath", scenePath);
+			
 			writer.writeKeyVal("localPosition", localPosition);
 			writer.writeKeyVal("localRotation", localRotation);
 			writer.writeKeyVal("localScale", localScale);
@@ -92,18 +96,19 @@ namespace SceneExport{
 			writer.writeKeyVal("prefabType", prefabType);
 
 			//TODO remove empty arrays				
-			writer.writeKeyVal("renderer", renderer);
-			writer.writeKeyVal("light", light);
-			writer.writeKeyVal("reflectionProbes", reflectionProbes);
-			writer.writeKeyVal("skinRenderers", skinRenderers);
-			writer.writeKeyVal("animators", animators);
-			writer.writeKeyVal("terrains", terrains);
+			writer.writeKeyVal("renderer", renderer, true);
+			writer.writeKeyVal("light", light, true);
+			writer.writeKeyVal("reflectionProbes", reflectionProbes, true);
+			writer.writeKeyVal("skinRenderers", skinRenderers, true);
+			writer.writeKeyVal("animators", animators, true);
+			writer.writeKeyVal("terrains", terrains, true);
 			
 			writer.endObject();
 		}
 			
 		public JsonGameObject(GameObject obj, GameObjectMapper objMap, ResourceMapper resMap){
 			name = obj.name;
+			scenePath = obj.getScenePath();
 			instanceId = obj.GetInstanceID();
 			id = objMap.getId(obj);
 			localPosition = obj.transform.localPosition;

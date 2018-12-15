@@ -4,6 +4,62 @@ using System.Linq;
 
 namespace SceneExport{
 	static class Extensions{
+		public static void forEach<Source>(this IEnumerable<Source> arg, System.Action<Source> callback){
+			if (arg == null)
+				throw new System.ArgumentNullException("arg");
+			if (callback == null)
+				throw new System.ArgumentNullException("callback");
+			foreach(var cur in arg){
+				callback(cur);
+			}
+		}
+		
+		public static void forEach<Source>(this IEnumerable<Source> arg, System.Action<Source, int> callback){
+			if (arg == null)
+				throw new System.ArgumentNullException("arg");
+			if (callback == null)
+				throw new System.ArgumentNullException("callback");
+			int index = 0;
+			foreach(var cur in arg){
+				callback(cur, index);
+				index++;
+			}
+		}
+	
+		/*
+		Returns "scenePath". Scene path is object names, divided by slash. There's no root slash.
+		Supposed to be compatible with unity property and bone naming scheme.
+		*/
+		public static string getScenePath(this Transform obj){
+			if (!obj)
+				return "";
+			if (!obj.parent)
+				return obj.name;
+			return obj.parent.getScenePath() + "/" + obj.name;
+		}
+	
+		public static string getScenePath(this GameObject gameObj){
+			if (!gameObj)
+				return "";
+			return gameObj.transform.getScenePath();
+		}
+		
+		public static string getScenePath(this Transform obj, Transform relativeTo = null){
+			if (!obj || (obj == relativeTo))
+				return "";
+			if (!obj.parent || (obj.parent == relativeTo))
+				return obj.name;
+			return obj.parent.getScenePath(relativeTo) + "/" + obj.name;				
+		}
+		
+		public static string getScenePath(this GameObject gameObj, GameObject relativeTo = null){
+			if (!gameObj)
+				return "";
+			if (!relativeTo)
+				return gameObj.getScenePath();
+			return gameObj.transform.getScenePath(relativeTo.transform);
+		}
+	
 		public static bool hasComponent<C>(this GameObject gameObj) where C: Component{
 			if (!gameObj)
 				throw new System.ArgumentNullException("gameObj");

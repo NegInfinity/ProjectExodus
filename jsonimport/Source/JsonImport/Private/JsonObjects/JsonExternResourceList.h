@@ -12,6 +12,8 @@ public:
 	StringArray terrains;
 	StringArray cubemaps;
 	StringArray audioClips;
+	StringArray animationClips;
+	StringArray animatorControllers;
 	StringArray resources;
 
 	void load(JsonObjPtr data);

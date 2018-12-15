@@ -192,6 +192,9 @@ void JsonImporter::importResources(const JsonExternResourceList &externRes){
 	loadMeshes(externRes.meshes);
 	importPrefabs(externRes.prefabs);
 	loadTerrains(externRes.terrains);
+
+	loadAnimClipsDebug(externRes.animationClips);
+	loadAnimatorsDebug(externRes.animatorControllers); 
 }
 
 JsonObjPtr JsonImporter::loadExternResourceFromFile(const FString &filename) const{
@@ -241,3 +244,4 @@ void JsonImporter::registerMaterialInstancePath(int32 id, FString path){
 UMaterialInterface* JsonImporter::loadMaterialInterface(int32 id) const{
 	return loadMaterialInstance(id);
 }
+

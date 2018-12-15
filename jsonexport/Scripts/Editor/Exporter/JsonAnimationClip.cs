@@ -16,6 +16,7 @@ namespace SceneExport{
 		public void writeRawJsonValue(FastJsonWriter writer){
 			writer.beginRawObject();
 			writer.writeKeyVal("name", name);
+			writer.writeKeyVal("id", id);
 			
 			writer.writeKeyVal("frameRate", clip.frameRate);
 			writer.writeKeyVal("empty", clip.empty);
@@ -52,7 +53,7 @@ namespace SceneExport{
 		public JsonAnimationClip(){
 		}
 		
-		public JsonAnimationClip(AnimationClip clip_, Animator animator_, int id_, ResourceMapper resMap){
+		public JsonAnimationClip(AnimationClip clip_, Animator animator_, int id_, ResourceMapper resMap, AnimationSampler animSampler = null){
 			clip = clip_;
 			id = id_;
 			animator = animator_;
@@ -64,10 +65,10 @@ namespace SceneExport{
 				throw new System.ArgumentNullException("resMap");
 				
 			name = clip.name;
-			sampleMatrixCurves(resMap);
+			sampleMatrixCurves(resMap, animSampler);
 		}
 		
-		void sampleMatrixCurves(ResourceMapper resMap){
+		void sampleMatrixCurves(ResourceMapper resMap, AnimationSampler providedSampler = null){
 			var skelId = resMap.registerSkeleton(animator.transform, true);
 			if (!ExportUtility.isValidId(skelId)){
 				throw new System.ArgumentException(
@@ -76,10 +77,22 @@ namespace SceneExport{
 			}
 			var skeleton = resMap.getSkeletonById(skelId);
 			
+			var prefabAnim = Utility.getSrcPrefabAssetObject(animator, false);
+
+			if (providedSampler != null){
+				matrixCurves = providedSampler.sampleClip(clip);
+			}
+			else{
+				using(var sampler = new AnimationSampler(prefabAnim, skeleton)){
+					matrixCurves = sampler.sampleClip(clip);
+				}
+			}
+			
+			matrixCurves.forEach((obj) => obj.simpleCompress());
+			
+			#if false
 			//Black magic: on!
 			//Spawning a duplicate
-			
-			var prefabAnim = Utility.getSrcPrefabAssetObject(animator, false);
 			
 			var spawnedAnimator = GameObject.Instantiate(prefabAnim);
 			if (!spawnedAnimator){
@@ -140,6 +153,7 @@ namespace SceneExport{
 				GameObject.DestroyImmediate(spawnedAnimator.gameObject);
 			if (newController)
 				AssetDatabase.DeleteAsset(animControllerAssetPath);
+			#endif
 		}
 	}
 }

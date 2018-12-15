@@ -31,6 +31,13 @@ namespace SceneExport{
 			writer.endObject();
 		}
 		
+		/*
+			Simple compression routine for removal of duplicate key.
+			For Chain of keys A-B-C will remove B, if maximum difference 
+			between A and B AND maximum difference between B and C is greater than epsilon.
+			
+			Compares both global and local transform, so might still fail to reduce many identical samples.
+		*/
 		public void simpleCompress(float matrixEpsilon = 0.00001f){
 			var newKeys = keys.Where(
 				(key, idx) => 
@@ -40,6 +47,14 @@ namespace SceneExport{
 					|| (keys[idx + 1].getMaxTransformDifference(key) >= matrixEpsilon)
 			).ToList();
 			keys = newKeys;
+		}
+		
+		public JsonAnimationMatrixCurve(){
+		}
+		
+		public JsonAnimationMatrixCurve(string name_, string path_){
+			objectName = name_;
+			objectPath = path_;
 		}
 		
 		/*

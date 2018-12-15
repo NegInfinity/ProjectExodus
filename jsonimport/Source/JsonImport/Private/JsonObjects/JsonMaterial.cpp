@@ -3,6 +3,8 @@
 #include "macros.h"
 #include "utilities.h"
 
+//#define JSON_ENABLE_VALUE_LOGGING
+
 using namespace JsonObjects;
 
 void JsonMaterial::load(JsonObjPtr data){

@@ -9,8 +9,12 @@ namespace JsonObjects{
 		return result;
 	}
 
-	template<typename T> void getJsonValArray(JsonObjPtr jsonData, TArray<T>& result, const char* name, std::function<T(JsonValPtr, int)> converter){
+	template<typename T> void getJsonValArray(JsonObjPtr jsonData, TArray<T>& result, const char* name, std::function<T(JsonValPtr, int)> converter, bool optional = false){
 		result.Empty();
+		if (optional){	
+			if (!jsonData->HasField(name))
+				return;
+		}
 		if (!jsonData->HasField(name)){
 			return;
 		}
@@ -49,6 +53,7 @@ namespace JsonObjects{
 	}
 
 	template<typename T> void getJsonObjArray(JsonObjPtr jsonData, TArray<T>& result, const char* name, bool optional = false){
+		result.Empty();
 		if (optional){
 			if (!jsonData->HasField(name))
 				return;

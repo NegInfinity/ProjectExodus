@@ -2,6 +2,8 @@
 #include "JsonSpriteMetaData.h"
 #include "macros.h"
 
+//#define JSON_ENABLE_VALUE_LOGGING
+
 using namespace JsonObjects;
 
 void JsonSpriteMetaData::load(JsonObjPtr jsonData){

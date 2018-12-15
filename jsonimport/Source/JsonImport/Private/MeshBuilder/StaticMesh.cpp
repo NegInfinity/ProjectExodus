@@ -190,7 +190,12 @@ void MeshBuilder::setupStaticMesh(UStaticMesh *mesh, const JsonMesh &jsonMesh, s
 
 	TArray<FText> buildErrors;
 	mesh->Build(false, &buildErrors);
-	for(FText& err: buildErrors){
-		UE_LOG(JsonLog, Error, TEXT("MeshBuildError: %s"), *(err.ToString()));
-	}	
+	if (buildErrors.Num() > 0){
+		FString errMsg;
+		for(FText& err: buildErrors){
+			errMsg += FString::Printf(TEXT("MeshBuildError: %s"), *(err.ToString()));
+			//UE_LOG(JsonLog, Error, TEXT("MeshBuildError: %s"), *(err.ToString()));
+		}
+		UE_LOG(JsonLog, Warning, TEXT("Build errors while loading mesh %d(\"%s\"):\n%s"), jsonMesh.id, *jsonMesh.name, *errMsg);
+	}
 }

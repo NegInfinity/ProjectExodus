@@ -715,8 +715,9 @@ namespace SceneExport{
 			result.prefabs = saveResourcesToPath(baseDir, prefabList, 
 				(objData, id) => objData, (obj) => obj.name, "prefab", showGui);
 				
-			/*result.animatorControllers = saveResourcesToPath(baseDir, animatorControllers.objectList,
-				(objData, id) => new JsonAnimatorController(objData, id, this), (obj) => obj.name, "animatorController", showGui);*/
+			result.animatorControllers = saveResourcesToPath(baseDir, animatorControllers.objectList,
+				(objData, id) => new JsonAnimatorController(objData.controller, objData.animator, id, this), 
+					(obj) => obj.name, "animatorController", showGui);
 				
 			result.animationClips = saveResourcesToPath(baseDir, animationClips.objectList,
 				(objData, id) => new JsonAnimationClip(objData.animClip, objData.animator, id, this), 

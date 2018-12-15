@@ -2,6 +2,8 @@
 #include "JsonTextureImportParams.h"
 #include "macros.h"
 
+#define JSON_ENABLE_VALUE_LOGGING
+
 using namespace JsonObjects;
 
 void JsonTextureImportParams::load(JsonObjPtr data){

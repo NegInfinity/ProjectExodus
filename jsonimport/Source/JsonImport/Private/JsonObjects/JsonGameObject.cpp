@@ -9,6 +9,9 @@ JsonGameObject::JsonGameObject(JsonObjPtr jsonData){
 void JsonGameObject::load(JsonObjPtr jsonData){
 	JSON_GET_PARAM(jsonData, name, getString);
 	JSON_GET_PARAM(jsonData, id, getInt);
+
+	JSON_GET_PARAM(jsonData, scenePath, getString);
+
 	JSON_GET_PARAM(jsonData, instanceId, getInt);
 	JSON_GET_PARAM(jsonData, localPosition, getVector);
 	JSON_GET_PARAM(jsonData, localRotation, getQuat);
@@ -16,6 +19,9 @@ void JsonGameObject::load(JsonObjPtr jsonData){
 	JSON_GET_PARAM(jsonData, worldMatrix, getMatrix);
 	JSON_GET_PARAM(jsonData, localMatrix, getMatrix);
 	JSON_GET_PARAM2(jsonData, parentId, parent, getInt);
+
+	JSON_GET_PARAM2(jsonData, parentName, parentName, getString);
+
 	JSON_GET_PARAM2(jsonData, meshId, mesh, getInt);
 
 	JSON_GET_PARAM(jsonData, activeSelf, getBool);
@@ -41,11 +47,11 @@ void JsonGameObject::load(JsonObjPtr jsonData){
 	lights.Empty();
 	probes.Empty();
 
-	getJsonObjArray(jsonData, lights, "light");
-	getJsonObjArray(jsonData, renderers, "renderer");
-	getJsonObjArray(jsonData, probes, "reflectionProbes");
-	getJsonObjArray(jsonData, terrains, "terrains");
-	getJsonObjArray(jsonData, skinRenderers, "skinRenderers");
+	getJsonObjArray(jsonData, lights, "light", true);
+	getJsonObjArray(jsonData, renderers, "renderer", true);
+	getJsonObjArray(jsonData, probes, "reflectionProbes", true);
+	getJsonObjArray(jsonData, terrains, "terrains", true);
+	getJsonObjArray(jsonData, skinRenderers, "skinRenderers", true);
 
 	if (nameClash && (uniqueName.Len() > 0)){
 		UE_LOG(JsonLog, Warning, TEXT("Name clash detected on object %d: %s. Renaming to %s"), 

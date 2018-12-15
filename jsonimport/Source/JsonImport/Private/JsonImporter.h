@@ -56,6 +56,16 @@ protected:
 	TMap<JsonId, JsonSkeleton> jsonSkeletons;
 	IdNameMap skeletonIdMap;
 
+	//TMap<JsonId, Json
+	//IdNameMap animatorControllerIdMap;
+	//IdNameMap animationClipIdMap;
+
+	/*
+	For now let's just load them all
+	*/
+	TMap<JsonId, JsonAnimationClip> animationClipMap;
+	TMap<JsonId, JsonAnimatorController> animatorControllerMap;
+
 	TMap<JsonId, JsonTerrainData> terrainDataMap;
 
 	//This data should be reset between scenes. Otherwise thingsb ecome bad.
@@ -93,14 +103,18 @@ protected:
 	void importTerrainData(JsonObjPtr jsonData, JsonId terrainId, const FString &rootPath);
 	void loadTerrains(const StringArray &terrains);
 
+	/*
 	ULandscapeGrassType* createGrassType(ImportWorkData &workData, const JsonGameObject &jsonGameObj, const JsonTerrainData &terrainData, 
-		int layerIndex, const FString &terrainDataPth);
+		int layerIndex, const FString &terrainDataPth);*/
 
 	void registerMaterialInstancePath(int32 id, FString path);
 	void registerMasterMaterialPath(int32 id, FString path);
 
 	void importStaticMesh(const JsonMesh &jsonMesh, int32 meshId);
 	void importSkeletalMesh(const JsonMesh &jsonMesh, int32 meshId);
+
+	void loadAnimatorsDebug(const StringArray &animatorPaths);
+	void loadAnimClipsDebug(const StringArray &animClipPaths);
 
 	//UWorld* importScene(const JsonScene &scene, bool createWorld) const;
 public:
@@ -109,6 +123,9 @@ public:
 
 	JsonMesh loadJsonMesh(int32 id) const;
 	const JsonMaterial* getJsonMaterial(int32 id) const;
+
+	JsonAnimationClip loadAnimationClip(JsonId id) const;
+	JsonAnimatorController loadAnimationController(JsonId id) const;
 
 	void registerEmissiveMaterial(int32 id);
 	const FString& getAssetRootPath() const{

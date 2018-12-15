@@ -21,6 +21,7 @@ namespace SceneExport{
 			public int id = -1;
 			public int parentId = -1;
 			public string name = "";
+			public string path = "";
 			
 		#if JSON_SKELETON_EXTRA_DATA
 			public Vector3 localPosition = Vector3.zero;
@@ -37,6 +38,7 @@ namespace SceneExport{
 			public Matrix4x4 rootRelative = Matrix4x4.identity;
 			public override void writeJsonObjectFields(FastJsonWriter writer){
 				writer.writeKeyVal("name", name);
+				writer.writeKeyVal("path", path);
 				writer.writeKeyVal("id", id);
 				writer.writeKeyVal("parentId", parentId);
 				
@@ -54,8 +56,9 @@ namespace SceneExport{
 				writer.writeKeyVal("rootRelative", rootRelative);
 			}
 
-			public Bone(string name_, int id_, int parentId_, Matrix4x4 world_, Matrix4x4 local_, Matrix4x4 rootRelative_){
+			public Bone(string name_, string path_, int id_, int parentId_, Matrix4x4 world_, Matrix4x4 local_, Matrix4x4 rootRelative_){
 				name = name_;
+				path = path_;
 				id = id_;
 				parentId = parentId_;
 								
@@ -111,7 +114,9 @@ namespace SceneExport{
 					localMatrix = invParent * worldMatrix;
 				}
 				
-				var newJsonBone = new Bone(curBone.name, boneIndex, parentId, worldMatrix, localMatrix, rootRelativeMatrix);
+				var newJsonBone = new Bone(curBone.name, 
+					curBone.getScenePath(rootTransform),
+					boneIndex, parentId, worldMatrix, localMatrix, rootRelativeMatrix);
 				
 			#if JSON_SKELETON_EXTRA_DATA
 				newJsonBone.position = curBone.position;

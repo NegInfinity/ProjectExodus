@@ -3,6 +3,8 @@
 #include "macros.h"
 #include "loggers.h"
 
+//#define JSON_ENABLE_VALUE_LOGGING
+
 using namespace JsonObjects;
 
 void JsonSubMesh::load(JsonObjPtr data){

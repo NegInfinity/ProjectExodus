@@ -148,6 +148,43 @@ namespace SceneExport{
 			return null;
 		}
 		
+		public static Transform findChildByPath(this Transform root, string path, Transform relativeTo = null){
+			if (!root)
+				throw new System.ArgumentNullException("root");
+				
+			if (root.getScenePath(relativeTo) == path)
+				return root;
+			foreach(Transform child in root){
+				if (!child)
+					continue;
+				var childResult = findChildByPath(child, path, relativeTo);
+				if (childResult)
+					return childResult;					
+			}
+				
+			return null;
+		}
+		
+		static public List<Transform> findTransformsByPath<Container>(Container names, Transform root, Transform relativeTo = null) where Container: ICollection<string>{
+			/*
+			I can collapse it all into shorter linq queries, but...
+			*/
+			if (!root)
+				throw new System.ArgumentNullException("root");
+			var result = new List<Transform>();
+			foreach(var curName in names){
+				var curChild = findChildByPath(root, curName, relativeTo);
+				if (!curChild)
+					Debug.LogWarningFormat(
+						string.Format("Could not locate child \"{0}\" by name in transform root \"{1}\"", curName, root)
+					);
+						
+				result.Add(curChild);
+			}
+			
+			return result;
+		}
+		
 		static public List<Transform> findNamedTransforms<Container>(Container names, Transform root) where Container: ICollection<string>{
 			if (!root)
 				throw new System.ArgumentNullException("root");

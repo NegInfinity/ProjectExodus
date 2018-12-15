@@ -2,11 +2,13 @@
 #include "JsonCubemap.h"
 #include "macros.h"
 
+//#define JSON_ENABLE_VALUE_LOGGING
+
 using namespace JsonObjects;
 
 void JsonCubemap::load(JsonObjPtr data){
-	JSON_GET_VAR(data, id);
-	JSON_GET_VAR(data, name);
+	JSON_GET_VAR_LOG(data, id);
+	JSON_GET_VAR_LOG(data, name);
 	JSON_GET_VAR(data, exportPath);
 	JSON_GET_VAR(data, assetPath);
 	JSON_GET_VAR(data, rawPath);

@@ -2,10 +2,12 @@
 #include "JsonTexture.h"
 #include "macros.h"
 
+#define JSON_ENABLE_VALUE_LOGGING
+
 using namespace JsonObjects;
 
 void JsonTexture::load(JsonObjPtr data){
-	JSON_GET_VAR(data, name)
+	JSON_GET_VAR(data, name);
 	JSON_GET_VAR(data, id);
 	JSON_GET_VAR(data, path);
 	JSON_GET_VAR(data, filterMode);

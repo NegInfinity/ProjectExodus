@@ -79,7 +79,7 @@ void MeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonMesh &jso
 		UE_LOG(JsonLog, Log, TEXT("Reconstructing skeleton: %s"), *jsonSkel->name);
 
 		for(int boneIndex = 0; boneIndex < jsonSkel->bones.Num(); boneIndex++){
-			UE_LOG(JsonLog, Log, TEXT("Processing bone %d out of %d"), boneIndex, jsonSkel->bones.Num());
+			//UE_LOG(JsonLog, Log, TEXT("Processing bone %d out of %d"), boneIndex, jsonSkel->bones.Num());
 			auto &unityWorldMat = unityBoneWorldTransforms[boneIndex];
 			auto &unrealWorldMat = unrealBoneWorldTransforms[boneIndex];
 			
@@ -87,11 +87,13 @@ void MeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonMesh &jso
 
 			const auto &srcBone = jsonSkel->bones[boneIndex];
 
+			/*
 			logValue(TEXT("srcBone.id: "), srcBone.id);
 			logValue(TEXT("srcBone.bane: "), srcBone.name);
 			logValue(TEXT("srcBone.parentId: "), srcBone.parentId);
 			logValue(TEXT("localMatrix: "), srcBone.local);
 			logValue(TEXT("worldMatrix: "), srcBone.world);
+			*/
 
 			auto parentBoneIndex = srcBone.parentId >= 0 ? srcBone.parentId: INDEX_NONE;
 			auto boneInfo = FMeshBoneInfo(FName(*srcBone.name), srcBone.name, parentBoneIndex);
@@ -99,19 +101,19 @@ void MeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonMesh &jso
 			unityWorldMat = srcBone.world;
 			unrealWorldMat = unityWorldToUe(unityWorldMat);
 
-			logValue(TEXT("unityWorldMat: "), unityWorldMat);
-			logValue(TEXT("unrealWorldMat: "), unrealWorldMat);
+			//logValue(TEXT("unityWorldMat: "), unityWorldMat);
+			//logValue(TEXT("unrealWorldMat: "), unrealWorldMat);
 
 			auto unrealLocalMat = unrealWorldMat;
 
 			if (parentBoneIndex >= 0){
 				auto parentWorld = unrealBoneWorldTransforms[parentBoneIndex];
-				logValue(TEXT("parent: "), parentWorld);
+				//logValue(TEXT("parent: "), parentWorld);
 				auto invParent = parentWorld.Inverse();
-				logValue(TEXT("invParent: "), invParent);
+				//logValue(TEXT("invParent: "), invParent);
 				unrealLocalMat = unrealLocalMat * invParent;
 			}
-			logValue(TEXT("unrealLocalMat: "), unrealLocalMat);
+			//logValue(TEXT("unrealLocalMat: "), unrealLocalMat);
 
 			FTransform boneTransform;
 			//auto boneTransform = unityWorldToUe(srcBone.pose);
@@ -132,33 +134,38 @@ void MeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonMesh &jso
 	TArray<FName> buildWarnNames;
 
 	const int jsonInfluencesPerVertex = 4;
+
+	//Yes, it is possible to get "skinned" mesh with no bones. It will have blendshapes only.
+	bool hasBones = jsonMesh.boneIndexes.Num() > 0;
 	for(int vertIndex = 0; vertIndex < jsonMesh.vertexCount; vertIndex++){
 		auto srcVert = getIdxVector3(jsonMesh.verts, vertIndex);
 		meshPoints.Add(unityPosToUe(srcVert));
 		pointToOriginalMap.Add(vertIndex);
 
-		for(int inflIndex = 0; inflIndex < jsonInfluencesPerVertex; inflIndex++){
-			auto dataOffset = inflIndex + vertIndex * jsonInfluencesPerVertex;
-			auto meshBoneIdx = jsonMesh.boneIndexes[dataOffset]; 
-			auto boneWeight = jsonMesh.boneWeights[dataOffset];
-			#if 0
-			/*if (boneWeight == 0.0f)
-				continue;*/
-			#endif
-			auto &dstInfl = meshInfluences.AddDefaulted_GetRef();
-			auto skelBoneIdx = meshBoneIdx;
-			auto foundIdx = meshToSkeletonBoneMap.Find(meshBoneIdx);
-			if (!foundIdx){
-				UE_LOG(JsonLog, Error, TEXT("Could not remap mesh bone index %d in vertex influence, errors are possible"),
-					meshBoneIdx);
-			}
-			else{
-				skelBoneIdx = *foundIdx;
-			}
+		if (hasBones){
+			for(int inflIndex = 0; inflIndex < jsonInfluencesPerVertex; inflIndex++){
+				auto dataOffset = inflIndex + vertIndex * jsonInfluencesPerVertex;
+				auto meshBoneIdx = jsonMesh.boneIndexes[dataOffset]; 
+				auto boneWeight = jsonMesh.boneWeights[dataOffset];
+				#if 0
+				/*if (boneWeight == 0.0f)
+					continue;*/
+				#endif
+				auto &dstInfl = meshInfluences.AddDefaulted_GetRef();
+				auto skelBoneIdx = meshBoneIdx;
+				auto foundIdx = meshToSkeletonBoneMap.Find(meshBoneIdx);
+				if (!foundIdx){
+					UE_LOG(JsonLog, Error, TEXT("Could not remap mesh bone index %d in vertex influence, errors are possible"),
+						meshBoneIdx);
+				}
+				else{
+					skelBoneIdx = *foundIdx;
+				}
 
-			dstInfl.BoneIndex = skelBoneIdx;//meshBoneIdx;
-			dstInfl.Weight = boneWeight;
-			dstInfl.VertIndex = vertIndex;
+				dstInfl.BoneIndex = skelBoneIdx;//meshBoneIdx;
+				dstInfl.Weight = boneWeight;
+				dstInfl.VertIndex = vertIndex;
+			}
 		}
 	}
 
@@ -221,12 +228,26 @@ void MeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonMesh &jso
 		meshInfluences, meshWedges, meshFaces, meshPoints, 
 		pointToOriginalMap, buildOptions, &buildWarnMessages, &buildWarnNames);
 
+	if (buildWarnMessages.Num() || buildWarnNames.Num()){
+		FString msg;
+		msg += TEXT("Warnings:\n");
+		for(auto warn: buildWarnMessages){
+			msg += FString::Printf(TEXT("%s\n"), *warn.ToString());
+		}
+		msg += TEXT("Warning names:\n");
+		for(const auto& warn: buildWarnNames){
+			msg += FString::Printf(TEXT("%s\n"), *warn.ToString());
+		}
+		UE_LOG(JsonLog, Warning, TEXT("Warning while building skeletal mesh %d(\"%s\"):%s"), jsonMesh.id, *jsonMesh.name, *msg);
+	}
+	/*
 	for(auto warn: buildWarnMessages){
 		UE_LOG(JsonLog, Warning, TEXT("Warning message: %s"), *warn.ToString());
 	}
 	for(const auto& warn: buildWarnNames){
 		UE_LOG(JsonLog, Warning, TEXT("Warning name: %s"), *warn.ToString());
 	}
+	*/
 
 	auto newSkelName = FString::Printf(TEXT("%s_%d"), *jsonSkel->name, jsonSkel->id);
 
@@ -276,7 +297,7 @@ void MeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonMesh &jso
 
 			FString modelData;
 
-			UE_LOG(JsonLog, Log, TEXT("Dumping model: %s"), *modelData);
+			//UE_LOG(JsonLog, Log, TEXT("Dumping model: %s"), *modelData);
 
 			for(int meshVertIdx = 0; meshVertIdx < lodModel.MeshToImportVertexMap.Num(); meshVertIdx++){
 				auto origVertIdx = lodModel.MeshToImportVertexMap[meshVertIdx];

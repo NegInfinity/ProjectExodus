@@ -11,12 +11,16 @@ public:
 	FString name;
 	int32 id;
 	int32 instanceId;
+
+	FString scenePath;
+
 	FVector localPosition;
 	FQuat localRotation;
 	FVector localScale;
 	FMatrix worldMatrix = FMatrix::Identity;
 	FMatrix localMatrix = FMatrix::Identity;
 	int32 parentId;
+	FString parentName;
 	int32 meshId;
 
 	bool activeSelf = true;

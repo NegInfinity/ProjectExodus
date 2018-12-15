@@ -2,6 +2,8 @@
 #include "JsonSplatPrototype.h"
 #include "macros.h"
 
+//#define JSON_ENABLE_VALUE_LOGGING
+
 void JsonSplatPrototype::load(JsonObjPtr data){
 	JSON_GET_VAR(data, textureId);
 	JSON_GET_VAR(data, normalMapId);

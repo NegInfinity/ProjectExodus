@@ -2,6 +2,8 @@
 #include "JsonTreePrototype.h"
 #include "macros.h"
 
+//#define JSON_ENABLE_VALUE_LOGGING
+
 using namespace JsonObjects;
 
 JsonTreePrototype::JsonTreePrototype(JsonObjPtr data){
