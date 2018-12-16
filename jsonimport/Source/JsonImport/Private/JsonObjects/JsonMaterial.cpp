@@ -9,10 +9,12 @@ using namespace JsonObjects;
 
 void JsonMaterial::load(JsonObjPtr data){
 	JSON_GET_VAR(data, id);
-	JSON_GET_VAR(data, renderQueue);
+	JSON_GET_VAR_LOG(data, renderQueue);
 	JSON_GET_VAR(data, name);
 	JSON_GET_VAR(data, path);
 	JSON_GET_VAR(data, shader);
+
+	JSON_GET_VAR_LOG(data, blendMode);
 
 	JSON_GET_VAR(data, supportedShader);
 
@@ -58,6 +60,7 @@ void JsonMaterial::load(JsonObjPtr data){
 
 	JSON_GET_VAR(data, alphaCutoff);
 	JSON_GET_VAR(data, smoothness);
+	JSON_GET_VAR(data, smoothnessScale);
 	JSON_GET_VAR(data, specularColor);
 	JSON_GET_VAR(data, metallic);
 	JSON_GET_VAR(data, bumpScale);
@@ -94,14 +97,53 @@ bool JsonMaterial::usesDetailTextureTransform() const{
 }
 
 bool JsonMaterial::isTransparentQueue() const{
-	return (renderQueue >= 3000) && (renderQueue < 4000);
+	//return (renderQueue >= 3000) && (renderQueue < 4000);
+	return (renderQueue >= Queues::Transparent) && (renderQueue < Queues::Overlay);
 }
 
 bool JsonMaterial::isAlphaTestQueue() const{
-	return (renderQueue >= 2450) && (renderQueue < 3000);
+	return (renderQueue >= Queues::AlphaTest) && (renderQueue < Queues::Transparent);
+	//return (renderQueue >= 2450) && (renderQueue < 3000);
 }
 
 bool JsonMaterial::isGeomQueue() const{
 	return (!isTransparentQueue() && !isAlphaTestQueue()) 
-		|| ((renderQueue >= 2000) && (renderQueue < 2450));
+		|| ((renderQueue >= Queues::Geometry) && (renderQueue < Queues::AlphaTest));
+	/*
+	return (!isTransparentQueue() && !isAlphaTestQueue()) 
+		|| ((renderQueue >= 2000) && (renderQueue < 2450));*/
+}
+
+bool JsonMaterial::isTransparentMode() const{
+	return blendMode == BlendModes::Transparent;
+}
+
+bool JsonMaterial::isAlphaTestMode() const{
+	return blendMode == BlendModes::Cutout;
+}
+
+bool JsonMaterial::isFadeMode() const{
+	return blendMode == BlendModes::Fade;//Bah. So much for the scoped enums.
+}
+
+bool JsonMaterial::nameMarkedTransparent() const{
+	return name.Contains(TEXT("/Transparent/"), ESearchCase::CaseSensitive);
+}
+
+bool JsonMaterial::nameMarkedCutout() const{
+	return name.Contains(TEXT("/Transparent/Cutout/"), ESearchCase::CaseSensitive);
+}
+
+FString JsonMaterial::getUnrealMaterialName() const{
+	//Duplicated code. Need to do something about it later.
+	auto pathBaseName = FPaths::GetBaseFilename(path);
+	FString result;
+	if (!pathBaseName.IsEmpty()){
+		//Well, I've managed to create a level with two meshes named "cube". So...
+		result = FString::Printf(TEXT("%s_%s_%d"), *pathBaseName, *name, id);
+	}
+	else{
+		result = FString::Printf(TEXT("%s_%d"), *name, id);
+	}
+	return result;
 }

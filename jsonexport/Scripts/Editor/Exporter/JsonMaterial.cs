@@ -12,11 +12,18 @@ namespace SceneExport{
 		public string shader;
 		
 		public bool supportedShader = true;
+		public int blendMode = 0; /*
+													Opaque, Cutout, Fade, Transparent. 
+													//Risky. Judging by shader source we also need to handle names, for example...
+													Name containing "/Transparent/Cutout/" or "/Transparent/"													
+												*/
 		
 		//public string renderType;
 		public int mainTexture = -1;
 		public Vector2 mainTextureOffset = Vector2.zero;
 		public Vector2 mainTextureScale = Vector2.one;
+		
+		
 		public Color color = Color.white;
 
 		public bool useNormalMap = false;
@@ -47,6 +54,7 @@ namespace SceneExport{
 		
 		public float alphaCutoff = 1.0f;
 		public float smoothness = 0.5f;
+		public float smoothnessScale = 1.0f;
 		public Color specularColor = Color.white;
 		public float metallic = 0.5f;
 		public float bumpScale = 1.0f;
@@ -71,6 +79,8 @@ namespace SceneExport{
 			writer.writeKeyVal("name", name);
 			writer.writeKeyVal("path", path);
 			writer.writeKeyVal("shader", shader);
+			
+			writer.writeKeyVal("blendMode", blendMode);
 			
 			writer.writeKeyVal("supportedShader", supportedShader);
 			
@@ -110,6 +120,8 @@ namespace SceneExport{
 			writer.writeKeyVal("detailNormalMapTex", detailNormalMapTex);
 			writer.writeKeyVal("alphaCutoff", alphaCutoff);
 			writer.writeKeyVal("smoothness", smoothness);
+			writer.writeKeyVal("smoothnessScale", smoothnessScale);
+			
 			writer.writeKeyVal("specularColor", specularColor);
 			writer.writeKeyVal("metallic", metallic);
 			writer.writeKeyVal("bumpScale", bumpScale);
@@ -137,12 +149,6 @@ namespace SceneExport{
 			public static readonly string detailMask = "_DetailMask";
 			public static readonly string detailAlbedo = "_DetailAlbedoMap";
 			public static readonly string detailNormal = "_DetailNormalMap";
-		}
-		
-		public static class ParamNames{
-			public static readonly string metallic = "_Metallic";
-			public static readonly string specularColor = "_SpecColor";
-			public static readonly string emissionColor = "_EmissionColor";
 		}
 		
 		static bool isSupportedShaderName(string name){
@@ -203,6 +209,40 @@ namespace SceneExport{
 			return mat.GetTextureOffset(paramName);
 		}
 		
+		public static class Keywords{
+			public static readonly string normalMap = "_NORMALMAP";
+			public static readonly string alphaTestOn = "_ALPHATEST_ON";
+			public static readonly string alphaBlendOn = "_ALPHABLEND_ON";
+			public static readonly string alphaPremultiplyOn = "_ALPHAPREMULTIPLY_ON";
+			public static readonly string emission = "_EMISSION";
+			public static readonly string parallaxMap = "_PARALLAXMAP";
+			public static readonly string detailMulX2 = "_DETAIL_MULX2";
+			public static readonly string metallicGlossMap = "_METALLICGLOSSMAP";
+			public static readonly string specGlossMap = "_SPECCGLOSSMAP";
+		}
+		
+		public static class ParamNames{
+			public static readonly string metallic = "_Metallic";
+			public static readonly string specularColor = "_SpecColor";
+			public static readonly string emissionColor = "_EmissionColor";
+			
+			public static readonly string blendMode = "_Mode";
+			
+			public static readonly string detailNormalMapScale = "_DetailNormalMapScale";
+
+			public static readonly string cutoff =  "_Cutoff";
+			public static readonly string glossiness = "_Glossiness";
+			public static readonly string glossinessScale = "_GlossMapScale";//I'm not sure at which unity version has this one appeared.
+			public static readonly string bumpScale = "_BumpScale";
+			public static readonly string parallax = "_Parallax";
+			public static readonly string occlusionStrength = "_OcclusionStrength";
+			public static readonly string secondaryUv = "_UVSec";
+			
+			public static readonly string smoothnessMapChannel = "_SmoothnessTextureChannel";
+			public static readonly string specularHighlights = "_SpecularHighlights";
+			public static readonly string glossyReflections = "_GlossyReflections";
+		}
+		
 		public JsonMaterial(Material mat, ResourceMapper resMap){
 			name = mat.name;
 			//TODO: Further investigation shows that this is likely going to return -1 for all new materials.
@@ -219,15 +259,15 @@ namespace SceneExport{
 			mainTextureScale = mat.mainTextureScale;
 			color = mat.color;
 
-			useNormalMap = mat.IsKeywordEnabled("_NORMALMAP");
-			useAlphaTest = mat.IsKeywordEnabled("_ALPHATEST_ON");
-			useAlphaBlend = mat.IsKeywordEnabled("_ALPHABLEND_ON");
-			useAlphaPremultiply = mat.IsKeywordEnabled("_ALPHAPREMULTIPLY_ON");
-			useEmission = mat.IsKeywordEnabled("_EMISSION");
-			useParallax = mat.IsKeywordEnabled("_PARALLAXMAP");
-			useDetailMap = mat.IsKeywordEnabled("_DETAIL_MULX2");
-			useMetallic = mat.IsKeywordEnabled("_METALLICGLOSSMAP");
-			useSpecular = mat.IsKeywordEnabled("_SPECCGLOSSMAP");
+			useNormalMap = mat.IsKeywordEnabled(Keywords.normalMap);//"_NORMALMAP");
+			useAlphaTest = mat.IsKeywordEnabled(Keywords.alphaTestOn);//"_ALPHATEST_ON");
+			useAlphaBlend = mat.IsKeywordEnabled(Keywords.alphaBlendOn);//"_ALPHABLEND_ON");
+			useAlphaPremultiply = mat.IsKeywordEnabled(Keywords.alphaPremultiplyOn);//"_ALPHAPREMULTIPLY_ON");
+			useEmission = mat.IsKeywordEnabled(Keywords.emission);//"_EMISSION");
+			useParallax = mat.IsKeywordEnabled(Keywords.parallaxMap);//"_PARALLAXMAP");
+			useDetailMap = mat.IsKeywordEnabled(Keywords.detailMulX2);//"_DETAIL_MULX2");
+			useMetallic = mat.IsKeywordEnabled(Keywords.metallicGlossMap);//"_METALLICGLOSSMAP");
+			useSpecular = mat.IsKeywordEnabled(Keywords.specGlossMap);//"_SPECCGLOSSMAP");
 
 			albedoTex = getTexId(mat, TexParamNames.main, resMap);
 			specularTex = getTexId(mat, TexParamNames.specular, resMap);
@@ -242,22 +282,45 @@ namespace SceneExport{
 			
 			detailAlbedoScale = getTextureScale(mat, TexParamNames.detailAlbedo);//mat.GetTextureScale(TexParamNames.detailAlbedo);
 			detailAlbedoOffset = getTextureOffset(mat, TexParamNames.detailAlbedo);//mat.GetTextureOffset(TexParamNames.detailAlbedo);
-			detailNormalMapScale = getFloat(mat, "_DetailNormalMapScale", 1.0f);
+			
+			//detailNormalMapScale = getFloat(mat, "_DetailNormalMapScale", 1.0f);
+			detailNormalMapScale = getFloat(mat, ParamNames.detailNormalMapScale, 1.0f);
 
-			alphaCutoff = getFloat(mat, "_Cutoff", 1.0f);
-			smoothness = getFloat(mat, "_Glossiness", 0.5f);
+
+			//alphaCutoff = getFloat(mat, "_Cutoff", 1.0f);
+			//smoothness = getFloat(mat, "_Glossiness", 0.5f);
+			alphaCutoff = getFloat(mat, ParamNames.cutoff, 1.0f);
+			smoothness = getFloat(mat, ParamNames.glossiness, 0.5f);
+			smoothnessScale = getFloat(mat, ParamNames.glossinessScale, 1.0f);
 			specularColor = getColor(mat, ParamNames.specularColor, Color.white);
 			metallic = getFloat(mat, ParamNames.metallic, 0.5f);
+			/*
 			bumpScale = getFloat(mat, "_BumpScale", 1.0f);
 			parallaxScale = getFloat(mat, "_Parallax", 1.0f);
 			occlusionStrength = getFloat(mat, "_OcclusionStrength", 1.0f);
+			*/
+			bumpScale = getFloat(mat, ParamNames.bumpScale, 1.0f);
+			parallaxScale = getFloat(mat, ParamNames.parallax, 1.0f);
+			occlusionStrength = getFloat(mat, ParamNames.occlusionStrength, 1.0f);
+			
 			emissionColor = getColor(mat, ParamNames.emissionColor, Color.black);
+			/*
 			detailMapScale = getFloat(mat, "_DetailNormalMapScale", 1.0f);
 			secondaryUv = getFloat(mat, "_UVSec", 1.0f);
+			*/
+			detailMapScale = getFloat(mat, ParamNames.detailNormalMapScale, 1.0f);
+			secondaryUv = getFloat(mat, ParamNames.secondaryUv, 1.0f);
 			
+			blendMode = Mathf.RoundToInt(getFloat(mat, ParamNames.blendMode, 0.0f));
+			
+			/*
 			smoothnessMapChannel = (int)getFloat(mat, "_SmoothnessTextureChannel", 0.0f);
 			specularHighlights = getFloat(mat, "_SpecularHighlights", 1.0f);
 			glossyReflections = getFloat(mat, "_GlossyReflections", 1.0f);
+			*/
+			smoothnessMapChannel = (int)getFloat(mat, ParamNames.smoothnessMapChannel, 0.0f);
+			specularHighlights = getFloat(mat, ParamNames.specularHighlights, 1.0f);
+			glossyReflections = getFloat(mat, ParamNames.glossyReflections, 1.0f);
 				
 			hasMetallic = mat.HasProperty(ParamNames.metallic) && mat.HasProperty(TexParamNames.metallic);
 			hasSpecular = mat.HasProperty(TexParamNames.specular) && mat.HasProperty(ParamNames.specularColor);

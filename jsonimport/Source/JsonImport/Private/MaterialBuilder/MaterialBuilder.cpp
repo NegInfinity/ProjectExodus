@@ -111,6 +111,7 @@ UMaterial* MaterialBuilder::loadDefaultMaterial(){
 
 UMaterial* MaterialBuilder::getBaseMaterial(const JsonMaterial &jsonMat) const{
 	auto baseMaterialPath = getBaseMaterialPath(jsonMat);
+	UE_LOG(JsonLog, Log, TEXT("Loading base material %s"), *baseMaterialPath);
 	auto *baseMaterial = LoadObject<UMaterial>(nullptr, *baseMaterialPath);
 	if (!baseMaterial){
 		UE_LOG(JsonLog, Error, TEXT("Could not load default material \"%s\""));
@@ -122,16 +123,22 @@ FString MaterialBuilder::getBaseMaterialPath(const JsonMaterial &jsonMat) const{
 	FString defaultMatPath = TEXT("/JsonImport/exodusSolidMaterial");
 	FString transparentMatPath = TEXT("/JsonImport/exodusBlendMaterial");
 	FString maskedMatPath = TEXT("/JsonImport/exodusMaskMaterial");
-	UE_LOG(JsonLog, Log, TEXT("Selecting default mat path for: %s(%s)"), *jsonMat.name, *jsonMat.path);
+	//UE_LOG(JsonLog, Log, TEXT("Selecting default mat path for: %s(%s)"), *jsonMat.name, *jsonMat.path);
 
 	auto baseMaterialPath = defaultMatPath;
-	if (jsonMat.isTransparentQueue()){
+
+	/*
+	So I've run into a material that is either transparent or cutout but is placed at geom queue. 
+	Hence the new variables.
+	*/
+
+	if (jsonMat.heuristicIsTransparent()){
 		baseMaterialPath = transparentMatPath;
 	}
-	if (jsonMat.isAlphaTestQueue()){
+	if (jsonMat.heuristicIsCutout()){
 		baseMaterialPath = maskedMatPath;
 	}
-	UE_LOG(JsonLog, Log, TEXT("Path selected: %s"), *baseMaterialPath);
+	UE_LOG(JsonLog, Log, TEXT("Base material \"%s\" selected for material %d(%s)"), *baseMaterialPath, jsonMat.id, *jsonMat.name);
 	return baseMaterialPath;
 }
 
@@ -179,63 +186,21 @@ UMaterialInstanceConstant* MaterialBuilder::createMaterialInstance(const FString
 UMaterialInstanceConstant* MaterialBuilder::importMaterialInstance(const JsonMaterial& jsonMat, JsonImporter *importer){
 	MaterialFingerprint fingerprint(jsonMat);
 
+	auto unrealName = jsonMat.getUnrealMaterialName();
+
 	auto baseMaterialPath = getBaseMaterialPath(jsonMat);
+	UE_LOG(JsonLog, Log, TEXT("Loading base material %s"), *baseMaterialPath);
 	auto *baseMaterial = LoadObject<UMaterial>(nullptr, *baseMaterialPath);
 	if (!baseMaterial){
 		UE_LOG(JsonLog, Warning, TEXT("Could not load default material \"%s\""));
 	}
 
-	return createMaterialInstance(jsonMat.name, &jsonMat.path, baseMaterial, importer, 
+	//return createMaterialInstance(jsonMat.name, &jsonMat.path, baseMaterial, importer, 
+	return createMaterialInstance(unrealName, &jsonMat.path, baseMaterial, importer, 
 		[&](auto newInst){
 			setupMaterialInstance(newInst, jsonMat, importer);
 		}
 	);
-#if 0
-	FString matName = sanitizeObjectName(jsonMat.name);
-	FString pkgName = sanitizeObjectName(jsonMat.name + TEXT("_MatInstnace"));
-
-	auto matPath = FPaths::GetPath(jsonMat.path);
-	FString packagePath = buildPackagePath(
-		matName, matPath, importer
-	);
-
-	auto baseMaterialPath = getBaseMaterialPath(jsonMat);
-
-	auto *baseMaterial = LoadObject<UMaterial>(nullptr, *baseMaterialPath);
-	if (!baseMaterial){
-		UE_LOG(JsonLog, Warning, TEXT("Could not load default material \"%s\""));
-	}
-
-	//createPackage(
-	auto matFactory = makeFactoryRootGuard<UMaterialInstanceConstantFactoryNew>();
-	auto matInst = createAssetObject<UMaterialInstanceConstant>(pkgName, &matPath, importer, 
-		[&](UMaterialInstanceConstant* inst){
-			inst->PreEditChange(0);
-			inst->PostEditChange();
-			inst->MarkPackageDirty();
-		}, 
-		[&](UPackage* pkg) -> auto{
-			matFactory->InitialParent = baseMaterial;
-			auto result = (UMaterialInstanceConstant*)matFactory->FactoryCreateNew(
-				UMaterialInstanceConstant::StaticClass(), pkg, 
-				*matName,
-				//*sanitizeObjectName(matName), 
-				RF_Standalone|RF_Public, 0, GWarn
-			);
-
-			setupMaterialInstance(result, jsonMat, importer);
-
-			return result;
-		}, RF_Standalone|RF_Public
-	);
-	
-	if (!matInst){
-		UE_LOG(JsonLog, Warning, TEXT("Could not load mat instance \"%s\""), *jsonMat.name);
-		return matInst;
-	}
-
-	return matInst;
-#endif
 }
 
 void MaterialBuilder::setScalarParam(UMaterialInstanceConstant *matInst, const char *paramName, float val) const{
@@ -478,7 +443,9 @@ void MaterialBuilder::setupMaterialInstance(UMaterialInstanceConstant *matInst, 
 	setStaticSwitch(outParams, "specularWorkflowEnabled", fingerprint.specularModel);
 
 	//transparencyEnabled (bool)
-	setStaticSwitch(outParams, "transparencyEnabled", jsonMat.isTransparentQueue() || jsonMat.isAlphaTestQueue());//fingerprint.isAlphaBlendMode());
+	//setStaticSwitch(outParams, "transparencyEnabled", jsonMat.isTransparentQueue() || jsonMat.isAlphaTestQueue());//fingerprint.isAlphaBlendMode());
+	//setStaticSwitch(outParams, "transparencyEnabled", jsonMat.needsTransparencyFlag());//fingerprint.isAlphaBlendMode());
+	setStaticSwitch(outParams, "transparencyEnabled", jsonMat.heuristicNeedsTransparentFlag());//fingerprint.isAlphaBlendMode());
 
 	//useOpacityMask (bool, switch on for cutout mode)
 	setStaticSwitch(outParams, "useOpacityMask", jsonMat.isAlphaTestQueue());//fingerprint.isAlphaTestMode());

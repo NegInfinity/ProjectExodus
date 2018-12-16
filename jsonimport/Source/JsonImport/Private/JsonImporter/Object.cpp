@@ -31,6 +31,9 @@
 #include "Materials/MaterialExpressionTextureCoordinate.h"
 #include "Materials/MaterialExpressionVectorParameter.h"
 #include "Materials/MaterialExpressionConstant.h"
+
+#include "Runtime/Engine/Classes/Components/SkeletalMeshComponent.h"
+
 	
 #include "RawMesh.h"
 
@@ -161,10 +164,26 @@ void JsonImporter::processSkinRenderer(ImportWorkData &workData, const JsonGameO
 
 	meshComponent->SetSkeletalMesh(skelMesh, true);
 
+	const auto& materials = skinRend.materials;
+	if (materials.Num() > 0){
+		for(int i = 0; i < materials.Num(); i++){
+			auto matId = materials[i];
+
+			auto material = loadMaterialInterface(matId);
+			meshComponent->SetMaterial(i, material);
+		}
+	}
+
+
+	//material override
+	//meshComponent->material
+
+	/*
 	auto poseableComp = NewObject<UPoseableMeshComponent>();
 	poseableComp->AttachToComponent(meshActor->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
 	poseableComp->SetSkeletalMesh(skelMesh);
 	poseableComp->CopyPoseFromSkeletalComponent(meshActor->GetSkeletalMeshComponent());
+	*/
 
 	/*
 	auto *meshObject = LoadObject<UStaticMesh>(0, *meshPath);
