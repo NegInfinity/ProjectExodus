@@ -339,7 +339,28 @@ void MeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonMesh &jso
 		skelMesh->InitMorphTargetsAndRebuildRenderData();
 	}
 
+	//Bounding box calculation. Failure to do that causes the model to flicker. 
+	FBox boundBox(meshPoints.GetData(), meshPoints.Num());
+	auto tmpBox = boundBox;
+	auto midPoint = (boundBox.Min + boundBox.Max) * 0.5f;
+
+	//This is done in skeletal mesh import in fbx. Apparnetly it doubles boundbox size, except it raises bottom of the box to the leg level.
+	boundBox.Min = tmpBox.Min + 1.0f*(tmpBox.Min - midPoint);
+	boundBox.Max = tmpBox.Max + 1.0f*(tmpBox.Max - midPoint);
+	boundBox.Min[2] = tmpBox.Min[2] + 0.1f*(tmpBox.Min[2] - midPoint[2]);
+
+	skelMesh->SetImportedBounds(FBoxSphereBounds(boundBox));
+
+	/*
+	Here's the thing thoug h - Since we're operating on unity skeletons, the data will not behave the same way Unreal FBX importer expects it.
+
+	Meaning, there may be a piece of clothing floating above the ground. 
+
+	Hmm.
+	*/
+
 	registerPreviewMesh(skelMesh->Skeleton, skelMesh, jsonMesh);
+
 
 	skelMesh->PostEditChange();
 	skelMesh->MarkPackageDirty();
