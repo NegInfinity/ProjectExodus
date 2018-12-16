@@ -432,6 +432,9 @@ void MaterialBuilder::setupMaterialInstance(UMaterialInstanceConstant *matInst, 
 	//roughness (float)
 	setScalarParam(matInst, "roughness", 1.0f - jsonMat.smoothness);//hmm...
 
+	//glossMapScale (float0
+	setScalarParam(matInst, "glossMapScale", jsonMat.smoothnessScale);
+
 	//specularColor (FlinearColor)
 	setVectorParam(matInst, "specularColor", jsonMat.specularColorGammaCorrected);//hmm...
 
