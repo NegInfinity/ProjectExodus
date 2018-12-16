@@ -481,6 +481,7 @@ namespace SceneExport{
 		static readonly float matrixEpsilon = 0.00001f; //I'll consider matrices equivalent if this is below this threshold
 		
 		JsonMesh fixSkinMeshRootBoneTransform(MeshStorageKey meshKey, JsonMesh srcMesh){
+			//return srcMesh;
 			//let's check if we even NEED transformation.
 			//Root			
 			bool largeRootTransformFound = false;
