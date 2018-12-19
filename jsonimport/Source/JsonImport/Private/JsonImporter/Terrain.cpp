@@ -20,16 +20,18 @@
 using namespace UnrealUtilities;
 using namespace JsonObjects;
 
-void JsonImporter::processTerrains(ImportWorkData &workData, const JsonGameObject &gameObj, AActor *parentActor, const FString& folderPath){
+void JsonImporter::processTerrains(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedGameObject *parentObject, const FString& folderPath){
 	UE_LOG(JsonLog, Log, TEXT("Processing terrains for object %d"), gameObj.id);
 	for(const auto& cur: gameObj.terrains){
-		processTerrain(workData, gameObj, cur, parentActor, folderPath);
+		//processTerrain(workData, gameObj, cur, parentActor, folderPath);
+		processTerrain(workData, gameObj, cur, parentObject, folderPath);
 	}
 }
 
-void JsonImporter::processTerrain(ImportWorkData &workData, const JsonGameObject &jsonGameObj, const JsonTerrain &jsonTerrain, 
-		AActor *parentActor, const FString& folderPath){
-
+/*void JsonImporter::processTerrain(ImportWorkData &workData, const JsonGameObject &jsonGameObj, const JsonTerrain &jsonTerrain, 
+		AActor *parentActor, const FString& folderPath){*/
+void JsonImporter::processTerrain(ImportWorkData &workData, const JsonGameObject &jsonGameObj, 
+		const JsonTerrain &jsonTerrain, ImportedGameObject *parentObject, const FString& folderPath){
 	auto dataId = jsonTerrain.terrainDataId;
 	UE_LOG(JsonLogTerrain, Log, TEXT("Terrain data id found: %d"), dataId);
 
@@ -49,7 +51,11 @@ void JsonImporter::processTerrain(ImportWorkData &workData, const JsonGameObject
 	}
 	builtTerrain->PostEditChange();
 
-	setActorHierarchy(builtTerrain, parentActor, folderPath, workData, jsonGameObj);
+	//setActorHierarchy(builtTerrain, parentActor, folderPath, workData, jsonGameObj);
+
+	//setObjectHierarchy(builtTerrain, parentObject, folderPath, workData, jsonGameObj);
+	setObjectHierarchy(ImportedGameObject(builtTerrain), parentObject, folderPath, workData, jsonGameObj);
+
 
 	//return builtTerrain;
 }

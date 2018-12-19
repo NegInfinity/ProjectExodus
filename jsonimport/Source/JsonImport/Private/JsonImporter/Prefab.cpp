@@ -74,6 +74,10 @@ void JsonImporter::importPrefab(const JsonPrefabData& prefab){
 	return;
 #endif
 
+/*
+This is definitely broken and therefore disabled.
+*/
+#if 0 
 	if (prefab.objects.Num() <= 0){
 		UE_LOG(JsonLogPrefab, Warning, TEXT("No objects in prefab %s(%s)"), *prefab.name, *prefab.path);
 		return;
@@ -112,19 +116,29 @@ void JsonImporter::importPrefab(const JsonPrefabData& prefab){
 	}
 
 	const auto &firstObject = prefab.objects[0];
-	AActor *rootActor = 0;
-	if (workData.objectActors.Contains(0)){
-		rootActor = workData.objectActors[0];
+	ImportedGameObject firstImportedGameObject(nullptr, nullptr);
+
+	ImportedGameObject *rootObject = 0;
+	//AActor *rootActor = 0;
+	//if (workData.objectActors.Contains(0)){
+	if (workData.importedObjects.Contains(0)){
+		//rootActor = workData.objectActors[0];
+		rootObject = &workData.importedObjects[0];
 	}
 	else{
 		FTransform firstObjectTransform;
 		firstObjectTransform.SetFromMatrix(firstObject.ueWorldMatrix);
-		rootActor = createActor<AActor>(workData, firstObjectTransform, TEXT("AActor"));
+		//errrm? Why isn't it being registered afterwards?
+		auto *rootActor = createActor<AActor>(workData, firstObjectTransform, TEXT("AActor"));
+		firstImportedGameObject = ImportedGameObject(rootActor);
+		rootObject = &firstImportedGameObject;
 	}
 
-	UE_LOG(JsonLogPrefab, Log, TEXT("Attaching actors. %d actors present"), workData.rootActors.Num());
+	//UE_LOG(JsonLogPrefab, Log, TEXT("Attaching actors. %d actors present"), workData.rootActors.Num());
+	UE_LOG(JsonLogPrefab, Log, TEXT("Attaching actors. %d actors present"), workData.rootObjects.Num());
 
-	TArray<AActor*> prefabActors = workData.rootActors;
+	//TArray<AActor*> prefabActors = workData.rootActors;
+	auto prefabObjects = workData.rootObjects;
 	TMap<AActor*, USceneComponent*> childToParent;
 	for(int actorIndex = 0; actorIndex < prefabActors.Num(); actorIndex++){
 		UE_LOG(JsonLogPrefab, Log, TEXT("Procesrsing actor %d out of %d"), actorIndex, prefabActors.Num());
@@ -183,6 +197,7 @@ void JsonImporter::importPrefab(const JsonPrefabData& prefab){
 		FAssetRegistryModule::AssetCreated(createdBlueprint);
 		blueprintPackage->SetDirtyFlag(true);
 	}
+#endif
 }
 
 void JsonImporter::importPrefabs(const StringArray &prefabs){

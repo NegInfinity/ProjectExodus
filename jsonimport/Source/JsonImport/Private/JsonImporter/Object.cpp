@@ -43,7 +43,29 @@
 
 using namespace JsonObjects;
 
-void setActorHierarchy(AActor *actor, AActor *parentActor, const FString& folderPath, ImportWorkData &workData, const JsonGameObject &gameObj){
+
+/*void JsonImporter::setObjectHierarchy(ImportedGameObject *object, ImportedGameObject *parentObject, 
+		const FString& folderPath, ImportWorkData &workData, const JsonGameObject &gameObj){*/
+void JsonImporter::setObjectHierarchy(const ImportedGameObject &object, ImportedGameObject *parentObject, 
+		const FString& folderPath, ImportWorkData &workData, const JsonGameObject &gameObj){
+	/*if (!object)
+		return;*/
+	if (parentObject){
+		object.attachTo(parentObject);
+		//actor->AttachToActor(parentActor, FAttachmentTransformRules::KeepWorldTransform);
+	}
+	else{
+		if (folderPath.Len())
+			object.setFolderPath(*folderPath);
+	}
+	//workData.registerActor(actor, parentActor);
+
+	//object->setActiveInHierarchy(gameObj.activeInHierarchy);
+	object.setActiveInHierarchy(gameObj.activeInHierarchy);
+}
+
+/*
+void JsonImporter::setActorHierarchy(AActor *actor, AActor *parentActor, const FString& folderPath, ImportWorkData &workData, const JsonGameObject &gameObj){
 	if (!actor)
 		return;
 	if (parentActor){
@@ -53,7 +75,7 @@ void setActorHierarchy(AActor *actor, AActor *parentActor, const FString& folder
 		if (folderPath.Len())
 			actor->SetFolderPath(*folderPath);
 	}
-	workData.registerActor(actor, parentActor);
+	//workData.registerActor(actor, parentActor);
 
 	auto root = actor->GetRootComponent();
 	if (root)
@@ -62,13 +84,16 @@ void setActorHierarchy(AActor *actor, AActor *parentActor, const FString& folder
 	actor->SetActorEnableCollision(gameObj.activeInHierarchy);
 	actor->SetActorTickEnabled(gameObj.activeInHierarchy);
 }
+*/
 
 void JsonImporter::importObject(const JsonGameObject &jsonGameObj , int32 objId, ImportWorkData &workData){
 	//UE_LOG(JsonLog, Log, TEXT("Importing object %d"), objId);
 
 	FString folderPath;
 
-	AActor *parentActor = workData.objectActors.FindRef(jsonGameObj.parentId);
+	//auto *parentData = workData.objectActors.Find(jsonGameObj.parentId);
+	//AActor *parentActor = workData.objectActors.FindRef(jsonGameObj.parentId);
+	auto* parentObject = workData.importedObjects.Find(jsonGameObj.parentId);
 
 	FString childFolderPath = jsonGameObj.ueName;
 	if (jsonGameObj.parentId >= 0){
@@ -85,26 +110,25 @@ void JsonImporter::importObject(const JsonGameObject &jsonGameObj , int32 objId,
 	//UE_LOG(JsonLog, Log, TEXT("Folder path for object: %d: %s"), jsonGameObj.id, *folderPath);
 	workData.objectFolderPaths.Add(jsonGameObj.id, childFolderPath);
 
-
 	if (!workData.world){
 		UE_LOG(JsonLog, Warning, TEXT("No world"));
 		return; 
 	}
 
 	if (jsonGameObj.hasProbes())
-		processReflectionProbes(workData, jsonGameObj, objId, parentActor, folderPath);
+		processReflectionProbes(workData, jsonGameObj, objId, parentObject, folderPath);
 	
 	if (jsonGameObj.hasLights())
-		processLights(workData, jsonGameObj, parentActor, folderPath);
+		processLights(workData, jsonGameObj, parentObject, folderPath);
 
 	if (jsonGameObj.hasMesh())
-		processStaticMesh(workData, jsonGameObj, objId, parentActor, folderPath);
+		processStaticMesh(workData, jsonGameObj, objId, parentObject, folderPath);
 
 	if (jsonGameObj.hasTerrain())
-		processTerrains(workData, jsonGameObj, parentActor, folderPath);
+		processTerrains(workData, jsonGameObj, parentObject, folderPath);
 
 	if (jsonGameObj.hasSkinMeshes())
-		processSkinMeshes(workData, jsonGameObj, parentActor, folderPath);
+		processSkinMeshes(workData, jsonGameObj, parentObject, folderPath);
 }
 
 USkeletalMesh* JsonImporter::loadSkeletalMeshById(JsonId id) const{
@@ -122,7 +146,7 @@ USkeletalMesh* JsonImporter::loadSkeletalMeshById(JsonId id) const{
 }
 
 void JsonImporter::processSkinRenderer(ImportWorkData &workData, const JsonGameObject &jsonGameObj, 
-		const JsonSkinRenderer &skinRend, AActor *parentActor, const FString &folderPath){
+		const JsonSkinRenderer &skinRend, ImportedGameObject *parentObject, const FString &folderPath){
 
 	UE_LOG(JsonLog, Log, TEXT("Importing skin mesh %d for object %s"), skinRend.meshId, *jsonGameObj.name);
 	if (skinRend.meshId < 0)
@@ -204,14 +228,14 @@ void JsonImporter::processSkinRenderer(ImportWorkData &workData, const JsonGameO
 }
 
 
-void JsonImporter::processSkinMeshes(ImportWorkData &workData, const JsonGameObject &gameObj, AActor *parentActor, const FString &folderPath){
+void JsonImporter::processSkinMeshes(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedGameObject *parentObject, const FString &folderPath){
 	for(const auto &jsonSkin: gameObj.skinRenderers){
-		processSkinRenderer(workData, gameObj, jsonSkin, parentActor, folderPath);
+		processSkinRenderer(workData, gameObj, jsonSkin, parentObject, folderPath);
 	}
 }
 
 
-void JsonImporter::processStaticMesh(ImportWorkData &workData, const JsonGameObject &jsonGameObj, int objId, AActor *parentActor, const FString& folderPath){
+void JsonImporter::processStaticMesh(ImportWorkData &workData, const JsonGameObject &jsonGameObj, int objId, ImportedGameObject *parentObject, const FString& folderPath){
 	if (!jsonGameObj.hasMesh())
 		return;
 
@@ -311,8 +335,13 @@ void JsonImporter::processStaticMesh(ImportWorkData &workData, const JsonGameObj
 		meshComp->LightmassSettings.bUseEmissiveForStaticLighting = emissiveMesh;
 	}
 
-	workData.objectActors.Add(jsonGameObj.id, meshActor);
-	setActorHierarchy(meshActor, parentActor, folderPath, workData, jsonGameObj);
+	/*
+	We actually probably need to switch it to , well, constructing object on the fly at some point.
+	*/
+	//workData.objectActors.Add(jsonGameObj.id, meshActor);
+	auto importedObject = ImportedGameObject(meshActor);
+	workData.importedObjects.Add(jsonGameObj.id, importedObject);
+	setObjectHierarchy(importedObject, parentObject, folderPath, workData, jsonGameObj);
 
 	meshComp->SetCastShadow(hasShadows);
 	meshComp->bCastShadowAsTwoSided = twoSidedShadows;
@@ -322,7 +351,7 @@ void JsonImporter::processStaticMesh(ImportWorkData &workData, const JsonGameObj
 
 //void setupReflectionCapture(UReflectionCaptureComponent *reflComponent, const JsonReflectionProbe &probe);
 void JsonImporter::setupReflectionCapture(ImportWorkData &workData, const JsonGameObject &gameObj, 
-	const JsonReflectionProbe &probe, int32 objId, AActor *parentActor, const FString &folderPath){
+		const JsonReflectionProbe &probe, int32 objId, ImportedGameObject *parentObject, const FString &folderPath){
 	FMatrix captureMatrix = gameObj.ueWorldMatrix;
 
 	FVector ueCenter = unityPosToUe(probe.center);
@@ -365,7 +394,9 @@ void JsonImporter::setupReflectionCapture(ImportWorkData &workData, const JsonGa
 		if (!refl)
 			return;
 		refl->MarkComponentsRenderStateDirty();
-		setActorHierarchy(refl, parentActor, folderPath, workData, gameObj);
+		//setActorHierarchy(refl, parentActor, folderPath, workData, gameObj);
+
+		setObjectHierarchy(ImportedGameObject(refl), parentObject, folderPath, workData, gameObj);
 	};
 
 	auto setupComponent = [&](UReflectionCaptureComponent *reflComponent) -> void{
@@ -426,7 +457,7 @@ void JsonImporter::setupReflectionCapture(ImportWorkData &workData, const JsonGa
 }
 
 
-void JsonImporter::processReflectionProbes(ImportWorkData &workData, const JsonGameObject &gameObj, int32 objId, AActor *parentActor, const FString &folderPath){
+void JsonImporter::processReflectionProbes(ImportWorkData &workData, const JsonGameObject &gameObj, int32 objId, ImportedGameObject *parentObject, const FString &folderPath){
 	if (!gameObj.hasProbes())
 		return;
 
@@ -437,7 +468,7 @@ void JsonImporter::processReflectionProbes(ImportWorkData &workData, const JsonG
 
 	for (int i = 0; i < gameObj.probes.Num(); i++){
 		const auto &probe = gameObj.probes[i];
-		setupReflectionCapture(workData, gameObj, gameObj.probes[i], objId, parentActor, folderPath);
+		setupReflectionCapture(workData, gameObj, gameObj.probes[i], objId, parentObject, folderPath);
 	}
 }
 
@@ -496,7 +527,7 @@ void JsonImporter::setupDirLightComponent(ULightComponent *dirLight, const JsonL
 }
 
 
-void JsonImporter::processLight(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonLight &jsonLight, AActor *parentActor, const FString& folderPath){
+void JsonImporter::processLight(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonLight &jsonLight, ImportedGameObject *parentObject, const FString& folderPath){
 	UE_LOG(JsonLog, Log, TEXT("Creating light"));
 
 	FTransform lightTransform;
@@ -529,21 +560,25 @@ void JsonImporter::processLight(ImportWorkData &workData, const JsonGameObject &
 	}
 
 	if (actor){
+		//importedActor.setActorLabel(
 		actor->SetActorLabel(gameObj.ueName, true);
 		if (gameObj.isStatic)
 			actor->SetMobility(EComponentMobility::Static);
-		setActorHierarchy(actor, parentActor, folderPath, workData, gameObj);
+		//setActorHierarchy(&importedActor, parentObject, folderPath, workData, gameObj);
+		setObjectHierarchy(ImportedGameObject(actor), parentObject, folderPath, workData, gameObj);
 		actor->MarkComponentsRenderStateDirty();
 	}
 }
 
-void JsonImporter::processLights(ImportWorkData &workData, const JsonGameObject &gameObj, AActor *parentActor, const FString& folderPath){
+//void JsonImporter::processLights(ImportWorkData &workData, const JsonGameObject &gameObj, AActor *parentActor, const FString& folderPath){
+void JsonImporter::processLights(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedGameObject *parentObject, const FString& folderPath){
 	if (!gameObj.hasLights())
 		return;
 
 	for(int i = 0; i < gameObj.lights.Num(); i++){
 		const auto &curLight = gameObj.lights[i];
-		processLight(workData, gameObj, curLight, parentActor, folderPath);
+		//processLight(workData, gameObj, curLight, parentActor, folderPath);
+		processLight(workData, gameObj, curLight, parentObject, folderPath);
 	}
 }
 
