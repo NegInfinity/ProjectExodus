@@ -84,6 +84,7 @@ namespace SceneExport{
 				
 			float totalWeight =  weight.weight0 + weight.weight1 + weight.weight2 + weight.weight3;
 			
+			/*
 			int dominantBone = weight.boneIndex0;
 			float dominantWeight = weight.weight0;
 			
@@ -93,6 +94,19 @@ namespace SceneExport{
 				dominantBone = weight.boneIndex2;
 			if (weight.weight3 > dominantWeight)
 				dominantBone = weight.boneIndex3;
+				*/
+				
+			int numWeights = 0;
+			if (weight.weight0 > 0.0f)
+				numWeights++;
+			if (weight.weight1 > 0.0f)
+				numWeights++;
+			if (weight.weight2 > 0.0f)
+				numWeights++;
+			if (weight.weight3 > 0.0f)
+				numWeights++;
+				
+			float wValue = numWeights;//1.0f;
 				
 			result += weight.weight0 * (getBoneTransform(weight.boneIndex0, mesh, bones).MultiplyPoint(meshVert));
 			result += weight.weight1 * (getBoneTransform(weight.boneIndex1, mesh, bones).MultiplyPoint(meshVert));
@@ -107,7 +121,7 @@ namespace SceneExport{
 			if (weight.boneIndex3 == refBoneIndex)
 				vertexWeight = weight.weight3;
 			
-			return new Vector4(result.x, result.y, result.z, dominantBone);//.vertexWeight);//totalWeight);
+			return new Vector4(result.x, result.y, result.z, wValue);//.vertexWeight);//totalWeight);
 		}
 		
 		void visualizeMesh(SkinnedMeshRenderer skinRend){

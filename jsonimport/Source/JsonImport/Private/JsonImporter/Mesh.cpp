@@ -32,6 +32,7 @@
 
 #include "DesktopPlatformModule.h"
 #include "MeshBuilder.h"
+#include "SkeletalMeshBuilder.h"
 
 using namespace UnrealUtilities;
 using namespace JsonObjects;
@@ -75,7 +76,7 @@ void JsonImporter::importSkeletalMesh(const JsonMesh &jsonMesh, int32 meshId){
 
 	auto mesh = createAssetObject<USkeletalMesh>(unrealMeshName, &desiredDir, this, 
 		[&](USkeletalMesh *mesh){
-			MeshBuilder meshBuilder;
+			SkeletalMeshBuilder meshBuilder;
 			meshBuilder.setupSkeletalMesh(mesh, jsonMesh, this, 
 				[&](auto &materials){
 					materials.Empty();

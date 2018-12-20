@@ -245,3 +245,24 @@ UMaterialInterface* JsonImporter::loadMaterialInterface(int32 id) const{
 	return loadMaterialInstance(id);
 }
 
+
+USkeleton* JsonImporter::getSkeletonObject(int32 id) const{
+	auto found = skeletonIdMap.Find(id);
+	if (!found)
+		return nullptr;
+	return LoadObject<USkeleton>(nullptr, **found);
+}
+
+void JsonImporter::registerSkeleton(int32 id, USkeleton *skel){
+	check(skel);
+	check(id >= 0);
+
+	if (skeletonIdMap.Contains(id)){
+		UE_LOG(JsonLog, Log, TEXT("Duplicate skeleton registration for id %d"), id);
+		return;
+	}
+
+	auto path = skel->GetPathName();
+	skeletonIdMap.Add(id, path);
+	//auto outer = skel->
+}
