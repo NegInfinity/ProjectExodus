@@ -1,5 +1,6 @@
 #pragma once
 #include "CoreMinimal.h"
+#include "JsonObjects.h"
 
 class AActor;
 using IdActorMap = TMap<int, AActor*>;
@@ -33,6 +34,10 @@ class ImportedGameObject{
 public:
 	AActor *actor = nullptr;
 	USceneComponent *component = nullptr;
+
+	bool isValid() const{
+		return actor || component;
+	}
 
 	void setActiveInHierarchy(bool active) const;
 	void setFolderPath(const FString &folderPath) const;
@@ -75,6 +80,9 @@ public:
 
 	TArray<AnimControllerIdKey> delayedAnimControllers;
 
+	TArray<JsonId> postProcessAnimatorObjects;
+
+	void registerAnimatorForPostProcessing(const JsonGameObject &jsonObj);
 	void registerDelayedAnimController(JsonId skelId, JsonId controllerId);
 
 	void registerObject(const ImportedGameObject &object, AActor *parent);

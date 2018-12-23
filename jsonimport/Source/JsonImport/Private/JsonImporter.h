@@ -123,7 +123,7 @@ protected:
 
 	//JsonAnimatorController loadAnimatorController(int id) const;
 
-	void processDelayedAnimators(ImportWorkData &workData);
+	void processDelayedAnimators(const TArray<JsonGameObject> &objects, ImportWorkData &workData);
 	void processDelayedAnimator(JsonId skelId, JsonId controllerId);
 
 	template<typename T> bool loadIndexedExternResource(T& outObj, int index, const StringArray &resPaths) const{

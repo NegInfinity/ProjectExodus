@@ -180,7 +180,7 @@ void JsonImporter::loadObjects(const TArray<JsonGameObject> &objects, ImportWork
 		importObject(curObj, objId, importData);
 		objProgress.EnterProgressFrame(1.0f);
 	}
-	processDelayedAnimators(importData);
+	processDelayedAnimators(objects, importData);
 }
 
 void JsonImporter::importResources(const JsonExternResourceList &externRes){
@@ -194,8 +194,8 @@ void JsonImporter::importResources(const JsonExternResourceList &externRes){
 	importPrefabs(externRes.prefabs);
 	loadTerrains(externRes.terrains);
 
-	loadAnimClipsDebug(externRes.animationClips);
-	loadAnimatorsDebug(externRes.animatorControllers); 
+	//loadAnimClipsDebug(externRes.animationClips);
+	//loadAnimatorsDebug(externRes.animatorControllers); 
 }
 
 JsonObjPtr JsonImporter::loadExternResourceFromFile(const FString &filename) const{

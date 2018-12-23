@@ -97,3 +97,8 @@ void ImportedGameObject::setFolderPath(const FString &folderPath) const{
 void ImportWorkData::registerDelayedAnimController(JsonId skelId, JsonId controllerId){
 	delayedAnimControllers.Add(AnimControllerIdKey(skelId, controllerId));
 }
+
+void ImportWorkData::registerAnimatorForPostProcessing(const JsonGameObject &jsonObj){
+	if (!postProcessAnimatorObjects.Contains(jsonObj.id))
+		postProcessAnimatorObjects.Add(jsonObj.id);
+}

@@ -12,6 +12,7 @@ namespace SceneExport{
 		public Animator animator = null;
 		
 		public List<JsonAnimationMatrixCurve> matrixCurves = new List<JsonAnimationMatrixCurve>();
+		public List<JsonAnimationSampledFloatCurve> sampledFloatCurves = new List<JsonAnimationSampledFloatCurve>();
 		
 		public void writeRawJsonValue(FastJsonWriter writer){
 			writer.beginRawObject();
@@ -46,6 +47,7 @@ namespace SceneExport{
 			writer.writeKeyVal("floatBindings", floatCurveBindings);
 			
 			writer.writeKeyVal("matrixCurves", matrixCurves);
+			writer.writeKeyVal("sampledFloatCurves", sampledFloatCurves);
 			
 			writer.endObject();
 		}
@@ -80,11 +82,15 @@ namespace SceneExport{
 			var prefabAnim = Utility.getSrcPrefabAssetObject(animator, false);
 
 			if (providedSampler != null){
-				matrixCurves = providedSampler.sampleClip(clip);
+				var sampled = providedSampler.sampleClip(clip);
+				matrixCurves = sampled;//.matrixCurves;
+				//sampledFloatCurves = sampled.floatCurves;
 			}
 			else{
 				using(var sampler = new AnimationSampler(prefabAnim, skeleton)){
-					matrixCurves = sampler.sampleClip(clip);
+					var sampled = sampler.sampleClip(clip);
+					matrixCurves = sampled;//.matrixCurves;
+					//sampledFloatCurves = sampled.floatCurves;
 				}
 			}
 			

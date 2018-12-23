@@ -82,13 +82,18 @@ void JsonImporter::processAnimator(ImportWorkData &workData, const JsonGameObjec
 	workData.registerDelayedAnimController(skelId, animatorId);
 }
 
-void JsonImporter::processDelayedAnimators(ImportWorkData &workData){
+void JsonImporter::processDelayedAnimators(const TArray<JsonGameObject> &objects, ImportWorkData &workData){
 	FScopedSlowTask delayedAnimProgress(workData.delayedAnimControllers.Num(), 
 		LOCTEXT("Processing animator controllers", "Processing animator controllers"));
 
 	for(const auto& i: workData.delayedAnimControllers){
 		processDelayedAnimator(i.Key, i.Value);
 		delayedAnimProgress.EnterProgressFrame();
+	}
+
+	for(const auto objId: workData.postProcessAnimatorObjects){
+		if ((objId < 0) || (objId >= objects.Num()))
+			continue;
 	}
 }
 

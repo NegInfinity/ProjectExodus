@@ -39,6 +39,7 @@ namespace SceneExport{
 		public List<string> defaultBoneNames = new List<string>();
 		
 		public string defaultMeshNodeName;
+		public string defaultMeshNodePath;
 		public Matrix4x4 defaultMeshNodeMatrix;//relative to root
 		//public JsonSkeleton skeleton = new JsonSkeleton();			
 		
@@ -316,6 +317,7 @@ namespace SceneExport{
 			defaultBoneNames = other.defaultBoneNames.ToList();
 			
 			defaultMeshNodeName = other.defaultMeshNodeName;
+			defaultMeshNodePath = other.defaultMeshNodePath;
 			defaultMeshNodeMatrix = other.defaultMeshNodeMatrix;
 			
 			blendShapeCount = other.blendShapeCount;
@@ -362,6 +364,7 @@ namespace SceneExport{
 			writer.writeKeyVal("defaultBoneNames", defaultBoneNames);
 			
 			writer.writeKeyVal("defaultMeshNodeName", defaultMeshNodeName);
+			writer.writeKeyVal("defaultMeshNodePath", defaultMeshNodePath);
 			writer.writeKeyVal("defaultMeshNodeMatrix", defaultMeshNodeMatrix);
 			
 			writer.writeKeyVal("blendShapeCount", blendShapeCount);			
@@ -428,6 +431,7 @@ namespace SceneExport{
 			defaultBoneNames = exp.getDefaultBoneNames(meshKey);
 			
 			defaultMeshNodeName = exp.getDefaultMeshNodeName(meshKey);
+			defaultMeshNodePath = exp.getDefaultMeshNodePath(meshKey);
 			defaultMeshNodeMatrix = exp.getDefaultMeshNodeMatrix(meshKey);
 			
 			var srcWeights = mesh.boneWeights;

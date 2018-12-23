@@ -64,7 +64,19 @@ namespace SceneExport{
 			spawnedAnimator.runtimeAnimatorController = samplingController;
 		}
 			
+		[System.Serializable]
+		public class SampledData{
+			public List<JsonAnimationMatrixCurve> matrixCurves = new List<JsonAnimationMatrixCurve>();
+			public List<JsonAnimationSampledFloatCurve> floatCurves = new List<JsonAnimationSampledFloatCurve>();
+			
+			public SampledData(List<JsonAnimationMatrixCurve> matrixCurves_, List<JsonAnimationSampledFloatCurve> floatCurves_){
+				matrixCurves = matrixCurves_;
+				floatCurves = floatCurves_;
+			}
+		};
+			
 		public List<JsonAnimationMatrixCurve> sampleClip(AnimationClip animClip){
+		//public SampledData sampleClip(AnimationClip animClip){
 			var result = new List<JsonAnimationMatrixCurve>();
 			
 			state.motion = animClip;
@@ -78,6 +90,12 @@ namespace SceneExport{
 			var matrixCurves = targetTransforms.Select((arg) => 
 				arg ? new JsonAnimationMatrixCurve(arg.name, arg.getScenePath(transformRoot)): new JsonAnimationMatrixCurve())
 				.ToList();
+				
+			/*
+			var floatBindings = AnimationUtility.GetCurveBindings(animClip);
+			var floatCurves = floatBindings
+				.Select((arg) => new JsonAnimationSampledFloatCurve(arg.propertyName, arg.path)).ToList();	
+			*/
 					
 			int frameIndex = 0;
 			for(float t = firstTime; t <= lastTime; t+= timeStep){
@@ -87,8 +105,25 @@ namespace SceneExport{
 						matrixCurves[index].addKey(t, frameIndex, curTransform, transformRoot);
 				});
 				frameIndex++;
+				
+				/*
+				//Well, this didn't work
+				floatCurves.forEach((curve, index) =>{
+					if (curve == null)
+						return;
+					var childObj = transformRoot.Find(curve.objectPath);
+					if (!childObj)
+						return;
+					var serialObj = new UnityEditor.SerializedObject(childObj.gameObject);
+					var serialProp = serialObj.FindProperty(curve.objectName);
+					if (serialProp == null)
+						return;
+					curve.keys.Add(new JsonSampledFloatKey(t, frameIndex, serialProp.floatValue));					
+				});
+				*/
 			}
 					
+			//return new SampledData(matrixCurves, floatCurves);
 			return matrixCurves;
 		}
 	}

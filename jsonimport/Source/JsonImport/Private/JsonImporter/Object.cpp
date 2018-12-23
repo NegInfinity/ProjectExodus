@@ -99,17 +99,37 @@ void JsonImporter::importObject(const JsonGameObject &jsonGameObj , int32 objId,
 	if (jsonGameObj.hasLights())
 		processLights(workData, jsonGameObj, parentObject, folderPath);
 
-	if (jsonGameObj.hasMesh())
+	if (jsonGameObj.hasMesh()){
 		processStaticMesh(workData, jsonGameObj, objId, parentObject, folderPath);
+	}
 
 	if (jsonGameObj.hasTerrain())
 		processTerrains(workData, jsonGameObj, parentObject, folderPath);
 
-	if (jsonGameObj.hasSkinMeshes())
+	if (jsonGameObj.hasSkinMeshes()){
 		processSkinMeshes(workData, jsonGameObj, parentObject, folderPath);
+	}
 
 	if (jsonGameObj.hasAnimators()){
 		processAnimators(workData, jsonGameObj, parentObject, folderPath);
+
+		if (!workData.importedObjects.Contains(jsonGameObj.id)){
+			FTransform transform;
+			transform.SetFromMatrix(jsonGameObj.ueWorldMatrix);
+
+			AActor *blankActor = workData.world->SpawnActor<AActor>(AActor::StaticClass(), transform);
+
+			auto *rootComponent = NewObject<USceneComponent>(blankActor);
+			rootComponent->SetWorldTransform(transform);
+			blankActor->SetRootComponent(rootComponent);
+
+			blankActor->SetActorLabel(jsonGameObj.ueName, true);
+
+			ImportedGameObject importedObject(blankActor);
+			setObjectHierarchy(importedObject, parentObject, folderPath, workData, jsonGameObj);
+
+			workData.importedObjects.Add(jsonGameObj.id, blankActor);
+		}
 	}
 }
 
@@ -179,6 +199,10 @@ void JsonImporter::processSkinRenderer(ImportWorkData &workData, const JsonGameO
 			meshComponent->SetMaterial(i, material);
 		}
 	}
+
+	ImportedGameObject importedObject(meshActor);
+	workData.importedObjects.Add(jsonGameObj.id, importedObject);
+	setObjectHierarchy(importedObject, parentObject, folderPath, workData, jsonGameObj);
 }
 
 void JsonImporter::processSkinMeshes(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedGameObject *parentObject, const FString &folderPath){

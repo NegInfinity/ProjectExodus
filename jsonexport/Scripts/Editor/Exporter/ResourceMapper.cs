@@ -142,6 +142,15 @@ namespace SceneExport{
 			return "";
 		}
 		
+		public string getDefaultMeshNodePath(MeshStorageKey key){
+			var tmp = meshDefaultSkeletonData.getValOrDefault(
+				key, null);
+			if ((tmp != null) && (tmp.meshNodeTransform))
+				return tmp.meshNodeTransform.getScenePath(tmp.defaultRoot);
+			
+			return "";
+		}
+		
 		public Matrix4x4 getDefaultMeshNodeMatrix(MeshStorageKey key){
 			var tmp = meshDefaultSkeletonData.getValOrDefault(
 				key, null);
