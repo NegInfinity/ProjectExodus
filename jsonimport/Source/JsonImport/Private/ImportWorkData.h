@@ -4,6 +4,21 @@
 class AActor;
 using IdActorMap = TMap<int, AActor*>;
 using IdSet = TSet<int>;
+using IdPair = TPair<JsonId, JsonId>;
+
+using AnimClipIdKey = TPair<JsonId, JsonId>;
+using AnimControllerIdKey = TPair<JsonId, JsonId>;
+
+using AnimClipPathMap = TMap<AnimClipIdKey, FString>;
+using AnimControllerPathMap = TMap<AnimControllerIdKey, FString>;
+
+AnimClipIdKey makeAnimClipKey(JsonId skeletonId, JsonId clipId){
+	return AnimClipIdKey(skeletonId, clipId);
+}
+
+AnimClipIdKey makeAnimControlKey(JsonId skeletonId, JsonId controllerId){
+	return AnimControllerIdKey(skeletonId, controllerId);
+}
 
 class USceneComponent;
 
@@ -58,6 +73,10 @@ public:
 	TArray<ImportedGameObject> childObjects;
 	TArray<ImportedGameObject> allObjects;
 
+	TArray<AnimControllerIdKey> delayedAnimControllers;
+
+	void registerDelayedAnimController(JsonId skelId, JsonId controllerId);
+
 	void registerObject(const ImportedGameObject &object, AActor *parent);
 	/*
 	TArray<AActor*> rootActors;
@@ -75,6 +94,8 @@ public:
 		objectFolderPaths.Empty();
 		//objectActors.Empty();
 		importedObjects.Empty();
+
+		delayedAnimControllers.Empty();
 	}
 };
 

@@ -79,12 +79,14 @@ namespace SceneExport{
 				arg ? new JsonAnimationMatrixCurve(arg.name, arg.getScenePath(transformRoot)): new JsonAnimationMatrixCurve())
 				.ToList();
 					
+			int frameIndex = 0;
 			for(float t = firstTime; t <= lastTime; t+= timeStep){
 				animClip.SampleAnimation(spawnedAnimator.gameObject, t);
 				targetTransforms.forEach((curTransform, index) => {
 					if (curTransform)
-						matrixCurves[index].addKey(t, curTransform, transformRoot);
+						matrixCurves[index].addKey(t, frameIndex, curTransform, transformRoot);
 				});
+				frameIndex++;
 			}
 					
 			return matrixCurves;

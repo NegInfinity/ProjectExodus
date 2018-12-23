@@ -5,6 +5,7 @@
 #include "JsonSkinRenderer.h"
 #include "JsonReflectionProbe.h"
 #include "JsonTerrain.h"
+#include "JsonAnimation.h"
 
 class JsonGameObject{
 public:
@@ -46,6 +47,7 @@ public:
 	TArray<JsonRenderer> renderers;
 	TArray<JsonSkinRenderer> skinRenderers;
 	TArray<JsonTerrain> terrains;
+	TArray<JsonAnimator> animators;
 
 	IntArray getFirstMaterials() const;
 
@@ -71,6 +73,10 @@ public:
 
 	bool hasRenderers() const{
 		return renderers.Num() > 0;
+	}
+
+	bool hasAnimators() const{
+		return animators.Num() > 0;
 	}
 
 	FMatrix ueWorldMatrix = FMatrix::Identity;

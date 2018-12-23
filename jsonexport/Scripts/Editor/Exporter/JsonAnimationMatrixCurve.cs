@@ -14,8 +14,8 @@ namespace SceneExport{
 		//public string postWrapMode;
 		public List<JsonTransformKey> keys = new List<JsonTransformKey>();
 		
-		public void addKey(float t, Transform curTransform, Transform refTransform){
-			var newKey = new JsonTransformKey(t, curTransform, refTransform);
+		public void addKey(float t, int frame, Transform curTransform, Transform refTransform){
+			var newKey = new JsonTransformKey(t, frame, curTransform, refTransform);
 			keys.Add(newKey);
 		}
 		

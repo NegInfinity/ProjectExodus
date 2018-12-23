@@ -9,6 +9,8 @@ public:
 	FVector z;
 	FVector pos;
 
+	FMatrix getUnityTransform() const;
+	FMatrix getUnrealTransform() const;
 	void load(JsonObjPtr data);
 	JsonTransform() = default;
 	JsonTransform(JsonObjPtr data){
@@ -19,6 +21,7 @@ public:
 class JsonTransformKey{
 public:
 	float time;
+	int frame;
 	JsonTransform local;
 	JsonTransform world;
 

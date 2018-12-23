@@ -5,6 +5,7 @@ namespace SceneExport{
 	[System.Serializable]
 	public struct JsonTransformKey: IFastJsonValue{
 		public float time;
+		public int frame;
 		public JsonTransform local;
 		public JsonTransform world;
 		
@@ -18,13 +19,15 @@ namespace SceneExport{
 		public void writeRawJsonValue(FastJsonWriter writer){
 			writer.beginRawObject();
 			writer.writeKeyVal("time", time);
+			writer.writeKeyVal("frame", frame);
 			writer.writeKeyVal("local", local);
 			writer.writeKeyVal("world", world);
 			writer.endObject();
 		}
 		
-		public JsonTransformKey(float time_, Transform transform, Transform refTransform){
+		public JsonTransformKey(float time_, int frame_, Transform transform, Transform refTransform){
 			time = time_;
+			frame = frame_;
 			if (!transform)
 				throw new System.ArgumentNullException("transform");
 			local = new JsonTransform(transform, transform.parent ? transform.parent: refTransform);

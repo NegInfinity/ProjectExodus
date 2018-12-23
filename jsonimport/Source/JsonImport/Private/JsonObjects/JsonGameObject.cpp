@@ -52,6 +52,7 @@ void JsonGameObject::load(JsonObjPtr jsonData){
 	getJsonObjArray(jsonData, probes, "reflectionProbes", true);
 	getJsonObjArray(jsonData, terrains, "terrains", true);
 	getJsonObjArray(jsonData, skinRenderers, "skinRenderers", true);
+	getJsonObjArray(jsonData, animators, "animators", true);
 
 	if (nameClash && (uniqueName.Len() > 0)){
 		UE_LOG(JsonLog, Warning, TEXT("Name clash detected on object %d: %s. Renaming to %s"), 

@@ -43,6 +43,6 @@ public:
 	void setupSkeletalMesh(USkeletalMesh *mesh, const JsonMesh &jsonMesh, const JsonImporter *importer, 
 		std::function<void(TArray<FSkeletalMaterial> &meshMaterials)> materialSetup, std::function<void(const JsonSkeleton&, USkeleton*)> onNewSkeleton);
 protected:
-	void setupReferenceSkeleton(FReferenceSkeleton &refSkeleton, const JsonSkeleton &jsonSkel, const USkeleton *unrealSkeleton) const;
+	void setupReferenceSkeleton(FReferenceSkeleton &refSkeleton, const JsonSkeleton &jsonSkel, const JsonMesh *jsonMesh,  const USkeleton *unrealSkeleton) const;
 	void registerPreviewMesh(USkeleton *skel, USkeletalMesh *mesh, const JsonMesh &jsonMesh);
 };

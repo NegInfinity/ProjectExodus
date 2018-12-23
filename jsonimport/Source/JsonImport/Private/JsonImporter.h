@@ -7,6 +7,7 @@
 #include "JsonObjects/JsonTerrainData.h"
 #include "JsonObjects/JsonSkeleton.h"
 #include "JsonObjects.h"
+#include "ImportWorkData.h"
 
 class UMaterialExpression;
 class UMaterialExpressionParameter;
@@ -29,14 +30,7 @@ class USphereReflectionCaptureComponent;
 class UBoxReflectionCaptureComponent;
 class UReflectionCaptureComponent;
 class USkeleton;
-
-/*
-struct ParentingData{
-	AActor *parent = nullptr;
-	FString folderPath;
-
-};
-*/
+class UAnimSequence;
 
 class JsonImporter{
 protected:
@@ -55,6 +49,8 @@ protected:
 	TArray<JsonMaterial> jsonMaterials;
 	TMap<JsonId, JsonSkeleton> jsonSkeletons;
 	IdNameMap skeletonIdMap;
+
+	AnimClipPathMap animClipPaths;//UAnimationSequence
 
 	//TMap<JsonId, Json
 	//IdNameMap animatorControllerIdMap;
@@ -94,6 +90,9 @@ protected:
 	void processTerrains(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedGameObject *parentObject, const FString& folderPath);
 	void processSkinMeshes(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedGameObject *parentObject, const FString &folderPath);
 	void processSkinRenderer(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonSkinRenderer &skinRend, ImportedGameObject *parentObject, const FString &folderPath);
+	void processAnimators(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedGameObject *parentObject, const FString &folderPath);
+	void processAnimator(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonAnimator &jsonAnimator, 
+		ImportedGameObject *parentObject, const FString &folderPath);
 
 	UWorld* importScene(const JsonScene &scene, bool createWorld);
 
@@ -121,7 +120,32 @@ protected:
 	//static void setActorHierarchy(AActor *actor, AActor *parentObject, const FString& folderPath, ImportWorkData &workData, const JsonGameObject &gameObj);
 
 	//UWorld* importScene(const JsonScene &scene, bool createWorld) const;
+
+	//JsonAnimatorController loadAnimatorController(int id) const;
+
+	void processDelayedAnimators(ImportWorkData &workData);
+	void processDelayedAnimator(JsonId skelId, JsonId controllerId);
+
+	template<typename T> bool loadIndexedExternResource(T& outObj, int index, const StringArray &resPaths) const{
+		if ((index < 0 ) || (index >= resPaths.Num())){
+			UE_LOG(JsonLog, Warning, TEXT("Could not load indexed extern resource %d"), index);
+			return false;
+		}
+
+		const auto &resPath = resPaths[index];
+		auto data = loadExternResourceFromFile(resPath);
+		if (!data.IsValid()){
+			UE_LOG(JsonLog, Warning, TEXT("Could not load indexed extern resource %d (%s)"), index, *resPath);
+			return false;
+		}
+
+		outObj.load(data);
+		return true;
+	}
 public:
+	UAnimSequence* getAnimSequence(AnimClipIdKey key) const;
+	void registerAnimSequence(AnimClipIdKey key, UAnimSequence *sequence);
+
 	USkeleton* getSkeletonObject(int32 id) const;
 	void registerSkeleton(int32 id, USkeleton *skel);
 

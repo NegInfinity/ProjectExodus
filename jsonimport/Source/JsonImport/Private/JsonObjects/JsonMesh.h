@@ -101,6 +101,13 @@ public:
 	int defaultSkeletonId = -1;
 	StringArray defaultBoneNames;
 
+	bool hasBones() const{
+		return boneIndexes.Num() > 0;
+	}
+
+	FString defaultMeshNodeName;
+	FMatrix defaultMeshNodeMatrix;//relative to skeleton root
+
 	int blendShapeCount = 0;
 	TArray<JsonBlendShape> blendShapes;
 	TArray<FMatrix> bindPoses;

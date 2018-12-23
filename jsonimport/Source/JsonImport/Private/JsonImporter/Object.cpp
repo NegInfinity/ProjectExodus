@@ -64,28 +64,6 @@ void JsonImporter::setObjectHierarchy(const ImportedGameObject &object, Imported
 	object.setActiveInHierarchy(gameObj.activeInHierarchy);
 }
 
-/*
-void JsonImporter::setActorHierarchy(AActor *actor, AActor *parentActor, const FString& folderPath, ImportWorkData &workData, const JsonGameObject &gameObj){
-	if (!actor)
-		return;
-	if (parentActor){
-		actor->AttachToActor(parentActor, FAttachmentTransformRules::KeepWorldTransform);
-	}
-	else{
-		if (folderPath.Len())
-			actor->SetFolderPath(*folderPath);
-	}
-	//workData.registerActor(actor, parentActor);
-
-	auto root = actor->GetRootComponent();
-	if (root)
-		root->bVisible = gameObj.activeInHierarchy;
-	actor->SetActorHiddenInGame(!gameObj.activeInHierarchy);
-	actor->SetActorEnableCollision(gameObj.activeInHierarchy);
-	actor->SetActorTickEnabled(gameObj.activeInHierarchy);
-}
-*/
-
 void JsonImporter::importObject(const JsonGameObject &jsonGameObj , int32 objId, ImportWorkData &workData){
 	//UE_LOG(JsonLog, Log, TEXT("Importing object %d"), objId);
 
@@ -129,6 +107,10 @@ void JsonImporter::importObject(const JsonGameObject &jsonGameObj , int32 objId,
 
 	if (jsonGameObj.hasSkinMeshes())
 		processSkinMeshes(workData, jsonGameObj, parentObject, folderPath);
+
+	if (jsonGameObj.hasAnimators()){
+		processAnimators(workData, jsonGameObj, parentObject, folderPath);
+	}
 }
 
 USkeletalMesh* JsonImporter::loadSkeletalMeshById(JsonId id) const{
@@ -197,39 +179,12 @@ void JsonImporter::processSkinRenderer(ImportWorkData &workData, const JsonGameO
 			meshComponent->SetMaterial(i, material);
 		}
 	}
-
-
-	//material override
-	//meshComponent->material
-
-	/*
-	auto poseableComp = NewObject<UPoseableMeshComponent>();
-	poseableComp->AttachToComponent(meshActor->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
-	poseableComp->SetSkeletalMesh(skelMesh);
-	poseableComp->CopyPoseFromSkeletalComponent(meshActor->GetSkeletalMeshComponent());
-	*/
-
-	/*
-	auto *meshObject = LoadObject<UStaticMesh>(0, *meshPath);
-	if (!meshObject){
-		UE_LOG(JsonLog, Warning, TEXT("Could not load mesh %s"), *meshPath);
-		return;
-	}
-
-	AStaticMeshActor *worldMesh = Cast<AStaticMeshActor>(meshActor);
-	//if params is static
-	if (!worldMesh){
-		UE_LOG(JsonLog, Warning, TEXT("Wrong actor class"));
-		return;
-	}
-	*/
-
-	//workData.world
 }
-
 
 void JsonImporter::processSkinMeshes(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedGameObject *parentObject, const FString &folderPath){
 	for(const auto &jsonSkin: gameObj.skinRenderers){
+		if (!gameObj.activeInHierarchy)//Temporary hack to debug
+			continue;
 		processSkinRenderer(workData, gameObj, jsonSkin, parentObject, folderPath);
 	}
 }

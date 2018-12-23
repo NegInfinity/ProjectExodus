@@ -4,5 +4,5 @@
 
 class AnimationBuilder{
 public:
-	void buildAnimation(UAnimSequence *animSequence, const JsonAnimationClip &srcClip);
+	void buildAnimation(UAnimSequence *animSequence, USkeleton *skeleton, const JsonAnimationClip &srcClip);
 };

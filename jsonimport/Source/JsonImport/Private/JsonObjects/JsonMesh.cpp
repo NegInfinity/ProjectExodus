@@ -68,6 +68,10 @@ void JsonMesh::load(JsonObjPtr data){
 	defaultBoneNames = getStringArray(data, "defaultBoneNames", true);
 	logValue(TEXT("defaultBoneNames: "), boneIndexes);
 
+	JSON_GET_VAR_NOLOG(data, defaultMeshNodeName);
+	defaultMeshNodeMatrix = FMatrix::Identity;
+	JSON_GET_VAR_NOLOG(data, defaultMeshNodeMatrix);
+
 	JSON_GET_VAR(data, blendShapeCount);
 	getJsonObjArray(data, blendShapes, "blendShapes", blendShapeCount == 0);
 

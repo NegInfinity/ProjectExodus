@@ -93,3 +93,7 @@ void ImportedGameObject::setFolderPath(const FString &folderPath) const{
 		return;
 	actor->SetFolderPath(*folderPath);
 }
+
+void ImportWorkData::registerDelayedAnimController(JsonId skelId, JsonId controllerId){
+	delayedAnimControllers.Add(AnimControllerIdKey(skelId, controllerId));
+}

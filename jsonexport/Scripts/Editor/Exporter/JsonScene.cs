@@ -26,33 +26,36 @@ namespace SceneExport{
 		}
 		
 		public static JsonScene fromObjects(GameObject[] args, ResourceMapper resMap, bool showGui){
-			var result = new JsonScene();
+			try{
+				var result = new JsonScene();
 			
-			var objMap = new GameObjectMapper();
-			foreach(var curObj in args){
-				objMap.gatherObjectIds(curObj);
-			}
-			
-			foreach(var curObj in objMap.objectList){
-				resMap.gatherPrefabData(curObj);
-			}
-			
-			for(int i = 0; i < objMap.objectList.Count; i++){
-				/*TODO: The constructor CAN add more data, but most of it would've been added prior to this point.
-				Contempalting whether to enforce it strictly or not.*/
-				if (showGui){
-					ExportUtility.showProgressBar("Collecting scene data", 
-						string.Format("Adding scene object {0}/{1}", i, objMap.numObjects), i, objMap.objectList.Count);
+				var objMap = new GameObjectMapper();
+				foreach(var curObj in args){
+					objMap.gatherObjectIds(curObj);
 				}
-				
-				var newObj = new JsonGameObject(objMap.objectList[i], objMap, resMap);
-				result.objects.Add(newObj);
-			}
-			if (showGui){
-				ExportUtility.hideProgressBar();
-			}
 			
-			return result;
+				foreach(var curObj in objMap.objectList){
+					resMap.gatherPrefabData(curObj);
+				}
+			
+				for(int i = 0; i < objMap.objectList.Count; i++){
+					/*TODO: The constructor CAN add more data, but most of it would've been added prior to this point.
+					Contempalting whether to enforce it strictly or not.*/
+					if (showGui){
+						ExportUtility.showProgressBar("Collecting scene data", 
+							string.Format("Adding scene object {0}/{1}", i, objMap.numObjects), i, objMap.objectList.Count);
+					}
+				
+					var newObj = new JsonGameObject(objMap.objectList[i], objMap, resMap);
+					result.objects.Add(newObj);
+				}
+				return result;
+			}
+			finally{
+				if (showGui){
+					ExportUtility.hideProgressBar();
+				}
+			}
 		}
 			
 		public void writeJsonObjectFields(FastJsonWriter writer){

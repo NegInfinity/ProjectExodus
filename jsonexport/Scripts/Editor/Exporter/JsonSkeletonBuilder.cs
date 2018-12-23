@@ -136,10 +136,12 @@ Let's proceed with first attempt, which does not take this madness scenario into
 					break;
 				var animComp = curParent.GetComponent<Animation>();
 				if (animComp)
-					return curTransform;
+					return curParent;//curTransform;
+					
 				var animatorComp = curParent.GetComponent<Animator>();
+				//var animatorComp = curTransform.GetComponent<Animator>();//This way the skeleton will be identical to the one from prefab.
 				if (animatorComp)
-					return curTransform;
+					return curParent;//curTransform;
 				curTransform = curParent;
 			}
 			

@@ -1,8 +1,10 @@
 #include "JsonImportPrivatePCH.h"
 #include "JsonAnimation.h"
 #include"macros.h"
+#include "UnrealUtilities.h"
 
 using namespace JsonObjects;
+using namespace UnrealUtilities;
 
 //#define JSON_ENABLE_VALUE_LOGGING
 
@@ -23,6 +25,7 @@ void JsonTransform::load(JsonObjPtr data){
 
 void JsonTransformKey::load(JsonObjPtr data){
 	JSON_GET_VAR_NOLOG(data, time);
+	JSON_GET_VAR_NOLOG(data, frame);
 
 	getJsonObj(data, local, "local");
 	getJsonObj(data, world, "world");
@@ -145,3 +148,17 @@ void JsonEditorCurveBinding::load(JsonObjPtr data){
 	getJsonObjArray(data, curves, "curves");
 }
 */
+
+FMatrix JsonTransform::getUnityTransform() const{
+	auto result = FMatrix::Identity;
+	auto x1 = x;
+	auto y1 = y;
+	auto z1 = z;
+	auto pos1 = pos;
+	result.SetAxes(&x1, &y1, &z1, &pos1); //Why aren't those pointers const?
+	return result;
+}
+
+FMatrix JsonTransform::getUnrealTransform() const{
+	return unityWorldToUe(getUnityTransform());
+}

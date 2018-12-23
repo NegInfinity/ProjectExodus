@@ -15,7 +15,7 @@ using namespace UnrealUtilities;
 using namespace JsonObjects;
 using namespace MeshBuilderUtils;
 
-void SkeletalMeshBuilder::setupReferenceSkeleton(FReferenceSkeleton &refSkeleton, const JsonSkeleton &jsonSkel, const USkeleton *unrealSkeleton) const{
+void SkeletalMeshBuilder::setupReferenceSkeleton(FReferenceSkeleton &refSkeleton, const JsonSkeleton &jsonSkel, const JsonMesh *jsonMesh, const USkeleton *unrealSkeleton) const{
 	refSkeleton.Empty();
 	FReferenceSkeletonModifier refSkelModifier(refSkeleton, unrealSkeleton);//nullptr);
 
@@ -48,6 +48,22 @@ void SkeletalMeshBuilder::setupReferenceSkeleton(FReferenceSkeleton &refSkeleton
 		auto boneInfo = FMeshBoneInfo(FName(*srcBone.name), srcBone.name, parentBoneIndex);
 
 		unityWorldMat = srcBone.world;
+
+		if (jsonMesh){
+			auto boneIndex = jsonMesh->defaultBoneNames.IndexOfByKey(srcBone.name);
+			UE_LOG(JsonLog, Log, TEXT("Attempting to find boneIndex for bone \"%s\" on mesh %d(\"%s\")"), 
+				*srcBone.name, jsonMesh->id, *jsonMesh->name);
+			if (boneIndex != INDEX_NONE){
+				auto boneMatrix = jsonMesh->inverseBindPoses[boneIndex];
+				UE_LOG(JsonLog, Log, TEXT("Bone index found: %d"), boneIndex);
+				logValue(TEXT("Matrix: "), boneMatrix);
+				unityWorldMat = boneMatrix;
+			}
+			else{
+				UE_LOG(JsonLog, Warning, TEXT("Bone \"%s\" not found"), *srcBone.name);
+			}
+		}
+
 		unrealWorldMat = unityWorldToUe(unityWorldMat);
 
 		//logValue(TEXT("unityWorldMat: "), unityWorldMat);
@@ -136,6 +152,13 @@ void SkeletalMeshBuildData::buildSkeletalMesh(FSkeletalMeshLODModel &lodModel, c
 	IMeshUtilities::MeshBuildOptions buildOptions;
 	buildOptions.bComputeNormals = !hasNormals;
 	buildOptions.bComputeTangents = !hasTangents;//true;
+
+	/*
+	buildOptions.OverlappingThresholds.ThresholdPosition = 0.0f;
+	buildOptions.OverlappingThresholds.ThresholdTangentNormal = 0.0f;
+	buildOptions.OverlappingThresholds.ThresholdUV = 0.0f;
+	*/
+
 	IMeshUtilities& meshUtils = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
 	meshUtils.BuildSkeletalMesh(lodModel, 
 		refSkeleton, 
@@ -161,6 +184,9 @@ void SkeletalMeshBuildData::computeBoundingBox(USkeletalMesh *skelMesh, const Js
 	FBox boundBox(meshPoints.GetData(), meshPoints.Num());
 	auto tmpBox = boundBox;
 	auto midPoint = (boundBox.Min + boundBox.Max) * 0.5f;
+	UE_LOG(JsonLog, Log, TEXT("Bounding Box(%d:\"%s\") Min: %f %f %f ; Max: %f %f %f"),
+		jsonMesh.id, *jsonMesh.name,
+		tmpBox.Min.X, tmpBox.Min.Y, tmpBox.Min.Z, tmpBox.Max.X, tmpBox.Max.Y, tmpBox.Max.Z);
 
 	//This is done in skeletal mesh import in fbx. Apparnetly it doubles boundbox size, except it raises bottom of the box to the leg level.
 	boundBox.Min = tmpBox.Min + 1.0f*(tmpBox.Min - midPoint);
@@ -171,46 +197,253 @@ void SkeletalMeshBuildData::computeBoundingBox(USkeletalMesh *skelMesh, const Js
 }
 
 
+struct SkeletalMeshInfluence{
+	int boneIndex = 0;
+	float weight = 0.0f;
+	int intWeight = 0;
+	void recomputeInt(){
+		intWeight = (int)(255.0f * weight);
+	}
+	void recomputeFloat(){
+		weight = ((float)intWeight)/255.0f;
+	}
+	SkeletalMeshInfluence() = default;
+	SkeletalMeshInfluence(int boneIndex_, float weight_)
+	:boneIndex(boneIndex_), weight(weight_){
+		intWeight = (int)(weight * 255.0f);//truncate
+	}
+};
+
+using SkeletalMeshInfluenceArray = TArray<SkeletalMeshInfluence>;
+using BoneInfluenceMap = TMap<int, SkeletalMeshInfluenceArray>;
+
+float getTotalWeight(const SkeletalMeshInfluenceArray &arr){
+	float result = 0.0f;
+	for(const auto &cur: arr){
+		result += cur.weight;
+	}
+	return result;
+}
+
+int getTotalIntWeight(const SkeletalMeshInfluenceArray &arr){
+	int result = 0;
+	for(const auto &cur: arr){
+		result += cur.intWeight;
+	}
+	return result;
+}
+
+void printBoneInfluenceMap(const BoneInfluenceMap &boneInfluences){
+	for(auto &cur: boneInfluences){
+		UE_LOG(JsonLog, Log, TEXT("Influence for vert %d: %f (%d)"), cur.Key, getTotalWeight(cur.Value), getTotalIntWeight(cur.Value));
+		for(int i = 0; i < cur.Value.Num(); i++){
+			UE_LOG(JsonLog, Log, TEXT("Influence %d/%d: %f (%d)"), i, cur.Value.Num(), cur.Value[i].weight, cur.Value[i].intWeight);
+		}
+	}
+}
+
+void normalizeInfluenceMap(BoneInfluenceMap &boneInfluences){
+	for(auto &cur: boneInfluences){
+		if (cur.Value.Num() == 0)
+			continue;
+
+		for(auto &infl: cur.Value){
+			infl.weight = FMath::Clamp(infl.weight, 0.0f, 1.0f);
+			infl.recomputeInt();
+		}
+
+		float totalFloat = getTotalWeight(cur.Value);
+		if ((totalFloat > 1.0f) && (totalFloat != 0.0f)){
+			float scale = 1.0f/totalFloat;
+			for(auto &infl: cur.Value){
+				infl.weight *= scale;
+				infl.recomputeInt();
+			}
+		}
+
+		int totalInt = getTotalIntWeight(cur.Value);
+		check((totalInt >= 0) && (totalInt <= 255));//This shouldn't fire at this point, but you never know.
+
+		auto extra = 255 - totalInt;
+		if (extra > 0){
+			auto& largest = cur.Value[0];
+			largest.intWeight += extra;
+			largest.recomputeFloat();
+		}
+
+		for(auto &infl: cur.Value){
+			infl.recomputeFloat();
+		}
+	}
+}
+
 void SkeletalMeshBuildData::processPositionsAndWeights(const JsonMesh &jsonMesh, const TMap<int, int> &meshToSkeletonBoneMap, StringArray &remapErrors){
 //void SkeletalMeshBuildData::processVerts(const JsonMesh &jsonMesh, StringArray &remapErrors){
 	const int jsonInfluencesPerVertex = 4;
 
 	bool hasBones = jsonMesh.boneIndexes.Num() > 0;
+
+	/*
+	//TMap<int, float> summaryWeightMap;
+	//TMap<int, TArray<int>> influenceIndexes;
+
+	//TMap<int, int> summaryIntWeightMap;
+	*/
+
+	//vertices themselves
 	for(int vertIndex = 0; vertIndex < jsonMesh.vertexCount; vertIndex++){
 		auto srcVert = getIdxVector3(jsonMesh.verts, vertIndex);
 		meshPoints.Add(unityPosToUe(srcVert));
 		pointToOriginalMap.Add(vertIndex);
+	}
 
-		if (hasBones){
+	/*
+	the mapping to uint8 for bone weights is troublesome.
+	*/
+	TMap<int, SkeletalMeshInfluenceArray> boneInfluences;
+	if (hasBones){
+		for(int vertIndex = 0; vertIndex < jsonMesh.vertexCount; vertIndex++){
 			for(int inflIndex = 0; inflIndex < jsonInfluencesPerVertex; inflIndex++){
 				auto dataOffset = inflIndex + vertIndex * jsonInfluencesPerVertex;
 				auto meshBoneIdx = jsonMesh.boneIndexes[dataOffset]; 
 				auto boneWeight = jsonMesh.boneWeights[dataOffset];
-				#if 0
-				/*if (boneWeight == 0.0f)
-					continue;*/
-				#endif
-				auto &dstInfl = meshInfluences.AddDefaulted_GetRef();
+				//if (boneWeight < 0.0f)//There actually ARE negative weight somewhere, andd they cause mesh spikes.
+				if (boneWeight <= 0.0f)
+					continue;
+
+				//auto dstInfluenceIndex = meshInfluences.Num();
 				auto skelBoneIdx = meshBoneIdx;
 				auto foundIdx = meshToSkeletonBoneMap.Find(meshBoneIdx);
 				if (!foundIdx){
 					remapErrors.Add(
 						FString::Printf(TEXT("Could not remap mesh bone index %d in vertex influence, errors are possible"),
 							meshBoneIdx));
-					/*
-					UE_LOG(JsonLog, Error, TEXT("Could not remap mesh bone index %d in vertex influence, errors are possible"),
-						meshBoneIdx);*/
 				}
 				else{
 					skelBoneIdx = *foundIdx;
 				}
 
-				dstInfl.BoneIndex = skelBoneIdx;//meshBoneIdx;
-				dstInfl.Weight = boneWeight;
-				dstInfl.VertIndex = vertIndex;
+				SkeletalMeshInfluence tmpInfluence(skelBoneIdx, boneWeight);
+				boneInfluences.FindOrAdd(vertIndex).Add(tmpInfluence);
 			}
 		}
 	}
+	else{
+		UE_LOG(JsonLog, Log, TEXT("The mesh \"%s\"(%d) has no bones. Remapping it to the original parent \"%s\""),
+			*jsonMesh.name, jsonMesh.id, *jsonMesh.defaultMeshNodeName);
+		//well. We're remapping it to the single bone the skeleton has. 
+		int origIndex = 0;//yep. Always a bone 0.
+		auto foundIdx = meshToSkeletonBoneMap.Find(origIndex);
+		auto remappedIndex = origIndex;
+		if (!foundIdx){
+			remapErrors.Add(
+				FString::Printf(TEXT("Could not remap mesh bone index %d in vertex influence, errors are possible"),
+					origIndex));
+		}
+		else{
+			remappedIndex = *foundIdx;
+		}
+		for(int vertIndex = 0; vertIndex < jsonMesh.vertexCount; vertIndex++){
+			SkeletalMeshInfluence tmpInfluence(remappedIndex, 1.0f);
+			boneInfluences.FindOrAdd(vertIndex).Add(tmpInfluence);
+		}
+	}
+
+	/*
+	UE_LOG(JsonLog, Log, TEXT("Pre-sort bone influences on %s(%d)"), *jsonMesh.name, jsonMesh.id);
+	printBoneInfluenceMap(boneInfluences);
+	*/
+
+	//Sorting the influences from strongest to weakest
+	for(auto &cur: boneInfluences){
+		Algo::SortBy(cur.Value, [](const SkeletalMeshInfluence &arg){return -arg.weight;});
+		//cur.Value.Sort(
+	}
+
+	/*
+	UE_LOG(JsonLog, Log, TEXT("Post-sort bone influences on %s(%d)"), *jsonMesh.name, jsonMesh.id);
+	printBoneInfluenceMap(boneInfluences);
+	*/
+
+	normalizeInfluenceMap(boneInfluences);
+
+	/*
+	UE_LOG(JsonLog, Log, TEXT("Post-normalization bone influences on %s(%d)"), *jsonMesh.name, jsonMesh.id);
+	printBoneInfluenceMap(boneInfluences);
+	*/
+
+	for(const auto &cur: boneInfluences){
+		float total = 0.0f;
+		for(const auto &infl: cur.Value){
+			auto &dstInfl = meshInfluences.AddDefaulted_GetRef();
+			dstInfl.VertIndex = cur.Key;
+			dstInfl.BoneIndex = infl.boneIndex;//meshBoneIdx;
+			dstInfl.Weight = infl.weight;// * 2.0f;
+			total += infl.weight;
+
+			if (total >= 256.0f/255.0f){
+				UE_LOG(JsonLog, Log, TEXT("Total overflow: %f on vertex %d"), total, dstInfl.VertIndex);
+			}
+			//dstInfl.Weight = 1.0f;
+			//
+			//break;
+		}
+	}
+
+	/*
+	for(auto& cur: boneInfluences){
+		auto &influences = cur.Value;
+		
+		auto totalInt = getTotalIntWeight(influences);
+		auto totalFloat = getTotalWeight(influences);
+		if (totalFloat != 1.0f){
+			UE_LOG(JsonLog, Warning, TEXT("Invalid total bone on vertex %d, mesh %s (%d), value %f"),
+				cur.Key, *jsonMesh.name, jsonMesh.id, totalFloat);
+		}
+		if (totalInt != 255){
+			UE_LOG(JsonLog, Warning, TEXT("Invalid total int bone on vertex %d, mesh %s (%d), value %d"),
+				cur.Key, *jsonMesh.name, jsonMesh.id, totalInt);
+			if (totalInt > 255){
+				UE_LOG(JsonLog, Warning, TEXT("Value is too large and will result in wraparound!"));
+			}
+		}
+	}
+	*/
+
+	/*
+	for(const auto &cur: summaryIntWeightMap){
+		if ((cur.Value > 255) || (cur.Value < 0)){
+			UE_LOG(JsonLog, Warning, TEXT("Invalid total int weight %d on vertex %d, mesh %s (%d)"),
+				cur.Value, cur.Key, *jsonMesh.name, jsonMesh.id)
+		}
+	}
+
+	for(int vertIndex = 0; vertIndex < jsonMesh.vertexCount; vertIndex++){
+		if (!summaryWeightMap.Contains(vertIndex)){
+			UE_LOG(JsonLog, Warning, TEXT("Unbound skin vertex %d on mesh %s(%d)"), vertIndex, *jsonMesh.name, jsonMesh.id);
+		}
+	}
+	*/
+
+	/*
+	for(const auto &cur: summaryWeightMap){
+		auto &curIndexes = cur.Value;
+		for(const auto influeneIndexes: curIndexes){
+		}
+	}
+	*/
+	/*
+	for(const auto &cur: summaryWeightMap){
+		if (cur.Value > 1.0f){
+			UE_LOG(JsonLog, Warning, TEXT("Bone weight value %f is too high on vertex %d, mesh %s (%d)"),
+				cur.Value, cur.Key, *jsonMesh.name, jsonMesh.id)
+		}
+		if (cur.Value < 1.0f){
+			UE_LOG(JsonLog, Warning, TEXT("Bone weight value %f is too low on vertex %d, mesh %s (%d)"),
+				cur.Value, cur.Key, *jsonMesh.name, jsonMesh.id)
+		}
+	}
+	*/
 }
 
 
@@ -312,19 +545,28 @@ void SkeletalMeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonM
 	}
 
 	TMap<int, int> meshToSkeletonBoneMap;
-	for(int boneIndex = 0; boneIndex < jsonMesh.defaultBoneNames.Num(); boneIndex++){
-		const auto &curName = jsonMesh.defaultBoneNames[boneIndex];
-		const auto skeletonBoneIndex = jsonSkel->findBoneIndex(curName);
-		if (skeletonBoneIndex < 0){
-			UE_LOG(JsonLog, Warning, TEXT("Bone \"%s\" not found while processing mesh \"%s\""), 
-				*curName, *jsonMesh.name);
-			continue;
+	if (jsonMesh.hasBones()){
+		for(int boneIndex = 0; boneIndex < jsonMesh.defaultBoneNames.Num(); boneIndex++){
+			const auto &curName = jsonMesh.defaultBoneNames[boneIndex];
+			const auto skeletonBoneIndex = jsonSkel->findBoneIndex(curName);
+			if (skeletonBoneIndex < 0){
+				UE_LOG(JsonLog, Warning, TEXT("Bone \"%s\" not found while processing mesh \"%s\""), 
+					*curName, *jsonMesh.name);
+				continue;
+			}
+			meshToSkeletonBoneMap.Add(boneIndex, skeletonBoneIndex);
 		}
-		meshToSkeletonBoneMap.Add(boneIndex, skeletonBoneIndex);
+	}
+	else{
+		//Falling back to "no bones" mesh...
+		const auto &defaultName = jsonMesh.defaultMeshNodeName;
+		const auto defaultBoneIndex = 0;
+		const auto skeletonBoneIndex = jsonSkel->findBoneIndex(defaultName);
+		meshToSkeletonBoneMap.Add(defaultBoneIndex, skeletonBoneIndex);
 	}
 
 	auto &refSkeleton = skelMesh->RefSkeleton;
-	setupReferenceSkeleton(refSkeleton, *jsonSkel, nullptr);
+	setupReferenceSkeleton(refSkeleton, *jsonSkel, &jsonMesh, nullptr);//hmm.... exisitng skeleton?
 
 	TArray<UMorphTarget*> morphTargets;
 

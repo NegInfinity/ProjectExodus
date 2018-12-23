@@ -12,6 +12,7 @@
 #include "JsonObjects/JsonRenderer.h"
 #include "JsonObjects/JsonTerrain.h"
 #include "JsonObjects/JsonTerrainDetailPrototype.h"
+#include "JsonObjects/JsonAnimation.h"
 #include "JsonObjects/macros.h"
 #include "JsonObjects/loggers.h"
 #include "JsonObjects/getters.h"

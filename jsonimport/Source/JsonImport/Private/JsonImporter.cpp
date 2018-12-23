@@ -180,6 +180,7 @@ void JsonImporter::loadObjects(const TArray<JsonGameObject> &objects, ImportWork
 		importObject(curObj, objId, importData);
 		objProgress.EnterProgressFrame(1.0f);
 	}
+	processDelayedAnimators(importData);
 }
 
 void JsonImporter::importResources(const JsonExternResourceList &externRes){
@@ -250,7 +251,8 @@ USkeleton* JsonImporter::getSkeletonObject(int32 id) const{
 	auto found = skeletonIdMap.Find(id);
 	if (!found)
 		return nullptr;
-	return LoadObject<USkeleton>(nullptr, **found);
+	auto result = LoadObject<USkeleton>(nullptr, **found);
+	return result;
 }
 
 void JsonImporter::registerSkeleton(int32 id, USkeleton *skel){
@@ -265,4 +267,21 @@ void JsonImporter::registerSkeleton(int32 id, USkeleton *skel){
 	auto path = skel->GetPathName();
 	skeletonIdMap.Add(id, path);
 	//auto outer = skel->
+}
+
+UAnimSequence* JsonImporter::getAnimSequence(AnimClipIdKey key) const{
+	auto found = animClipPaths.Find(key);
+	if (!found)
+		return nullptr;
+	return LoadObject<UAnimSequence>(nullptr, **found);
+}
+
+void JsonImporter::registerAnimSequence(AnimClipIdKey key, UAnimSequence *sequence){
+	check(sequence);
+	if (animClipPaths.Contains(key)){
+		UE_LOG(JsonLog, Warning, TEXT("Duplicate animation clip regsitration for skeleton %d; clip %d"), key.Key, key.Value)
+		return;
+	}
+	auto path = sequence->GetPathName();
+	animClipPaths.Add(key, path);
 }

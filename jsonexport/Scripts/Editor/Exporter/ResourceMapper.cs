@@ -74,6 +74,8 @@ namespace SceneExport{
 		}
 		
 		public int getAnimatorControllerId(UnityEditor.Animations.AnimatorController obj, Animator animator){
+			if (!animator || !obj)
+				return -1;
 			return animatorControllers.getId(new AnimatorControllerKey(obj, animator), true);
 		}
 		
@@ -129,6 +131,24 @@ namespace SceneExport{
 		public int findMeshId(Mesh obj){
 			var key = new MeshStorageKey(obj);
 			return meshes.getId(key, false);
+		}
+		
+		public string getDefaultMeshNodeName(MeshStorageKey key){
+			var tmp = meshDefaultSkeletonData.getValOrDefault(
+				key, null);
+			if ((tmp != null) && (tmp.meshNodeTransform))
+				return tmp.meshNodeTransform.name;
+			
+			return "";
+		}
+		
+		public Matrix4x4 getDefaultMeshNodeMatrix(MeshStorageKey key){
+			var tmp = meshDefaultSkeletonData.getValOrDefault(
+				key, null);
+			if ((tmp != null) && (tmp.meshNodeTransform))
+				Utility.getRelativeMatrix(tmp.meshNodeTransform, tmp.defaultRoot);
+			
+			return Matrix4x4.identity;
 		}
 		
 		public List<string> getDefaultBoneNames(MeshStorageKey key){
@@ -234,11 +254,6 @@ namespace SceneExport{
 			 Transform skeletonRoot = null;
 			 if (includeSkeleton){
 			 	skeletonRoot = Utility.getSrcPrefabAssetObject(JsonSkeletonBuilder.findSkeletonRoot(meshRend), false);
-			 	/*
-			 	skeletonRoot = JsonSkeletonBuilder.findSkeletonRoot(meshRend);
-			 	var skeletonPrefab = PrefabUtility.GetCorrespondingObjectFromSource(skeletonRoot) as Transform;
-			 	if (skeletonPrefab)
-			 		skeletonRoot = skeletonPrefab;*/
 			 }
 			 return new MeshStorageKey(mesh, prefabRoot, skeletonRoot);
 		}
