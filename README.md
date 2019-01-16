@@ -2,12 +2,12 @@
 
 ## Description
 
-"ProjectExodus" is a conversion tool intended to convert individual scenes and whole projects from Unity to Unreal engine. The conversion is not perfect and limitations apply. 
+"ProjectExodus" is a conversion tool intended to convert individual scenes and whole projects from Unity to Unreal engine. The conversion focus solely on assets, ignoring all the game logic (C#) and limitations apply. 
 The project is available under BSD-3 license, and constists of two plugins - one for unity and one for unreal, and also includes very basic demo scene for unity. 
 
 ## Disclaimer/Warning
 
-This document is subject to change, and due to the project being develoepd, may be altered on short notice.
+This document is subject to change, and due to the project being developed, may be altered on short notice.
 
 ## File, Folders and Installation.
 
