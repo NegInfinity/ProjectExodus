@@ -9,12 +9,28 @@ The project is available under BSD-3 license, and constists of two plugins - one
 
 This document is subject to change, and due to the project being develoepd, may be altered on short notice.
 
-## File, Folders and Installation.
+## Files and Folders
 
 * SampleScene - this is a simple test for unity. Simply copy the folder somewhere within your "assets".
-* "Exporter" folder (currently named jsonexport) - This is a set of scripts used for the conversion itself. Copy the folder into somepoint of your unity project to use, and wait for compilation to finish.
-* "Importer" folder (currently named jsonimport) - This is for unreal side. Within your project, create "Plugins" folder, and copy this folder there. Then you'll have to rebuild your project and enable the plugin from plugin settings.
+* "ExodusExport" folder - This is a set of scripts used for the conversion itself. Copy the folder into somepoint of your unity project to use, and wait for compilation to finish.
+* "ExodusImport" folder - This is for unreal side. Within your project, create "Plugins" folder, and copy this folder there. Then you'll have to rebuild your project and enable the plugin from plugin settings.
 * binaries - this folder contains several precompiled versions but will likely be removed in near future. Please do not rely on it.
+
+## Installation - Unity side
+
+To install exporter plugin into unity project, copy or symlink "ExodusExport" folder into any location within "Assets" folder and wait for scripts to finish compiling. Once compilation is finished the export action would be available 
+in context menu within Hierarchy window, or via MainMenu.
+
+## Installation - Unreal side.
+
+* Within your C++ project, create "Plugins" folder if it does not already exist.
+* Copy or SymLink "ExodusImport" folder there. 
+* Reload the project.
+* Go to "Plugins" menu in unreal editor, find "ExodusImport" under "Other" category, and enable it. The project will be restarted.
+* Recompile the project if necessary.
+* Once successfully installed, "Import" command will be available via button bar above scene view.
+
+Please disregard buttons that are not marked "Import", if such buttons are present. Those are test cases.
 
 ## Usage
 
