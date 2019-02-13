@@ -77,7 +77,7 @@ namespace SceneExport{
 			writer.writeKeyVal("isHuman", animator.isHuman);
 			writer.writeKeyVal("layerCount", animator.layerCount);
 			writer.writeKeyVal("layersAffectMassCenter", animator.layersAffectMassCenter);
-			writer.writeKeyVal("linearVelocityBlending", animator.linearVelocityBlending);
+			//writer.writeKeyVal("linearVelocityBlending", animator.linearVelocityBlending);
 			writer.writeKeyVal("speed", animator.speed);
 			writer.writeKeyVal("stabilizeFeet", animator.stabilizeFeet);
 			

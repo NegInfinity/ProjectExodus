@@ -251,7 +251,11 @@ namespace SceneExport{
 			 Meaning if you apply it to an instanced prefab, it'll find root of that that instanced prefab in the scene, and not the original asset
 			 */
 			 
-			 var prefabRoot = Utility.getSrcPrefabAssetObject(PrefabUtility.FindPrefabRoot(meshRend.gameObject), false);
+			 var prefabRoot = Utility.getSrcPrefabAssetObject(
+				 Utility.getPrefabInstanceRoot(meshRend.gameObject),
+				 //PrefabUtility.FindPrefabRoot(meshRend.gameObject),
+				false
+			);
 			 
 			 /*
 			 var prefabRoot = PrefabUtility.FindPrefabRoot(meshRend.gameObject);

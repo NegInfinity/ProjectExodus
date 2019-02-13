@@ -10,7 +10,9 @@ namespace SceneExport{
 		public string path;
 		public string guid;
 		
-		public string prefabType;
+		//public string prefabType;
+		public string prefabAssetType;
+		public string prefabInstanceStatus;
 		
 		public List<JsonGameObject> objects = new List<JsonGameObject>();
 		
@@ -20,7 +22,9 @@ namespace SceneExport{
 			writer.writeKeyVal("path", path);
 			writer.writeKeyVal("guid", guid);
 			
-			writer.writeKeyVal("prefabType", prefabType);
+			//writer.writeKeyVal("prefabType", prefabType);
+			writer.writeKeyVal("prefabAssetType", prefabAssetType);
+			writer.writeKeyVal("prefabInstanceStatus", prefabInstanceStatus);
 			
 			writer.writeKeyVal("objects", objects);
 			writer.endObject();
@@ -33,7 +37,9 @@ namespace SceneExport{
 			guid = AssetDatabase.AssetPathToGUID(path);
 			//name = System.IO.Path.GetFileName(path);
 			name = prefabObject.name;//looks like name of prefab mirrors that of a file, sans extension
-			prefabType = PrefabUtility.GetPrefabType(prefabObject).ToString();
+			//prefabType = PrefabUtility.GetPrefabType(prefabObject).ToString();
+			prefabAssetType = PrefabUtility.GetPrefabAssetType(prefabObject).ToString();
+			prefabInstanceStatus = PrefabUtility.GetPrefabInstanceStatus(prefabObject).ToString();
 			
 			var mapper = resMap.getPrefabObjectMapper(prefabObject);
 			for(int i = 0; i < mapper.numObjects; i++){

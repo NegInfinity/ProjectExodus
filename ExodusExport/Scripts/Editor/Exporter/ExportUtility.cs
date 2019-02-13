@@ -151,7 +151,7 @@ namespace SceneExport{
 				
 			return convertComponentsList<CompType, JsonType>(gameObject, converter).ToArray();
 		}
-		
+
 		public static List<GameObject> getSelectedGameObjects(){
 			List<GameObject> result = new List<GameObject>();
 			if (Selection.transforms.Length <= 0)

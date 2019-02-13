@@ -30,6 +30,8 @@ namespace SceneExport{
 		public JsonReflectionProbe[] reflectionProbes = null;
 		public List<JsonSkinRendererData> skinRenderers = new List<JsonSkinRendererData>();
 		public List<JsonAnimator> animators = new List<JsonAnimator>();
+		public List<JsonCollider> colliders = new List<JsonCollider>();
+		public List<JsonRigidbody> rigidbodies = new List<JsonRigidbody>();
 		
 		public JsonTerrain[] terrains = null;
 		
@@ -102,6 +104,7 @@ namespace SceneExport{
 			writer.writeKeyVal("skinRenderers", skinRenderers, true);
 			writer.writeKeyVal("animators", animators, true);
 			writer.writeKeyVal("terrains", terrains, true);
+			writer.writeKeyVal("colliders", colliders, true);
 			
 			writer.endObject();
 		}
@@ -131,11 +134,12 @@ namespace SceneExport{
 			activeSelf = obj.activeSelf;
 			activeInHierarchy = obj.activeInHierarchy;
 			
-			var prefType = PrefabUtility.GetPrefabType(obj);
-			prefabType = prefType.ToString();
+			//var prefType = PrefabUtility.GetPrefabType(obj);
+			//prefabType = prefType.ToString();
 			prefabRootId = resMap.getRootPrefabId(obj, true);
 			prefabObjectId = resMap.getPrefabObjectId(obj, true);
-			prefabInstance = (prefType == PrefabType.PrefabInstance) || (prefType == PrefabType.ModelPrefabInstance);			
+			prefabInstance = Utility.isPrefabInstance(obj) || Utility.isPrefabModelInstance(obj);
+			//prefabInstance = (prefType == PrefabType.PrefabInstance) || (prefType == PrefabType.ModelPrefabInstance);			
 
 			renderer = JsonRendererData.makeRendererArray(obj.GetComponent<Renderer>(), resMap);
 			light = JsonLight.makeLightArray(obj.GetComponent<Light>());
@@ -150,7 +154,22 @@ namespace SceneExport{
 				
 			skinRenderers = 
 				ExportUtility.convertComponentsList<SkinnedMeshRenderer, JsonSkinRendererData>(obj, 
-					(c) => new JsonSkinRendererData(c, objMap, resMap));
+					(c) => new JsonSkinRendererData(c, objMap, resMap)
+			);
+
+			colliders = ExportUtility.convertComponentsList<Collider, JsonCollider>(
+				obj, (arg) => new JsonCollider(arg, resMap)
+			);
+
+			rigidbodies = ExportUtility.convertComponentsList<Rigidbody, JsonRigidbody>(
+				obj, (arg) => new JsonRigidbody(arg)
+			);
+
+			/*
+			if (rigidbodies.Count > 1){
+				//Logger.log
+			}
+			*/
 					
 			///..... I think those can be replaced with linq queries (-_-)
 			/*

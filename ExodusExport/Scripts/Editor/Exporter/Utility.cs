@@ -40,6 +40,25 @@ namespace SceneExport{
 			}
 			return linked;
 		}
+
+		public static GameObject getPrefabInstanceRoot(GameObject obj){
+			return PrefabUtility.FindPrefabRoot(obj);			
+		}
+
+		public static bool isPrefabModelInstance(Object obj){
+			var prefType = PrefabUtility.GetPrefabType(obj);
+			return (prefType == PrefabType.ModelPrefabInstance);
+		}
+
+		public static bool isPrefabInstance(Object obj){
+			var prefType = PrefabUtility.GetPrefabType(obj);
+			return (prefType == PrefabType.PrefabInstance);
+		}
+
+		public static bool isTrackablePrefab(Object obj){
+			var prefType = PrefabUtility.GetPrefabType(obj);
+			return (prefType == PrefabType.ModelPrefab) || (prefType == PrefabType.Prefab);
+		}
 		
 		public static Vector4 getIdxVector4(this float[] floats, int vertIndex){
 			var baseOffset = vertIndex * 4;
