@@ -215,7 +215,7 @@ ULandscapeLayerInfoObject* TerrainBuilder::createTerrainLayerInfo(int layerIndex
 void TerrainBuilder::processFoliageTreeActors(ALandscape *landscape){
 	UE_LOG(JsonLogTerrain, Log, TEXT("Processing terrain mesh actors. %d types, %d instances"), terrainData.treePrototypes.Num(), terrainData.treeInstances.Num());
 
-	auto* ifa = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(workData.world, true);
+	auto* ifa = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(workData.world.Get(), true);
 
 	FString terrPath, terrFileName, terrExt;
 	FPaths::Split(terrainData.exportPath, terrPath, terrFileName, terrExt);

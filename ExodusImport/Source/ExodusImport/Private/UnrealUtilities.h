@@ -140,7 +140,7 @@ namespace UnrealUtilities{
 	}
 
 	template <typename T>T* createActor(ImportWorkData& workData, FTransform transform, const TCHAR* logName = 0){
-		return createActor<T>(workData.world, transform, workData.editorMode, logName);
+		return createActor<T>(workData.world.Get(), transform, workData.editorMode, logName);
 	}	
 
 	using PackageLoaderFunc = std::function<UPackage*(const FString&)>;

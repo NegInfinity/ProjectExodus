@@ -1,6 +1,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "JsonObjects.h"
+#include "Runtime/CoreUObject/Public/UObject/StrongObjectPtr.h"
 
 class AActor;
 using IdActorMap = TMap<int, AActor*>;
@@ -70,7 +71,8 @@ public:
 
 	ImportedObjectMap importedObjects;
 	//IdActorMap objectActors;
-	UWorld *world;
+	TStrongObjectPtr<UWorld> world;
+	//UWorld *world;
 	bool editorMode;
 	bool storeActors;
 
