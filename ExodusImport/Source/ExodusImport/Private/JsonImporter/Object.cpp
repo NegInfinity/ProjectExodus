@@ -44,23 +44,16 @@
 using namespace JsonObjects;
 
 
-/*void JsonImporter::setObjectHierarchy(ImportedGameObject *object, ImportedGameObject *parentObject, 
-		const FString& folderPath, ImportWorkData &workData, const JsonGameObject &gameObj){*/
 void JsonImporter::setObjectHierarchy(const ImportedGameObject &object, ImportedGameObject *parentObject, 
 		const FString& folderPath, ImportWorkData &workData, const JsonGameObject &gameObj){
-	/*if (!object)
-		return;*/
 	if (parentObject){
 		object.attachTo(parentObject);
-		//actor->AttachToActor(parentActor, FAttachmentTransformRules::KeepWorldTransform);
 	}
 	else{
 		if (folderPath.Len())
 			object.setFolderPath(*folderPath);
 	}
-	//workData.registerActor(actor, parentActor);
 
-	//object->setActiveInHierarchy(gameObj.activeInHierarchy);
 	object.setActiveInHierarchy(gameObj.activeInHierarchy);
 }
 
@@ -69,8 +62,6 @@ void JsonImporter::importObject(const JsonGameObject &jsonGameObj , int32 objId,
 
 	FString folderPath;
 
-	//auto *parentData = workData.objectActors.Find(jsonGameObj.parentId);
-	//AActor *parentActor = workData.objectActors.FindRef(jsonGameObj.parentId);
 	auto* parentObject = workData.importedObjects.Find(jsonGameObj.parentId);
 
 	FString childFolderPath = jsonGameObj.ueName;

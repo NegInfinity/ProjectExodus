@@ -34,6 +34,7 @@
 
 #include "UnrealUtilities.h"
 #include "JsonObjects.h"
+#include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
 
 #define LOCTEXT_NAMESPACE "FJsonImportModule"
 

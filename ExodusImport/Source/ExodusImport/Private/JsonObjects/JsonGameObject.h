@@ -6,6 +6,8 @@
 #include "JsonReflectionProbe.h"
 #include "JsonTerrain.h"
 #include "JsonAnimation.h"
+#include "JsonCollider.h"
+#include "JsonRigidbody.h"
 
 class JsonGameObject{
 public:
@@ -48,6 +50,16 @@ public:
 	TArray<JsonSkinRenderer> skinRenderers;
 	TArray<JsonTerrain> terrains;
 	TArray<JsonAnimator> animators;
+
+	TArray<JsonCollider> colliders;
+	TArray<JsonRigidbody> rigidbodies;
+
+	int getNumComponents() const{
+		return lights.Num() + probes.Num()
+			+ renderers.Num() + skinRenderers.Num()
+			+ terrains.Num() + animators.Num()
+			+ colliders.Num() + rigidbodies.Num();
+	}
 
 	IntArray getFirstMaterials() const;
 

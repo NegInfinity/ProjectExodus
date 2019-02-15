@@ -1,12 +1,25 @@
 #include "JsonImportPrivatePCH.h"
 #include "JsonGameObject.h"
 #include "macros.h"
+#include "UnrealUtilities.h"
+
+/*
+Apparently Unreal 4 build system concatenates all the cpp files together during compilation phase.
+Meaning... *.cpp units are not isolated from each other.
+
+Apparently Intellisense is unaware of that.
+
+I guess it means I should no longer place "using namespace" at beginning of *.cpp files and expect it to be isolated.
+*/
 
 JsonGameObject::JsonGameObject(JsonObjPtr jsonData){
 	load(jsonData);
 }
 
 void JsonGameObject::load(JsonObjPtr jsonData){
+	using namespace JsonObjects;
+	using namespace UnrealUtilities;
+
 	JSON_GET_PARAM(jsonData, name, getString);
 	JSON_GET_PARAM(jsonData, id, getInt);
 
@@ -53,6 +66,9 @@ void JsonGameObject::load(JsonObjPtr jsonData){
 	getJsonObjArray(jsonData, terrains, "terrains", true);
 	getJsonObjArray(jsonData, skinRenderers, "skinRenderers", true);
 	getJsonObjArray(jsonData, animators, "animators", true);
+
+	getJsonObjArray(jsonData, colliders, "colliders", true);
+	getJsonObjArray(jsonData, rigidbodies, "rigidbodies", true);
 
 	if (nameClash && (uniqueName.Len() > 0)){
 		UE_LOG(JsonLog, Warning, TEXT("Name clash detected on object %d: %s. Renaming to %s"), 

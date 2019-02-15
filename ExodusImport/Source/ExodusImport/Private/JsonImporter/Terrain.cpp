@@ -23,13 +23,10 @@ using namespace JsonObjects;
 void JsonImporter::processTerrains(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedGameObject *parentObject, const FString& folderPath){
 	UE_LOG(JsonLog, Log, TEXT("Processing terrains for object %d"), gameObj.id);
 	for(const auto& cur: gameObj.terrains){
-		//processTerrain(workData, gameObj, cur, parentActor, folderPath);
 		processTerrain(workData, gameObj, cur, parentObject, folderPath);
 	}
 }
 
-/*void JsonImporter::processTerrain(ImportWorkData &workData, const JsonGameObject &jsonGameObj, const JsonTerrain &jsonTerrain, 
-		AActor *parentActor, const FString& folderPath){*/
 void JsonImporter::processTerrain(ImportWorkData &workData, const JsonGameObject &jsonGameObj, 
 		const JsonTerrain &jsonTerrain, ImportedGameObject *parentObject, const FString& folderPath){
 	auto dataId = jsonTerrain.terrainDataId;
