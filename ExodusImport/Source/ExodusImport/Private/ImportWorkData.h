@@ -31,7 +31,7 @@ A game object can be spawned as a component or as an actor.
 
 This is represented in this structure. If "component" is set, "actor" is irrelevant or nullptr.
 */
-class ImportedGameObject{
+class ImportedObject{
 public:
 	AActor *actor = nullptr;
 	USceneComponent *component = nullptr;
@@ -44,21 +44,22 @@ public:
 	void setFolderPath(const FString &folderPath) const;
 
 	void attachTo(AActor *actor, USceneComponent *component) const;
-	void attachTo(ImportedGameObject *parent) const;
+	void attachTo(ImportedObject *parent) const;
 
-	ImportedGameObject() = default;
+	ImportedObject() = default;
 
-	ImportedGameObject(AActor *actor_)
+	ImportedObject(AActor *actor_)
 	:actor(actor_), component(nullptr){}
 
-	ImportedGameObject(USceneComponent *component_)
+	ImportedObject(USceneComponent *component_)
 	:actor(nullptr), component(component_){}
 
-	ImportedGameObject(AActor *actor_, USceneComponent *component_)
+	ImportedObject(AActor *actor_, USceneComponent *component_)
 	:actor(actor_), component(component_){}
 };
 
-using ImportedObjectMap = TMap<JsonId, ImportedGameObject>;
+using ImportedObjectMap = TMap<JsonId, ImportedObject>;
+using ImportedObjectArray = TArray<ImportedObject>;
 
 /*
 This one exists mostly to deal with the fact htat IDs are unique within SCENE, 
@@ -78,9 +79,9 @@ public:
 	bool editorMode;
 	bool storeActors;
 
-	TArray<ImportedGameObject> rootObjects;
-	TArray<ImportedGameObject> childObjects;
-	TArray<ImportedGameObject> allObjects;
+	TArray<ImportedObject> rootObjects;
+	TArray<ImportedObject> childObjects;
+	TArray<ImportedObject> allObjects;
 
 	TArray<AnimControllerIdKey> delayedAnimControllers;
 
@@ -89,7 +90,7 @@ public:
 	void registerAnimatorForPostProcessing(const JsonGameObject &jsonObj);
 	void registerDelayedAnimController(JsonId skelId, JsonId controllerId);
 
-	void registerObject(const ImportedGameObject &object, AActor *parent);
+	void registerObject(const ImportedObject &object, AActor *parent);
 	/*
 	TArray<AActor*> rootActors;
 	TArray<AActor*> childActors;

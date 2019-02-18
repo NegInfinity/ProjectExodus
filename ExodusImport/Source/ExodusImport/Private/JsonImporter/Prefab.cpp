@@ -116,9 +116,9 @@ This is definitely broken and therefore disabled.
 	}
 
 	const auto &firstObject = prefab.objects[0];
-	ImportedGameObject firstImportedGameObject(nullptr, nullptr);
+	ImportedObject firstImportedGameObject(nullptr, nullptr);
 
-	ImportedGameObject *rootObject = 0;
+	ImportedObject *rootObject = 0;
 	//AActor *rootActor = 0;
 	//if (workData.objectActors.Contains(0)){
 	if (workData.importedObjects.Contains(0)){
@@ -130,7 +130,7 @@ This is definitely broken and therefore disabled.
 		firstObjectTransform.SetFromMatrix(firstObject.ueWorldMatrix);
 		//errrm? Why isn't it being registered afterwards?
 		auto *rootActor = createActor<AActor>(workData, firstObjectTransform, TEXT("AActor"));
-		firstImportedGameObject = ImportedGameObject(rootActor);
+		firstImportedGameObject = ImportedObject(rootActor);
 		rootObject = &firstImportedGameObject;
 	}
 

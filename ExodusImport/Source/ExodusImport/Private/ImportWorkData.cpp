@@ -11,7 +11,7 @@ void ImportWorkData::addRootActor(AActor* actor){
 }
 */
 
-void ImportWorkData::registerObject(const ImportedGameObject &object, AActor *parent){
+void ImportWorkData::registerObject(const ImportedObject &object, AActor *parent){
 	if (!storeActors)
 		return;
 	if (!parent)
@@ -33,7 +33,7 @@ void ImportWorkData::registerActor(AActor* actor, AActor *parent){
 }
 */
 
-void ImportedGameObject::attachTo(AActor *parentActor, USceneComponent *parentComponent) const{
+void ImportedObject::attachTo(AActor *parentActor, USceneComponent *parentComponent) const{
 	check(actor || component);
 
 	check(parentActor || parentComponent);
@@ -66,12 +66,12 @@ void ImportedGameObject::attachTo(AActor *parentActor, USceneComponent *parentCo
 	}
 }
 
-void ImportedGameObject::attachTo(ImportedGameObject *parent) const{
+void ImportedObject::attachTo(ImportedObject *parent) const{
 	check(parent);
 	attachTo(parent->actor, parent->component);
 }
 
-void ImportedGameObject::setActiveInHierarchy(bool active) const{
+void ImportedObject::setActiveInHierarchy(bool active) const{
 	if (!actor)
 		return;
 	if (component){
@@ -88,7 +88,7 @@ void ImportedGameObject::setActiveInHierarchy(bool active) const{
 	}
 }
 
-void ImportedGameObject::setFolderPath(const FString &folderPath) const{
+void ImportedObject::setFolderPath(const FString &folderPath) const{
 	if (!actor)
 		return;
 	actor->SetFolderPath(*folderPath);

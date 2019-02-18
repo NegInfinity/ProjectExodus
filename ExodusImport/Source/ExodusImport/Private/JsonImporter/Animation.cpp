@@ -58,14 +58,14 @@ void JsonImporter::loadAnimClipsDebug(const StringArray &animClipPaths){
 	}
 }
 
-void JsonImporter::processAnimators(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedGameObject *parentObject, const FString &folderPath){
+void JsonImporter::processAnimators(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedObject *parentObject, const FString &folderPath){
 	for(const auto& animator: gameObj.animators){
 		processAnimator(workData, gameObj, animator, parentObject, folderPath);
 	}
 }
 
 void JsonImporter::processAnimator(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonAnimator &jsonAnimator, 
-		ImportedGameObject *parentObject, const FString &folderPath){
+		ImportedObject *parentObject, const FString &folderPath){
 
 	auto animatorId = jsonAnimator.animatorControllerId;
 	if (animatorId < 0){
