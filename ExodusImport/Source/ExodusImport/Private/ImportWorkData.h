@@ -46,6 +46,8 @@ public:
 	void attachTo(AActor *actor, USceneComponent *component) const;
 	void attachTo(ImportedGameObject *parent) const;
 
+	ImportedGameObject() = default;
+
 	ImportedGameObject(AActor *actor_)
 	:actor(actor_), component(nullptr){}
 

@@ -27,7 +27,7 @@ void JsonImporter::processTerrains(ImportWorkData &workData, const JsonGameObjec
 	}
 }
 
-void JsonImporter::processTerrain(ImportWorkData &workData, const JsonGameObject &jsonGameObj, 
+ImportedGameObject JsonImporter::processTerrain(ImportWorkData &workData, const JsonGameObject &jsonGameObj, 
 		const JsonTerrain &jsonTerrain, ImportedGameObject *parentObject, const FString& folderPath){
 	auto dataId = jsonTerrain.terrainDataId;
 	UE_LOG(JsonLogTerrain, Log, TEXT("Terrain data id found: %d"), dataId);
@@ -35,7 +35,7 @@ void JsonImporter::processTerrain(ImportWorkData &workData, const JsonGameObject
 	auto terrainData = terrainDataMap.Find(dataId);
 	if (!terrainData){
 		UE_LOG(JsonLogTerrain, Warning, TEXT("Terrain data could not be found for id: %d"), dataId);
-		return;
+		return ImportedGameObject();
 	}
 	UE_LOG(JsonLogTerrain, Log, TEXT("Export path: \"%s\""), *(terrainData->exportPath));
 
@@ -44,15 +44,15 @@ void JsonImporter::processTerrain(ImportWorkData &workData, const JsonGameObject
 
 	if (!builtTerrain){
 		UE_LOG(JsonLogTerrain, Error, TEXT("Failed to build terrain \"%s\""), *(terrainData->exportPath));
-		return;
+		return ImportedGameObject();
 	}
 	builtTerrain->PostEditChange();
 
 	//setActorHierarchy(builtTerrain, parentActor, folderPath, workData, jsonGameObj);
 
 	//setObjectHierarchy(builtTerrain, parentObject, folderPath, workData, jsonGameObj);
-	setObjectHierarchy(ImportedGameObject(builtTerrain), parentObject, folderPath, workData, jsonGameObj);
+	ImportedGameObject result(builtTerrain);
+	setObjectHierarchy(result, parentObject, folderPath, workData, jsonGameObj);
 
-
-	//return builtTerrain;
+	return result;
 }

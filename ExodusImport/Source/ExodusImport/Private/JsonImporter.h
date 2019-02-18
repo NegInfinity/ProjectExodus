@@ -29,7 +29,9 @@ class UDirectionalLightComponent;
 class USphereReflectionCaptureComponent;
 class UBoxReflectionCaptureComponent;
 class UReflectionCaptureComponent;
+class ULightComponent;
 class USkeleton;
+class USkeletalMesh;
 class UAnimSequence;
 
 class JsonImporter{
@@ -68,31 +70,35 @@ protected:
 	IdSet emissiveMaterials;
 	MaterialBuilder materialBuilder;
 
-	/*
-	ALandscape* createDefaultLandscape(ImportWorkData &workData, const JsonGameObject &jsonGameObj);
-	ALandscape* createDefaultLandscape(UWorld *world);
-	*/
+	using ImportedObjectCallback = std::function<void(const ImportedGameObject &obj)>;
+	using ImportedObjectArray = TArray<ImportedGameObject>;
 
-	void setupReflectionCapture(ImportWorkData &workData, const JsonGameObject &gameObj, 
-		const JsonReflectionProbe &probe, int32 objId, ImportedGameObject *parentObject, const FString &folderPath);
+	static void registerImportedObject(ImportedObjectArray *outArray, const ImportedGameObject &arg);
 
 	void setupPointLightComponent(UPointLightComponent *pointLight, const JsonLight &jsonLight);
 	void setupSpotLightComponent(USpotLightComponent *spotLight, const JsonLight &jsonLight);
 	void setupDirLightComponent(ULightComponent *dirLight, const JsonLight &jsonLight);
 
 	UWorld* importSceneObjectsAsWorld(const TArray<JsonGameObject> &sceneObjects, const FString &sceneName, const FString &scenePath);
-	void processReflectionProbes(ImportWorkData &workData, const JsonGameObject &gameObj, int32 objId, ImportedGameObject *parentObject, const FString &folderPath);
-	void processLight(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonLight &light, ImportedGameObject *parentObject, const FString& folderPath);
-	void processLights(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedGameObject *parentObject, const FString& folderPath);
-	void processStaticMesh(ImportWorkData &workData, const JsonGameObject &gameObj, int objId, ImportedGameObject *parentObject, const FString& folderPath);
 
-	void processTerrain(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonTerrain &jsonTerrain, ImportedGameObject *parentObject, const FString& folderPath);
+	ImportedGameObject processReflectionProbe(ImportWorkData &workData, const JsonGameObject &gameObj,
+		const JsonReflectionProbe &probe, int32 objId, ImportedGameObject *parentObject, const FString &folderPath);
+	void processReflectionProbes(ImportWorkData &workData, const JsonGameObject &gameObj, int32 objId, ImportedGameObject *parentObject, const FString &folderPath);
+
+	ImportedGameObject processLight(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonLight &light, ImportedGameObject *parentObject, const FString& folderPath);
+	void processLights(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedGameObject *parentObject, const FString& folderPath);
+
+	ImportedGameObject processStaticMesh(ImportWorkData &workData, const JsonGameObject &gameObj, int objId, ImportedGameObject *parentObject, const FString& folderPath);
+
+	ImportedGameObject processTerrain(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonTerrain &jsonTerrain, ImportedGameObject *parentObject, const FString& folderPath);
 	void processTerrains(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedGameObject *parentObject, const FString& folderPath);
+
 	void processSkinMeshes(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedGameObject *parentObject, const FString &folderPath);
-	void processSkinRenderer(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonSkinRenderer &skinRend, ImportedGameObject *parentObject, const FString &folderPath);
-	void processAnimators(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedGameObject *parentObject, const FString &folderPath);
-	void processAnimator(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonAnimator &jsonAnimator, 
+	ImportedGameObject processSkinRenderer(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonSkinRenderer &skinRend, ImportedGameObject *parentObject, const FString &folderPath);
+
+	void processAnimator(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonAnimator &jsonAnimator,
 		ImportedGameObject *parentObject, const FString &folderPath);
+	void processAnimators(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedGameObject *parentObject, const FString &folderPath);
 
 	UWorld* importScene(const JsonScene &scene, bool createWorld);
 

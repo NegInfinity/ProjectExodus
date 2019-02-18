@@ -38,6 +38,7 @@
 #include "RawMesh.h"
 
 #include "JsonObjects.h"
+#include "UnrealUtilities.h"
 
 #include "DesktopPlatformModule.h"
 
@@ -78,6 +79,9 @@ void JsonImporter::importObject(const JsonGameObject &jsonGameObj , int32 objId,
 
 	//UE_LOG(JsonLog, Log, TEXT("Folder path for object: %d: %s"), jsonGameObj.id, *folderPath);
 	workData.objectFolderPaths.Add(jsonGameObj.id, childFolderPath);
+	UE_LOG(JsonLog, Log, TEXT("Num components for object %d(%s): %d"), jsonGameObj.id, *folderPath, jsonGameObj.getNumComponents());
+
+	bool multiComponentObject = jsonGameObj.getNumComponents() > 1;
 
 	if (!workData.world){
 		UE_LOG(JsonLog, Warning, TEXT("No world"));
@@ -138,23 +142,23 @@ USkeletalMesh* JsonImporter::loadSkeletalMeshById(JsonId id) const{
 	//return nullptr;
 }
 
-void JsonImporter::processSkinRenderer(ImportWorkData &workData, const JsonGameObject &jsonGameObj, 
+ImportedGameObject JsonImporter::processSkinRenderer(ImportWorkData &workData, const JsonGameObject &jsonGameObj, 
 		const JsonSkinRenderer &skinRend, ImportedGameObject *parentObject, const FString &folderPath){
 
 	UE_LOG(JsonLog, Log, TEXT("Importing skin mesh %d for object %s"), skinRend.meshId, *jsonGameObj.name);
 	if (skinRend.meshId < 0)
-		return;
+		return ImportedGameObject();
 
 	auto foundMeshPath = skinMeshIdMap.Find(skinRend.meshId);
 	if (!foundMeshPath){
 		UE_LOG(JsonLog, Log, TEXT("Could not locate skin mesh %d for object %s"), skinRend.meshId, *jsonGameObj.name);
-		return;
+		return ImportedGameObject();
 	}
 
 	auto *skelMesh = loadSkeletalMeshById(skinRend.meshId);
 	if (!skelMesh){
 		UE_LOG(JsonLog, Error, TEXT("Coudl not load skinMesh %d on object %d(%s)"), skinRend.meshId, jsonGameObj.id, *jsonGameObj.name);
-		return;
+		return ImportedGameObject();
 	}
 
 
@@ -172,7 +176,7 @@ void JsonImporter::processSkinRenderer(ImportWorkData &workData, const JsonGameO
 	ASkeletalMeshActor *meshActor = workData.world->SpawnActor<ASkeletalMeshActor>(ASkeletalMeshActor::StaticClass(), transform, spawnParams);
 	if (!meshActor){
 		UE_LOG(JsonLog, Warning, TEXT("Couldn't spawn skeletal actor"));
-		return;
+		return ImportedGameObject();
 	}
 
 	meshActor->SetActorLabel(jsonGameObj.ueName, true);
@@ -194,6 +198,15 @@ void JsonImporter::processSkinRenderer(ImportWorkData &workData, const JsonGameO
 	ImportedGameObject importedObject(meshActor);
 	workData.importedObjects.Add(jsonGameObj.id, importedObject);
 	setObjectHierarchy(importedObject, parentObject, folderPath, workData, jsonGameObj);
+	return importedObject;
+}
+
+void JsonImporter::registerImportedObject(ImportedObjectArray *outArray, const ImportedGameObject &arg){
+	if (!outArray)
+		return;
+	if (!arg.isValid())
+		return;
+	outArray->Push(arg);
 }
 
 void JsonImporter::processSkinMeshes(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedGameObject *parentObject, const FString &folderPath){
@@ -205,9 +218,9 @@ void JsonImporter::processSkinMeshes(ImportWorkData &workData, const JsonGameObj
 }
 
 
-void JsonImporter::processStaticMesh(ImportWorkData &workData, const JsonGameObject &jsonGameObj, int objId, ImportedGameObject *parentObject, const FString& folderPath){
+ImportedGameObject JsonImporter::processStaticMesh(ImportWorkData &workData, const JsonGameObject &jsonGameObj, int objId, ImportedGameObject *parentObject, const FString& folderPath){
 	if (!jsonGameObj.hasMesh())
-		return;
+		return ImportedGameObject();
 
 	UE_LOG(JsonLog, Log, TEXT("Mesh found in object %d, name %s"), objId, *jsonGameObj.ueName);
 	
@@ -221,14 +234,14 @@ void JsonImporter::processStaticMesh(ImportWorkData &workData, const JsonGameObj
 	auto *meshObject = LoadObject<UStaticMesh>(0, *meshPath);
 	if (!meshObject){
 		UE_LOG(JsonLog, Warning, TEXT("Could not load mesh %s"), *meshPath);
-		return;
+		return ImportedGameObject();
 	}
 
 	//I wonder why it is "spawn" here and Add everywhere else. But whatever.
 	AActor *meshActor = workData.world->SpawnActor<AActor>(AStaticMeshActor::StaticClass(), transform, spawnParams);
 	if (!meshActor){
 		UE_LOG(JsonLog, Warning, TEXT("Couldn't spawn actor"));
-		return;
+		return ImportedGameObject();
 	}
 
 	meshActor->SetActorLabel(jsonGameObj.ueName, true);
@@ -237,7 +250,7 @@ void JsonImporter::processStaticMesh(ImportWorkData &workData, const JsonGameObj
 	//if params is static
 	if (!worldMesh){
 		UE_LOG(JsonLog, Warning, TEXT("Wrong actor class"));
-		return;
+		return ImportedGameObject();
 	}
 
 	auto meshComp = worldMesh->GetStaticMeshComponent();
@@ -245,7 +258,7 @@ void JsonImporter::processStaticMesh(ImportWorkData &workData, const JsonGameObj
 
 	if (!jsonGameObj.hasRenderers()){
 		UE_LOG(JsonLog, Warning, TEXT("Renderer not found on %s(%d), cannot create mesh"), *jsonGameObj.ueName, jsonGameObj.id);
-		return;
+		return ImportedGameObject();
 	}
 
 	const auto &renderer = jsonGameObj.renderers[0];
@@ -309,19 +322,23 @@ void JsonImporter::processStaticMesh(ImportWorkData &workData, const JsonGameObj
 	We actually probably need to switch it to , well, constructing object on the fly at some point.
 	*/
 	//workData.objectActors.Add(jsonGameObj.id, meshActor);
-	auto importedObject = ImportedGameObject(meshActor);
-	workData.importedObjects.Add(jsonGameObj.id, importedObject);
-	setObjectHierarchy(importedObject, parentObject, folderPath, workData, jsonGameObj);
+	auto result = ImportedGameObject(meshActor);
+	workData.importedObjects.Add(jsonGameObj.id, result);
+	setObjectHierarchy(result, parentObject, folderPath, workData, jsonGameObj);
 
 	meshComp->SetCastShadow(hasShadows);
 	meshComp->bCastShadowAsTwoSided = twoSidedShadows;
 
 	worldMesh->MarkComponentsRenderStateDirty();
+
+	return result;
 }
 
 //void setupReflectionCapture(UReflectionCaptureComponent *reflComponent, const JsonReflectionProbe &probe);
-void JsonImporter::setupReflectionCapture(ImportWorkData &workData, const JsonGameObject &gameObj, 
+ImportedGameObject JsonImporter::processReflectionProbe(ImportWorkData &workData, const JsonGameObject &gameObj,
 		const JsonReflectionProbe &probe, int32 objId, ImportedGameObject *parentObject, const FString &folderPath){
+	using namespace UnrealUtilities;
+
 	FMatrix captureMatrix = gameObj.ueWorldMatrix;
 
 	FVector ueCenter = unityPosToUe(probe.center);
@@ -404,6 +421,7 @@ void JsonImporter::setupReflectionCapture(ImportWorkData &workData, const JsonGa
 			setupComponent(sphereComp);
 			postInit(sphereActor);
 		}
+		return ImportedGameObject(sphereActor);
 	}
 	else{
 		auto boxActor = createActor<ABoxReflectionCapture>(workData, captureTransform, TEXT("box reflection capture"));
@@ -423,6 +441,7 @@ void JsonImporter::setupReflectionCapture(ImportWorkData &workData, const JsonGa
 				actor->SetMobility(EComponentMobility::Static);*/
 			postInit(boxActor);
 		}
+		return ImportedGameObject(boxActor);
 	}
 }
 
@@ -438,7 +457,7 @@ void JsonImporter::processReflectionProbes(ImportWorkData &workData, const JsonG
 
 	for (int i = 0; i < gameObj.probes.Num(); i++){
 		const auto &probe = gameObj.probes[i];
-		setupReflectionCapture(workData, gameObj, gameObj.probes[i], objId, parentObject, folderPath);
+		processReflectionProbe(workData, gameObj, gameObj.probes[i], objId, parentObject, folderPath);
 	}
 }
 
@@ -497,7 +516,9 @@ void JsonImporter::setupDirLightComponent(ULightComponent *dirLight, const JsonL
 }
 
 
-void JsonImporter::processLight(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonLight &jsonLight, ImportedGameObject *parentObject, const FString& folderPath){
+ImportedGameObject JsonImporter::processLight(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonLight &jsonLight, ImportedGameObject *parentObject, const FString& folderPath){
+	using namespace UnrealUtilities;
+
 	UE_LOG(JsonLog, Log, TEXT("Creating light"));
 
 	FTransform lightTransform;
@@ -538,6 +559,8 @@ void JsonImporter::processLight(ImportWorkData &workData, const JsonGameObject &
 		setObjectHierarchy(ImportedGameObject(actor), parentObject, folderPath, workData, gameObj);
 		actor->MarkComponentsRenderStateDirty();
 	}
+
+	return ImportedGameObject(actor);
 }
 
 //void JsonImporter::processLights(ImportWorkData &workData, const JsonGameObject &gameObj, AActor *parentActor, const FString& folderPath){

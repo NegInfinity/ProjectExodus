@@ -54,11 +54,26 @@ public:
 	TArray<JsonCollider> colliders;
 	TArray<JsonRigidbody> rigidbodies;
 
+	int getNumSpawnComponents() const{
+		return lights.Num()
+			+ probes.Num()
+			+ renderers.Num()
+			+ skinRenderers.Num()
+			+ terrains.Num()
+			//+ animators.Num() animators do not spawn components
+			+ colliders.Num()
+			+ rigidbodies.Num();
+	}
+
 	int getNumComponents() const{
-		return lights.Num() + probes.Num()
-			+ renderers.Num() + skinRenderers.Num()
-			+ terrains.Num() + animators.Num()
-			+ colliders.Num() + rigidbodies.Num();
+		return lights.Num() 
+			+ probes.Num()
+			+ renderers.Num() 
+			+ skinRenderers.Num()
+			+ terrains.Num() 
+			+ animators.Num()
+			+ colliders.Num() 
+			+ rigidbodies.Num();
 	}
 
 	IntArray getFirstMaterials() const;
