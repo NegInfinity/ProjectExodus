@@ -40,6 +40,12 @@ public:
 		return actor || component;
 	}
 
+	UObject* getPtrForOuter() const{
+		if (component)
+			return component;
+		return actor;
+	}
+
 	void setActiveInHierarchy(bool active) const;
 	void setFolderPath(const FString &folderPath) const;
 

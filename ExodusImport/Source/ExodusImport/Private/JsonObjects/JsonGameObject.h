@@ -90,6 +90,10 @@ public:
 		return meshId >= 0;
 	}
 
+	bool hasColliders() const{
+		return colliders.Num() > 0;
+	}
+
 	bool hasLights() const{
 		return lights.Num() > 0;
 	}
@@ -104,6 +108,18 @@ public:
 
 	bool hasAnimators() const{
 		return animators.Num() > 0;
+	}
+
+	EComponentMobility::Type getUnrealMobility() const{
+		if (isStatic)
+			return EComponentMobility::Static;
+		return EComponentMobility::Movable;
+	}
+
+	FTransform getUnrealTransform() const{
+		FTransform result;
+		result.SetFromMatrix(ueWorldMatrix);
+		return result;
 	}
 
 	FMatrix ueWorldMatrix = FMatrix::Identity;

@@ -39,27 +39,35 @@ void ImportedObject::attachTo(AActor *parentActor, USceneComponent *parentCompon
 	check(parentActor || parentComponent);
 
 	if (component){
+		UE_LOG(JsonLog, Log, TEXT("Attaching component %s"), *component->GetName());
 		if (parentComponent){
+			UE_LOG(JsonLog, Log, TEXT("Attaching to parent component %s"), *parentComponent->GetName());
 			component->AttachToComponent(parentComponent, FAttachmentTransformRules::KeepWorldTransform);
 		}		
 		else{
 			if (parentActor){
+				UE_LOG(JsonLog, Log, TEXT("Attaching to parent actor %s"), *parentActor->GetName());
 				component->AttachToComponent(parentActor->GetRootComponent(), FAttachmentTransformRules::KeepWorldTransform);
 			}
 			else{
+				UE_LOG(JsonLog, Log, TEXT("Could not attach"));
 				//check(false);
 			}
 		}
 	}
 	else if (actor){
+		UE_LOG(JsonLog, Log, TEXT("Attaching an actor %s"), *actor->GetName());
 		if (parentComponent){
+			UE_LOG(JsonLog, Log, TEXT("Attaching to parent component %s"), *parentComponent->GetName());
 			actor->AttachToComponent(parentComponent, FAttachmentTransformRules::KeepWorldTransform);
 		}
 		else {
 			if (parentActor){
+				UE_LOG(JsonLog, Log, TEXT("Attaching to parent actor %s"), *parentActor->GetName());
 				actor->AttachToActor(parentActor, FAttachmentTransformRules::KeepWorldTransform);
 			}
 			else{
+				UE_LOG(JsonLog, Log, TEXT("Could not attach"));
 				//check(false);
 			}
 		}

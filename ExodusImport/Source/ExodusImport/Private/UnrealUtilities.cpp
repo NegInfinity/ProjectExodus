@@ -218,6 +218,10 @@ FVector UnrealUtilities::unitySizeToUe(const FVector& arg){
 	return unityVecToUe(arg) * 100.0f;
 }
 
+float UnrealUtilities::unityDistanceToUe(const float arg){
+	return arg * 100.0f;
+}
+
 FMatrix UnrealUtilities::unityWorldToUe(const FMatrix &unityWorld){
 	FVector xAxis, yAxis, zAxis;
 	unityWorld.GetScaledAxes(xAxis, yAxis, zAxis);
@@ -229,10 +233,6 @@ FMatrix UnrealUtilities::unityWorldToUe(const FMatrix &unityWorld){
 	FMatrix ueMatrix = FMatrix::Identity;//Well, wow. I expected matrix to have a local constructor.
 	ueMatrix.SetAxes(&zAxis, &xAxis, &yAxis, &pos);
 	return ueMatrix;
-}
-
-float UnrealUtilities::unityDistanceToUe(const float arg){
-	return arg * 100.0f;
 }
 
 FVector2D UnrealUtilities::getIdxVector2(const TArray<float>& floats, int32 idx){

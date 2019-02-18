@@ -82,6 +82,9 @@ protected:
 
 	static ImportedObject createBlankActor(ImportWorkData &workData, const JsonGameObject &gameObj);
 
+	ImportedObject processCollider(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedObject *parentObject, const JsonCollider &collider);
+	void processColliders(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedObject *parentObject, ImportedObjectArray *createdObjects);
+
 	ImportedObject processReflectionProbe(ImportWorkData &workData, const JsonGameObject &gameObj,
 		const JsonReflectionProbe &probe, int32 objId, ImportedObject *parentObject, const FString &folderPath);
 	void processReflectionProbes(ImportWorkData &workData, const JsonGameObject &gameObj, int32 objId, ImportedObject *parentObject, const FString &folderPath,

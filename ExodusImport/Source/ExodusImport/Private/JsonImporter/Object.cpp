@@ -33,7 +33,8 @@
 #include "Materials/MaterialExpressionConstant.h"
 
 #include "Runtime/Engine/Classes/Components/SkeletalMeshComponent.h"
-
+#include "Runtime/Engine/Classes/Components/BoxComponent.h"
+#include "Runtime/Engine/Classes/Components/SphereComponent.h"
 	
 #include "RawMesh.h"
 
@@ -67,9 +68,10 @@ ImportedObject JsonImporter::createBlankActor(ImportWorkData &workData, const Js
 	rootComponent->SetWorldTransform(transform);
 	blankActor->SetRootComponent(rootComponent);
 	blankActor->SetActorLabel(jsonGameObj.ueName, true);
+	rootComponent->SetMobility(jsonGameObj.getUnrealMobility());
 
-	if (jsonGameObj.isStatic)
-		rootComponent->SetMobility(EComponentMobility::Static);
+	/*if (jsonGameObj.isStatic)
+		rootComponent->SetMobility(EComponentMobility::Static);*/
 
 	ImportedObject importedObject(blankActor);
 	return importedObject;
@@ -129,7 +131,12 @@ void JsonImporter::importObject(const JsonGameObject &jsonGameObj , int32 objId,
 		processSkinMeshes(workData, jsonGameObj, parentObject, folderPath, &createdObjects);
 	}
 
-	if ((createdObjects.Num() > 1) || ((createdObjects.Num() == 1) && (createdObjects[0].actor))){
+	ImportedObject objectRoot;
+
+	if ((createdObjects.Num() > 1) 
+		|| ((createdObjects.Num() == 1) && (!createdObjects[0].actor))
+		|| ((createdObjects.Num() == 0) && (jsonGameObj.hasColliders()))
+		){
 		//Collapse nodes under single actor. 
 		auto blankActor = createBlankActor(workData, jsonGameObj);
 		setObjectHierarchy(blankActor, parentObject, folderPath, workData, jsonGameObj);
@@ -138,6 +145,22 @@ void JsonImporter::importObject(const JsonGameObject &jsonGameObj , int32 objId,
 		for (auto& cur : createdObjects){
 			check(cur.isValid());
 			setObjectHierarchy(cur, &blankActor, folderPath, workData, jsonGameObj);
+		}
+		objectRoot = blankActor;
+	}
+	else if (createdObjects.Num() == 1){
+		objectRoot = createdObjects[0];
+	}
+
+	if (jsonGameObj.hasColliders()){
+		check(objectRoot.isValid());//Should've been created within previous if/else
+
+		ImportedObjectArray newColliders;
+		processColliders(workData, jsonGameObj, &objectRoot, &newColliders);//&createdObjects);
+		for (auto& cur : newColliders){
+			check(cur.isValid());
+			cur.attachTo(&objectRoot);
+			//setObjectHierarchy(cur, &blankActor, folderPath, workData, jsonGameObj);
 		}
 	}
 
@@ -341,8 +364,9 @@ ImportedObject JsonImporter::processStaticMesh(ImportWorkData &workData, const J
 
 	worldMesh->SetActorHiddenInGame(hideInGame);
 
-	if (jsonGameObj.isStatic)
-		meshComp->SetMobility(EComponentMobility::Static);
+	meshComp->SetMobility(jsonGameObj.getUnrealMobility());
+	/*if (jsonGameObj.isStatic)
+		meshComp->SetMobility(EComponentMobility::Static);*/
 
 	if (meshObject){
 		bool emissiveMesh = false;
@@ -621,3 +645,51 @@ void JsonImporter::processLights(ImportWorkData &workData, const JsonGameObject 
 	}
 }
 
+ImportedObject JsonImporter::processCollider(ImportWorkData &workData, const JsonGameObject &jsonGameObj, ImportedObject *parentObject, const JsonCollider &collider){
+	using namespace UnrealUtilities;
+	UObject *parentPtr = parentObject ? parentObject->getPtrForOuter() : nullptr;
+	if (collider.colliderType == "box"){
+		//auto *boxComponent = parentPtr ? NewObject<UBoxComponent>(parentPtr ? parentPtr: GetTransientPackage()): NewObject<UBoxComponent>();
+		auto* boxComponent = NewObject<UBoxComponent>(parentPtr ? parentPtr: GetTransientPackage(), UBoxComponent::StaticClass());
+		boxComponent->SetWorldTransform(jsonGameObj.getUnrealTransform());
+		boxComponent->SetMobility(jsonGameObj.getUnrealMobility());
+		boxComponent->SetBoxExtent(unitySizeToUe(collider.size) * 0.5f);
+		boxComponent->RegisterComponent();
+		//boxComponent->SetVisibility(true);
+		return ImportedObject(boxComponent);
+	}
+	else if (collider.colliderType == "sphere"){
+		//auto *sphereComponent = parentPtr ? NewObject<USphereComponent>(parentPtr) : NewObject<USphereComponent>();
+		auto *sphereComponent = NewObject<USphereComponent>(parentPtr ? parentPtr : GetTransientPackage(), USphereComponent::StaticClass());
+		//NewObject<USphereComponent>();
+		sphereComponent->SetWorldTransform(jsonGameObj.getUnrealTransform());
+		sphereComponent->SetMobility(jsonGameObj.getUnrealMobility());
+		sphereComponent->SetSphereRadius(unityDistanceToUe(collider.radius));
+		sphereComponent->RegisterComponent();
+		//sphereComponent->SetVisibility(true);
+		return ImportedObject(sphereComponent);
+	}
+	/*else if (collider.colliderType == "capsule"){
+	}
+	else if (collider.colliderType == "mesh"){
+	}*/
+	else{
+		UE_LOG(JsonLog, Warning, TEXT("Unknown or unsupported collider type \'%s\" on object \'%s\' (%d)"),
+			*collider.colliderType, *jsonGameObj.name, jsonGameObj.id);
+		return ImportedObject();
+	}
+	
+	return ImportedObject();
+}
+
+void JsonImporter::processColliders(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedObject *parentObject, ImportedObjectArray *createdObjects){
+	if (!gameObj.hasColliders())
+		return;
+
+	for (int i = 0; i < gameObj.colliders.Num(); i++){
+		const auto &curCollider = gameObj.colliders[i];
+
+		registerImportedObject(createdObjects,
+			processCollider(workData, gameObj, parentObject, curCollider));
+	}
+}
