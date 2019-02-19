@@ -160,6 +160,14 @@ void JsonImporter::importObject(const JsonGameObject &jsonGameObj , int32 objId,
 		for (auto& cur : newColliders){
 			check(cur.isValid());
 			cur.attachTo(&objectRoot);
+			if (!cur.component)
+				continue;
+			//if we don't do that... the component won't show up in the editor.
+			auto *root = cur.component->GetAttachmentRootActor();
+			if (!root)
+				continue;
+			//cur.component->RegisterComponent();
+			root->AddInstanceComponent(cur.component);
 			//setObjectHierarchy(cur, &blankActor, folderPath, workData, jsonGameObj);
 		}
 	}
@@ -649,24 +657,19 @@ ImportedObject JsonImporter::processCollider(ImportWorkData &workData, const Jso
 	using namespace UnrealUtilities;
 	UObject *parentPtr = parentObject ? parentObject->getPtrForOuter() : nullptr;
 	if (collider.colliderType == "box"){
-		//auto *boxComponent = parentPtr ? NewObject<UBoxComponent>(parentPtr ? parentPtr: GetTransientPackage()): NewObject<UBoxComponent>();
 		auto* boxComponent = NewObject<UBoxComponent>(parentPtr ? parentPtr: GetTransientPackage(), UBoxComponent::StaticClass());
 		boxComponent->SetWorldTransform(jsonGameObj.getUnrealTransform());
 		boxComponent->SetMobility(jsonGameObj.getUnrealMobility());
 		boxComponent->SetBoxExtent(unitySizeToUe(collider.size) * 0.5f);
 		boxComponent->RegisterComponent();
-		//boxComponent->SetVisibility(true);
 		return ImportedObject(boxComponent);
 	}
 	else if (collider.colliderType == "sphere"){
-		//auto *sphereComponent = parentPtr ? NewObject<USphereComponent>(parentPtr) : NewObject<USphereComponent>();
 		auto *sphereComponent = NewObject<USphereComponent>(parentPtr ? parentPtr : GetTransientPackage(), USphereComponent::StaticClass());
-		//NewObject<USphereComponent>();
 		sphereComponent->SetWorldTransform(jsonGameObj.getUnrealTransform());
 		sphereComponent->SetMobility(jsonGameObj.getUnrealMobility());
 		sphereComponent->SetSphereRadius(unityDistanceToUe(collider.radius));
 		sphereComponent->RegisterComponent();
-		//sphereComponent->SetVisibility(true);
 		return ImportedObject(sphereComponent);
 	}
 	/*else if (collider.colliderType == "capsule"){
