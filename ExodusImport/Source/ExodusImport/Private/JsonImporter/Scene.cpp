@@ -66,17 +66,18 @@ UWorld* JsonImporter::importScene(const JsonScene &scene, bool createWorld){
 	}
 
 	if (!createWorld){
-		ImportWorkData workData(GEditor->GetEditorWorldContext().World(), editorMode);
+		ImportWorkData workData(GEditor->GetEditorWorldContext().World(), editorMode, &scene);
 		loadObjects(scene.objects, workData);
 		return nullptr;
 	}
 
-	auto result = importSceneObjectsAsWorld(scene.objects, sceneName, scenePath);
+	auto result = importSceneObjectsAsWorld(scene, sceneName, scenePath);
 
 	return result;
 }
 
-UWorld* JsonImporter::importSceneObjectsAsWorld(const TArray<JsonGameObject> &sceneObjects, const FString &sceneName, const FString &scenePath){
+//UWorld* JsonImporter::importSceneObjectsAsWorld(const TArray<JsonGameObject> &sceneObjects, const FString &sceneName, const FString &scenePath){
+UWorld* JsonImporter::importSceneObjectsAsWorld(const JsonScene &scene, const FString &sceneName, const FString &scenePath){
 	UWorldFactory *factory = NewObject<UWorldFactory>();
 	factory->WorldType = EWorldType::Inactive;
 	factory->bInformEngineOfWorld = true;
@@ -101,8 +102,8 @@ UWorld* JsonImporter::importSceneObjectsAsWorld(const TArray<JsonGameObject> &sc
 		UWorld::StaticClass(), worldPackage, *outWorldName, flags, 0, GWarn));
 
 	if (newWorld){
-		ImportWorkData workData(newWorld, false);
-		loadObjects(sceneObjects, workData);
+		ImportWorkData workData(newWorld, false, &scene);
+		loadObjects(scene.objects, workData);
 	}
 
 	if (worldPackage){

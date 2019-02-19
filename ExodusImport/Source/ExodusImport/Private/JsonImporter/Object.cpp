@@ -36,6 +36,7 @@
 #include "Runtime/Engine/Classes/Components/BoxComponent.h"
 #include "Runtime/Engine/Classes/Components/SphereComponent.h"
 #include "Runtime/Engine/Classes/Components/CapsuleComponent.h"
+#include "Runtime/Engine/Classes/Engine/CollisionProfile.h"
 	
 #include "RawMesh.h"
 
@@ -109,7 +110,13 @@ void JsonImporter::importObject(const JsonGameObject &jsonGameObj , int32 objId,
 		return; 
 	}
 
+	ImportedObjectArray colliderObjects;
 	ImportedObjectArray createdObjects;
+
+	if (jsonGameObj.hasMesh()){
+		registerImportedObject(&createdObjects,
+			processStaticMesh(workData, jsonGameObj, objId, parentObject, folderPath));
+	}
 
 	if (jsonGameObj.hasProbes()){
 		processReflectionProbes(workData, jsonGameObj, objId, parentObject, folderPath, &createdObjects);
@@ -117,11 +124,6 @@ void JsonImporter::importObject(const JsonGameObject &jsonGameObj , int32 objId,
 	
 	if (jsonGameObj.hasLights()){
 		processLights(workData, jsonGameObj, parentObject, folderPath, &createdObjects);
-	}
-
-	if (jsonGameObj.hasMesh()){
-		registerImportedObject(&createdObjects,
-			processStaticMesh(workData, jsonGameObj, objId, parentObject, folderPath));
 	}
 
 	if (jsonGameObj.hasTerrain()){
@@ -153,6 +155,36 @@ void JsonImporter::importObject(const JsonGameObject &jsonGameObj , int32 objId,
 		objectRoot = createdObjects[0];
 	}
 
+	/*
+	Let's summarize collision approach and differences.
+
+	Unity has separate rigidbody component.
+	Unreal does not. Instead, random primitives can hold properties which are transferred to rigidbody.
+	Unity has separate mesh collider component.
+	Unreal does not.
+	Also, apparently in unreal mesh may not have collision data generated?
+
+	Unity creates compound bodiess by attaching colliders to the rigibody found.
+
+	Unreal.... apparently can mere colliders down to some degree.
+
+	So, what's the approach.
+
+	In situation where phytsics controlled entities are present - or if there are collides present...
+	Most likely resulting colliders should be joined into a hierarchy, where the first collider holds properties of the rigidbody from unity.
+	The rest must be attached to it in order to be merged down as colliders.
+	What's more, all the other components such as lights should be attached to that first "rigidbody" component, which will serve as root.
+
+	So, in order to do it properly, we'll need to first build colliders. Then build static mesh.
+	Then make a list out of them, and parent everything to the first collider then pray to cthulhu that this works as intended.
+	The root component should also be set as actor root.
+
+	Following components, such as probes, lights and whatever else are ALL going to be parented to that root physic component, whether they're actors or components themselves.
+
+	This is ... convoluted.
+
+	Let's see if I can, after all, turn rigibody into a component instead of relying on semi-random merges.
+	*/
 	if (jsonGameObj.hasColliders()){
 		check(objectRoot.isValid());//Should've been created within previous if/else
 
@@ -654,70 +686,87 @@ void JsonImporter::processLights(ImportWorkData &workData, const JsonGameObject 
 	}
 }
 
+UBoxComponent* JsonImporter::createBoxCollider(UObject *parentPtr, const JsonGameObject &jsonGameObj, ImportedObject *parentObject, const JsonCollider &collider) const{
+	using namespace UnrealUtilities;
+	auto *boxComponent = NewObject<UBoxComponent>(parentPtr ? parentPtr : GetTransientPackage(), UBoxComponent::StaticClass());
+
+	auto centerAdjust = unityPosToUe(collider.center);
+
+	boxComponent->SetWorldTransform(jsonGameObj.getUnrealTransform(collider.center));
+	boxComponent->SetMobility(jsonGameObj.getUnrealMobility());
+	boxComponent->SetBoxExtent(unitySizeToUe(collider.size) * 0.5f);
+	//boxComponent->RegisterComponent();
+
+	return boxComponent;
+}
+
+USphereComponent* JsonImporter::createSphereCollider(UObject *parentPtr, const JsonGameObject &jsonGameObj, ImportedObject *parentObject, const JsonCollider &collider) const{
+	using namespace UnrealUtilities;
+	auto *sphereComponent = NewObject<USphereComponent>(parentPtr ? parentPtr : GetTransientPackage(), USphereComponent::StaticClass());
+	sphereComponent->SetWorldTransform(jsonGameObj.getUnrealTransform(collider.center));
+	sphereComponent->SetMobility(jsonGameObj.getUnrealMobility());
+	sphereComponent->SetSphereRadius(unityDistanceToUe(collider.radius));
+	//sphereComponent->RegisterComponent();
+	return sphereComponent;
+}
+
+UCapsuleComponent* JsonImporter::createCapsuleCollider(UObject *parentPtr, const JsonGameObject &jsonGameObj, ImportedObject *parentObject, const JsonCollider &collider) const{
+	using namespace UnrealUtilities;
+	auto *capsule = NewObject<UCapsuleComponent>(parentPtr ? parentPtr : GetTransientPackage(), UCapsuleComponent::StaticClass());
+
+	FMatrix capsuleMatrix = FMatrix::Identity;
+	capsuleMatrix.SetOrigin(collider.center);
+
+	//auto capsuleTransform = jsonGameObj.getUnrealTransform(collider.center);
+	//capsule->SetAxis... //Erm? No axis control?
+	switch (collider.direction){
+		case(JsonCollider::XAxis):{
+			auto xAxis = FVector(0.0f, -1.0f, 0.0f);
+			auto yAxis = FVector(1.0f, 0.0f, 0.0f);
+			auto zAxis = FVector(0.0f, 0.0f, 1.0f);
+			capsuleMatrix.SetAxes(&xAxis, &yAxis, &zAxis);
+			break;
+		}
+		case(JsonCollider::YAxis):{
+			//nothing.
+			break;
+		}
+		case(JsonCollider::ZAxis):{
+			auto xAxis = FVector(1.0f, 0.0f, 0.0f);
+			auto yAxis = FVector(0.0f, 0.0f, 1.0f);
+			auto zAxis = FVector(0.0f, -1.0f, 0.0f);
+			capsuleMatrix.SetAxes(&xAxis, &yAxis, &zAxis);
+			break;
+		}
+	}
+
+	FMatrix capsuleCombinedMatrix = capsuleMatrix * jsonGameObj.worldMatrix;
+	FTransform capsuleTransform;
+	capsuleTransform.SetFromMatrix(unityWorldToUe(capsuleCombinedMatrix));
+
+	capsule->SetWorldTransform(capsuleTransform);
+	capsule->SetMobility(jsonGameObj.getUnrealMobility());
+
+	capsule->SetCapsuleHalfHeight(unityDistanceToUe(collider.height*0.5f));
+	capsule->SetCapsuleRadius(unityDistanceToUe(collider.radius));
+
+	//capsule->RegisterComponent();
+	return capsule;
+}
+
 ImportedObject JsonImporter::processCollider(ImportWorkData &workData, const JsonGameObject &jsonGameObj, ImportedObject *parentObject, const JsonCollider &collider){
 	using namespace UnrealUtilities;
-	//trigger support...
+	//trigger support...?
 	UObject *parentPtr = parentObject ? parentObject->getPtrForOuter() : nullptr;
+	UPrimitiveComponent *colliderComponent = nullptr;
 	if (collider.colliderType == "box"){
-		auto* boxComponent = NewObject<UBoxComponent>(parentPtr ? parentPtr: GetTransientPackage(), UBoxComponent::StaticClass());
-
-		auto centerAdjust = unityPosToUe(collider.center);
-
-		boxComponent->SetWorldTransform(jsonGameObj.getUnrealTransform(collider.center));
-		boxComponent->SetMobility(jsonGameObj.getUnrealMobility());
-		boxComponent->SetBoxExtent(unitySizeToUe(collider.size) * 0.5f);
-		boxComponent->RegisterComponent();
-		return ImportedObject(boxComponent);
+		colliderComponent = createBoxCollider(parentPtr, jsonGameObj, parentObject, collider);
 	}
 	else if (collider.colliderType == "sphere"){
-		auto *sphereComponent = NewObject<USphereComponent>(parentPtr ? parentPtr : GetTransientPackage(), USphereComponent::StaticClass());
-		sphereComponent->SetWorldTransform(jsonGameObj.getUnrealTransform(collider.center));
-		sphereComponent->SetMobility(jsonGameObj.getUnrealMobility());
-		sphereComponent->SetSphereRadius(unityDistanceToUe(collider.radius));
-		sphereComponent->RegisterComponent();
-		return ImportedObject(sphereComponent);
+		colliderComponent = createSphereCollider(parentPtr, jsonGameObj, parentObject, collider);
 	}
 	else if (collider.colliderType == "capsule"){
-		auto *capsule = NewObject<UCapsuleComponent>(parentPtr ? parentPtr : GetTransientPackage(), UCapsuleComponent::StaticClass());
-
-		FMatrix capsuleMatrix = FMatrix::Identity;
-		capsuleMatrix.SetOrigin(collider.center);
-
-		//auto capsuleTransform = jsonGameObj.getUnrealTransform(collider.center);
-		//capsule->SetAxis... //Erm? No axis control?
-		switch (collider.direction){
-			case(JsonCollider::XAxis):{
-				auto xAxis = FVector(0.0f, -1.0f, 0.0f);
-				auto yAxis = FVector(1.0f, 0.0f, 0.0f);
-				auto zAxis = FVector(0.0f, 0.0f, 1.0f);
-				capsuleMatrix.SetAxes(&xAxis, &yAxis, &zAxis);
-				break;
-			}
-			case(JsonCollider::YAxis):{
-				//nothing.
-				break;
-			}
-			case(JsonCollider::ZAxis):{
-				auto xAxis = FVector(1.0f, 0.0f, 0.0f);
-				auto yAxis = FVector(0.0f, 0.0f, 1.0f);
-				auto zAxis = FVector(0.0f, -1.0f, 0.0f);
-				capsuleMatrix.SetAxes(&xAxis, &yAxis, &zAxis);
-				break;
-			}
-		}
-
-		FMatrix capsuleCombinedMatrix = capsuleMatrix * jsonGameObj.worldMatrix;
-		FTransform capsuleTransform;
-		capsuleTransform.SetFromMatrix(unityWorldToUe(capsuleCombinedMatrix));
-
-		capsule->SetWorldTransform(capsuleTransform);
-		capsule->SetMobility(jsonGameObj.getUnrealMobility());
-
-		capsule->SetCapsuleHalfHeight(unityDistanceToUe(collider.height*0.5f));
-		capsule->SetCapsuleRadius(unityDistanceToUe(collider.radius));
-
-		capsule->RegisterComponent();
-		return ImportedObject(capsule);
+		colliderComponent = createCapsuleCollider(parentPtr, jsonGameObj, parentObject, collider);
 	}
 	/*
 	else if (collider.colliderType == "mesh"){
@@ -728,8 +777,27 @@ ImportedObject JsonImporter::processCollider(ImportWorkData &workData, const Jso
 			*collider.colliderType, *jsonGameObj.name, jsonGameObj.id);
 		return ImportedObject();
 	}
+	if (!colliderComponent){
+		return ImportedObject();
+	}
+
+	colliderComponent->RegisterComponent();
+	if (collider.trigger){
+		colliderComponent->SetCollisionProfileName(FName("OverlapAll"));//this is not available as a constant 
+		colliderComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+		//colliderComponent->Simulat
+	}
+	else{
+		colliderComponent->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
+		colliderComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	}
+
+	const auto *rigBody = workData.locateRigidbody(jsonGameObj);
+	if (rigBody){
+		//rigBody->
+	}
 	
-	return ImportedObject();
+	return ImportedObject(colliderComponent);
 }
 
 void JsonImporter::processColliders(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedObject *parentObject, ImportedObjectArray *createdObjects){

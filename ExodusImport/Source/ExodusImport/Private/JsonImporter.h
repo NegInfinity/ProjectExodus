@@ -33,6 +33,9 @@ class ULightComponent;
 class USkeleton;
 class USkeletalMesh;
 class UAnimSequence;
+class UBoxComponent;
+class USphereComponent;
+class UCapsuleComponent;
 
 class JsonImporter{
 protected:
@@ -78,9 +81,14 @@ protected:
 	void setupSpotLightComponent(USpotLightComponent *spotLight, const JsonLight &jsonLight);
 	void setupDirLightComponent(ULightComponent *dirLight, const JsonLight &jsonLight);
 
-	UWorld* importSceneObjectsAsWorld(const TArray<JsonGameObject> &sceneObjects, const FString &sceneName, const FString &scenePath);
+	//UWorld* importSceneObjectsAsWorld(const TArray<JsonGameObject> &sceneObjects, const FString &sceneName, const FString &scenePath);
+	UWorld* importSceneObjectsAsWorld(const JsonScene &scene, const FString &sceneNameOverride, const FString &scenePathOverride);
 
 	static ImportedObject createBlankActor(ImportWorkData &workData, const JsonGameObject &gameObj);
+
+	UBoxComponent *createBoxCollider(UObject *parentPtr, const JsonGameObject &gameObj, ImportedObject *parentObject, const JsonCollider &collider) const;
+	USphereComponent *createSphereCollider(UObject *parentPtr, const JsonGameObject &gameObj, ImportedObject *parentObject, const JsonCollider &collider) const;
+	UCapsuleComponent *createCapsuleCollider(UObject *parentPtr, const JsonGameObject &gameObj, ImportedObject *parentObject, const JsonCollider &collider) const;
 
 	ImportedObject processCollider(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedObject *parentObject, const JsonCollider &collider);
 	void processColliders(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedObject *parentObject, ImportedObjectArray *createdObjects);

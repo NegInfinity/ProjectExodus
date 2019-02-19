@@ -68,7 +68,7 @@ using ImportedObjectMap = TMap<JsonId, ImportedObject>;
 using ImportedObjectArray = TArray<ImportedObject>;
 
 /*
-This one exists mostly to deal with the fact htat IDs are unique within SCENE, 
+This one exists mostly to deal with the fact that IDs are unique within SCENE, 
 and within each scene they start from zero.
 
 I kinda wonder if I should work towards ensureing ids being globally unique, but then again...
@@ -76,6 +76,8 @@ not much point when I can just use scoped dictionaries.
 */
 class ImportWorkData{
 public:
+	const JsonScene *scene = nullptr;
+
 	IdNameMap objectFolderPaths;
 
 	ImportedObjectMap importedObjects;
@@ -91,13 +93,17 @@ public:
 
 	TArray<JsonId> postProcessAnimatorObjects;
 
+	const JsonGameObject* findJsonObject(JsonId id) const;
+
+	const JsonRigidbody* locateRigidbody(const JsonGameObject &gameObj) const;
+
 	void registerAnimatorForPostProcessing(const JsonGameObject &jsonObj);
 	void registerDelayedAnimController(JsonId skelId, JsonId controllerId);
 
 	void registerObject(const ImportedObject &object, AActor *parent);
 
-	ImportWorkData(UWorld *world_, bool editorMode_, bool storeActors_ = false)
-	:world(world_), editorMode(editorMode_), storeActors(storeActors_){
+	ImportWorkData(UWorld *world_, bool editorMode_, const JsonScene *scene_, bool storeActors_ = false)
+	:world(world_), editorMode(editorMode_), scene(scene_), storeActors(storeActors_){
 	}
 
 	void clear(){

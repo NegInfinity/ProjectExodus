@@ -90,3 +90,31 @@ void ImportWorkData::registerAnimatorForPostProcessing(const JsonGameObject &jso
 	if (!postProcessAnimatorObjects.Contains(jsonObj.id))
 		postProcessAnimatorObjects.Add(jsonObj.id);
 }
+
+const JsonGameObject* ImportWorkData::findJsonObject(JsonId id) const{
+	check(scene != nullptr);
+	if ((id >= 0) && (id < scene->objects.Num()))
+		return &scene->objects[id];
+
+	return nullptr;
+}
+
+const JsonRigidbody* ImportWorkData::locateRigidbody(const JsonGameObject &gameObj) const{
+	using namespace JsonObjects;
+
+	const JsonGameObject *currentObject = &gameObj;
+	while (currentObject){
+		if (gameObj.rigidbodies.Num() > 0){
+			return &gameObj.rigidbodies[0];
+		}
+		if (!isValidId(gameObj.parentId))
+			break;
+
+		if (!scene)
+			break;
+
+		currentObject = findJsonObject(gameObj.parentId);
+	}
+	return nullptr;
+}
+

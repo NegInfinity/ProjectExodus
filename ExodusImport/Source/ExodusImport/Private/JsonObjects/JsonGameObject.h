@@ -127,3 +127,4 @@ public:
 	JsonGameObject(JsonObjPtr jsonData);
 };
 
+using JsonGameObjectArray = TArray<JsonGameObject>;
