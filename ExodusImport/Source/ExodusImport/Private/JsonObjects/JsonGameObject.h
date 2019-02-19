@@ -116,11 +116,8 @@ public:
 		return EComponentMobility::Movable;
 	}
 
-	FTransform getUnrealTransform() const{
-		FTransform result;
-		result.SetFromMatrix(ueWorldMatrix);
-		return result;
-	}
+	FTransform getUnrealTransform(const FVector& localUnityOffset) const;
+	FTransform getUnrealTransform() const;
 
 	FMatrix ueWorldMatrix = FMatrix::Identity;
 	FString ueName;

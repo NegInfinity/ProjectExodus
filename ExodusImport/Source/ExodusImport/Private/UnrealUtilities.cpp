@@ -222,6 +222,24 @@ float UnrealUtilities::unityDistanceToUe(const float arg){
 	return arg * 100.0f;
 }
 
+
+FMatrix UnrealUtilities::unityWorldToUe(const FMatrix &unityWorld, const FVector &localPositionOffset){
+	FVector xAxis, yAxis, zAxis;
+	unityWorld.GetScaledAxes(xAxis, yAxis, zAxis);
+	FVector pos = unityWorld.GetOrigin();
+
+	pos += xAxis * localPositionOffset.X + yAxis * localPositionOffset.Y + zAxis * localPositionOffset.Z;
+
+	pos = unityToUe(pos)*100.0f;
+	xAxis = unityToUe(xAxis);
+	yAxis = unityToUe(yAxis);
+	zAxis = unityToUe(zAxis);
+
+	FMatrix ueMatrix = FMatrix::Identity;//Well, wow. I expected matrix to have a local constructor.
+	ueMatrix.SetAxes(&zAxis, &xAxis, &yAxis, &pos);
+	return ueMatrix;
+}
+
 FMatrix UnrealUtilities::unityWorldToUe(const FMatrix &unityWorld){
 	FVector xAxis, yAxis, zAxis;
 	unityWorld.GetScaledAxes(xAxis, yAxis, zAxis);

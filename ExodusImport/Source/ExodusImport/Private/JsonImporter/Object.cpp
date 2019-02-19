@@ -35,6 +35,7 @@
 #include "Runtime/Engine/Classes/Components/SkeletalMeshComponent.h"
 #include "Runtime/Engine/Classes/Components/BoxComponent.h"
 #include "Runtime/Engine/Classes/Components/SphereComponent.h"
+#include "Runtime/Engine/Classes/Components/CapsuleComponent.h"
 	
 #include "RawMesh.h"
 
@@ -655,10 +656,14 @@ void JsonImporter::processLights(ImportWorkData &workData, const JsonGameObject 
 
 ImportedObject JsonImporter::processCollider(ImportWorkData &workData, const JsonGameObject &jsonGameObj, ImportedObject *parentObject, const JsonCollider &collider){
 	using namespace UnrealUtilities;
+	//trigger support...
 	UObject *parentPtr = parentObject ? parentObject->getPtrForOuter() : nullptr;
 	if (collider.colliderType == "box"){
 		auto* boxComponent = NewObject<UBoxComponent>(parentPtr ? parentPtr: GetTransientPackage(), UBoxComponent::StaticClass());
-		boxComponent->SetWorldTransform(jsonGameObj.getUnrealTransform());
+
+		auto centerAdjust = unityPosToUe(collider.center);
+
+		boxComponent->SetWorldTransform(jsonGameObj.getUnrealTransform(collider.center));
 		boxComponent->SetMobility(jsonGameObj.getUnrealMobility());
 		boxComponent->SetBoxExtent(unitySizeToUe(collider.size) * 0.5f);
 		boxComponent->RegisterComponent();
@@ -666,16 +671,58 @@ ImportedObject JsonImporter::processCollider(ImportWorkData &workData, const Jso
 	}
 	else if (collider.colliderType == "sphere"){
 		auto *sphereComponent = NewObject<USphereComponent>(parentPtr ? parentPtr : GetTransientPackage(), USphereComponent::StaticClass());
-		sphereComponent->SetWorldTransform(jsonGameObj.getUnrealTransform());
+		sphereComponent->SetWorldTransform(jsonGameObj.getUnrealTransform(collider.center));
 		sphereComponent->SetMobility(jsonGameObj.getUnrealMobility());
 		sphereComponent->SetSphereRadius(unityDistanceToUe(collider.radius));
 		sphereComponent->RegisterComponent();
 		return ImportedObject(sphereComponent);
 	}
-	/*else if (collider.colliderType == "capsule"){
+	else if (collider.colliderType == "capsule"){
+		auto *capsule = NewObject<UCapsuleComponent>(parentPtr ? parentPtr : GetTransientPackage(), UCapsuleComponent::StaticClass());
+
+		FMatrix capsuleMatrix = FMatrix::Identity;
+		capsuleMatrix.SetOrigin(collider.center);
+
+		//auto capsuleTransform = jsonGameObj.getUnrealTransform(collider.center);
+		//capsule->SetAxis... //Erm? No axis control?
+		switch (collider.direction){
+			case(JsonCollider::XAxis):{
+				auto xAxis = FVector(0.0f, -1.0f, 0.0f);
+				auto yAxis = FVector(1.0f, 0.0f, 0.0f);
+				auto zAxis = FVector(0.0f, 0.0f, 1.0f);
+				capsuleMatrix.SetAxes(&xAxis, &yAxis, &zAxis);
+				break;
+			}
+			case(JsonCollider::YAxis):{
+				//nothing.
+				break;
+			}
+			case(JsonCollider::ZAxis):{
+				auto xAxis = FVector(1.0f, 0.0f, 0.0f);
+				auto yAxis = FVector(0.0f, 0.0f, 1.0f);
+				auto zAxis = FVector(0.0f, -1.0f, 0.0f);
+				capsuleMatrix.SetAxes(&xAxis, &yAxis, &zAxis);
+				break;
+			}
+		}
+
+		FMatrix capsuleCombinedMatrix = capsuleMatrix * jsonGameObj.worldMatrix;
+		FTransform capsuleTransform;
+		capsuleTransform.SetFromMatrix(unityWorldToUe(capsuleCombinedMatrix));
+
+		capsule->SetWorldTransform(capsuleTransform);
+		capsule->SetMobility(jsonGameObj.getUnrealMobility());
+
+		capsule->SetCapsuleHalfHeight(unityDistanceToUe(collider.height*0.5f));
+		capsule->SetCapsuleRadius(unityDistanceToUe(collider.radius));
+
+		capsule->RegisterComponent();
+		return ImportedObject(capsule);
 	}
+	/*
 	else if (collider.colliderType == "mesh"){
-	}*/
+	}
+	*/
 	else{
 		UE_LOG(JsonLog, Warning, TEXT("Unknown or unsupported collider type \'%s\" on object \'%s\' (%d)"),
 			*collider.colliderType, *jsonGameObj.name, jsonGameObj.id);

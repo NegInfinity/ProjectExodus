@@ -79,9 +79,7 @@ public:
 	IdNameMap objectFolderPaths;
 
 	ImportedObjectMap importedObjects;
-	//IdActorMap objectActors;
 	TStrongObjectPtr<UWorld> world;
-	//UWorld *world;
 	bool editorMode;
 	bool storeActors;
 
@@ -97,13 +95,6 @@ public:
 	void registerDelayedAnimController(JsonId skelId, JsonId controllerId);
 
 	void registerObject(const ImportedObject &object, AActor *parent);
-	/*
-	TArray<AActor*> rootActors;
-	TArray<AActor*> childActors;
-	TArray<AActor*> allActors;
-
-	void registerActor(AActor* actor, AActor *parent);
-	*/
 
 	ImportWorkData(UWorld *world_, bool editorMode_, bool storeActors_ = false)
 	:world(world_), editorMode(editorMode_), storeActors(storeActors_){
@@ -111,7 +102,6 @@ public:
 
 	void clear(){
 		objectFolderPaths.Empty();
-		//objectActors.Empty();
 		importedObjects.Empty();
 
 		delayedAnimControllers.Empty();

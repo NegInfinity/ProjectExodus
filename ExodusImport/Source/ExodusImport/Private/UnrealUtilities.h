@@ -18,6 +18,7 @@ namespace UnrealUtilities{
 	FVector unityPosToUe(const FVector& arg);
 	FVector unitySizeToUe(const FVector& arg);
 	FMatrix unityWorldToUe(const FMatrix &unityMatrix);
+	FMatrix unityWorldToUe(const FMatrix &unityMatrix, const FVector &localPositionOffset);
 	FVector2D unityUvToUnreal(const FVector2D& arg);
 
 	FVector4 getIdxVector4(const TArray<float>& floats, int32 idx);
@@ -143,8 +144,6 @@ namespace UnrealUtilities{
 		return createActor<T>(workData.world.Get(), transform, workData.editorMode, logName);
 	}	
 
-	using PackageLoaderFunc = std::function<UPackage*(const FString&)>;
-
 	FString sanitizeObjectName(const FString &arg);
 	FString sanitizePackageName(const FString &arg);
 
@@ -158,6 +157,8 @@ namespace UnrealUtilities{
 		const FString &targetPath,
 		const FString *defaultPackageRoot = nullptr
 	);
+
+	using PackageLoaderFunc = std::function<UPackage*(const FString&)>;
 
 	UPackage* createPackage(
 		const FString &basePackageName, 

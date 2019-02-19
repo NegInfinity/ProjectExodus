@@ -91,3 +91,16 @@ IntArray JsonGameObject::getFirstMaterials() const{
 	return IntArray();
 }
 
+FTransform JsonGameObject::getUnrealTransform(const FVector& localUnityOffset) const{
+	using namespace UnrealUtilities;
+
+	FTransform result;
+	result.SetFromMatrix(unityWorldToUe(worldMatrix, localUnityOffset));
+	return result;
+}
+
+FTransform JsonGameObject::getUnrealTransform() const{
+	FTransform result;
+	result.SetFromMatrix(ueWorldMatrix);
+	return result;
+}

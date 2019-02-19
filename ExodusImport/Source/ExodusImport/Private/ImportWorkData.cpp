@@ -3,14 +3,6 @@
 #include "Runtime/Engine/Classes/Components/SceneComponent.h"
 #include "Runtime/Engine/Classes/GameFramework/Actor.h"
 
-/*
-void ImportWorkData::addRootActor(AActor* actor){
-	if (!storeActors)
-		return;
-	rootActors.Add(actor);
-}
-*/
-
 void ImportWorkData::registerObject(const ImportedObject &object, AActor *parent){
 	if (!storeActors)
 		return;
@@ -20,18 +12,6 @@ void ImportWorkData::registerObject(const ImportedObject &object, AActor *parent
 		childObjects.Add(object);
 	allObjects.Add(object);
 }
-
-/*
-void ImportWorkData::registerActor(AActor* actor, AActor *parent){
-	if (!storeActors)
-		return;
-	if (!parent)
-		rootActors.Add(actor);
-	else
-		childActors.Add(actor);
-	allActors.Add(actor);
-}
-*/
 
 void ImportedObject::attachTo(AActor *parentActor, USceneComponent *parentComponent) const{
 	check(actor || component);
