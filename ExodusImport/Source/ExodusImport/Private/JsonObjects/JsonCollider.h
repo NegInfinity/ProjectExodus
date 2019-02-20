@@ -20,6 +20,22 @@ public:
 	JsonBounds bounds;
 	bool trigger = false;
 
+	bool isMeshCollider() const{
+		return (colliderType == "mesh");
+	}
+
+	bool isSphereCollider() const{
+		return (colliderType == "sphere");
+	}
+
+	bool isCapsuleCollider() const{
+		return (colliderType == "capsule");
+	}
+
+	bool isBoxCollider() const{
+		return (colliderType == "box");
+	}
+
 	JsonCollider() = default;
 	JsonCollider(JsonObjPtr data);
 	void load(JsonObjPtr data);

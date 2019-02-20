@@ -759,17 +759,17 @@ ImportedObject JsonImporter::processCollider(ImportWorkData &workData, const Jso
 	//trigger support...?
 	UObject *parentPtr = parentObject ? parentObject->getPtrForOuter() : nullptr;
 	UPrimitiveComponent *colliderComponent = nullptr;
-	if (collider.colliderType == "box"){
+	if (collider.isBoxCollider()){
 		colliderComponent = createBoxCollider(parentPtr, jsonGameObj, parentObject, collider);
 	}
-	else if (collider.colliderType == "sphere"){
+	else if (collider.isSphereCollider()){
 		colliderComponent = createSphereCollider(parentPtr, jsonGameObj, parentObject, collider);
 	}
-	else if (collider.colliderType == "capsule"){
+	else if (collider.isCapsuleCollider()){
 		colliderComponent = createCapsuleCollider(parentPtr, jsonGameObj, parentObject, collider);
 	}
 	/*
-	else if (collider.colliderType == "mesh"){
+	else if (collider.isMeshCollider()){
 	}
 	*/
 	else{
