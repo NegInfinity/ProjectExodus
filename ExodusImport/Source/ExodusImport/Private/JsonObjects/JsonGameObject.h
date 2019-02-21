@@ -54,6 +54,40 @@ public:
 	TArray<JsonCollider> colliders;
 	TArray<JsonRigidbody> rigidbodies;
 
+	int findSuitableRootColliderIndex() const{
+		for(int i = 0; i < colliders.Num(); i++){
+			const auto& cur = colliders[i];
+			if (!cur.isMeshCollider() && (cur.center == FVector::ZeroVector))
+				return i;
+		}
+		return -1;
+	}
+
+	/*
+	Returns index of collider that is pointing at the main mesh.
+
+	By convention, there is only ONE mesh per object. For now.
+	Of course, unity allows multiple mesh rendere components, despite usingo nly one mesh filter,
+	but I'm not quite sure in which scenario this would ever be used, and how to transfer it to unreal properly.
+	*/
+	int findMainMeshColliderIndex() const{
+		if (meshId < 0)
+			return -1;//magic number...
+		for (int i = 0; i < colliders.Num(); i++){
+			const auto &cur = colliders[i];
+			if (cur.isMeshCollider() && (cur.meshId == meshId))
+				return i;
+		}
+
+		return -1;
+	}
+
+	const JsonCollider* getColliderByIndex(int index) const{
+		if (index < 0)
+			return nullptr;
+		return &colliders[index];
+	}
+
 	const JsonRenderer* getFirstRenderer() const{
 		if (renderers.Num() > 0)
 			return &renderers[0];
