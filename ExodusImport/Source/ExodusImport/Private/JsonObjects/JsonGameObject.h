@@ -54,6 +54,12 @@ public:
 	TArray<JsonCollider> colliders;
 	TArray<JsonRigidbody> rigidbodies;
 
+	const JsonRenderer* getFirstRenderer() const{
+		if (renderers.Num() > 0)
+			return &renderers[0];
+		return nullptr;
+	}
+
 	int getNumSpawnComponents() const{
 		return lights.Num()
 			+ probes.Num()

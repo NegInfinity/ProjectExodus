@@ -164,6 +164,13 @@ public:
 			|| (!hasValidBlendMode() && isAlphaTestQueue());
 	}
 
+	bool isEmissive() const{
+		/*
+		This is not reliable, as it relies on both shader keywords and presence of components in material.
+		*/
+		return useEmission && (hasEmission/* || hasEmissionColor*/);
+	}
+
 	FString getUnrealMaterialName() const;
 
 	bool nameMarkedTransparent() const;

@@ -9,6 +9,22 @@ public:
 	TArray<int32> materials;
 	bool receiveShadows;
 
+	bool castsOneSidedShadows() const{
+		return shadowCastingMode == FString("On");
+	}
+
+	bool castsTwoSidedShadows() const{
+		return shadowCastingMode == FString("TwoSided");
+	}
+
+	bool castsShadowsOnly() const{
+		return shadowCastingMode == FString("ShadowsOnly");
+	}
+
+	bool castsShadows() const{
+		return castsOneSidedShadows() || castsTwoSidedShadows() || castsShadowsOnly();
+	}
+
 	bool hasMaterials() const{
 		return materials.Num() > 0;
 	}

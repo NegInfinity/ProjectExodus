@@ -102,6 +102,7 @@ protected:
 	void processLights(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedObject *parentObject, const FString& folderPath,
 		ImportedObjectArray *createdObjects);
 
+	bool configureStaticMeshComponent(UStaticMeshComponent *meshComp, const JsonGameObject &gameObj);
 	ImportedObject processStaticMesh(ImportWorkData &workData, const JsonGameObject &gameObj, int objId, ImportedObject *parentObject, const FString& folderPath);
 
 	ImportedObject processTerrain(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonTerrain &jsonTerrain, ImportedObject *parentObject, 

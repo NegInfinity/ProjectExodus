@@ -325,11 +325,127 @@ void JsonImporter::processSkinMeshes(ImportWorkData &workData, const JsonGameObj
 	}
 }
 
+bool JsonImporter::configureStaticMeshComponent(UStaticMeshComponent *meshComp, const JsonGameObject &jsonGameObj){
+	check(meshComp);
+
+	if (!jsonGameObj.hasRenderers()){
+		UE_LOG(JsonLog, Warning, TEXT("Renderer not found on %s(%d), cannot create mesh"), *jsonGameObj.ueName, jsonGameObj.id);
+		return false;
+	}
+	check(jsonGameObj.renderers.Num() > 0);
+
+	auto meshPath = meshIdMap[jsonGameObj.meshId];
+	UE_LOG(JsonLog, Log, TEXT("Mesh path: %s"), *meshPath);
+
+	auto *meshObject = LoadObject<UStaticMesh>(0, *meshPath);
+	if (!meshObject){
+		UE_LOG(JsonLog, Warning, TEXT("Could not load mesh %s"), *meshPath);
+		return false;
+	}
+
+	meshComp->SetStaticMesh(meshObject);
+
+	meshComp->SetMobility(jsonGameObj.getUnrealMobility());
+
+	const auto &renderer = jsonGameObj.renderers[0];
+	auto materials = jsonGameObj.getFirstMaterials();
+
+	bool emissiveMesh = false;
+	if (materials.Num() > 0){
+		for (int i = 0; i < materials.Num(); i++){
+			auto matId = materials[i];
+
+			auto *jsonMat = getJsonMaterial(matId);
+			if (jsonMat && (jsonMat->isEmissive()))
+				emissiveMesh = true;
+
+			auto material = loadMaterialInterface(matId);
+			meshComp->SetMaterial(i, material);
+		}
+	}
+
+	logValue("hasShadows", renderer.castsShadows());
+	logValue("twoSidedShadows", renderer.castsTwoSidedShadows());
+
+	meshComp->SetCastShadow(renderer.castsShadows());
+	meshComp->bCastShadowAsTwoSided = renderer.castsTwoSidedShadows();//twoSidedShadows;
+
+	//We.... no longer use material graphs constructed in code. This check is no longer valid.
+	/*
+	if (meshObject){
+		bool emissiveMesh = false;
+		//for(auto cur: meshObject->Materials){
+		for (auto cur : meshObject->StaticMaterials){
+			auto matIntr = cur.MaterialInterface;//cur->GetMaterial();
+			if (!matIntr)
+				continue;
+			auto mat = matIntr->GetMaterial();
+			if (!mat)
+				continue;
+			if (mat->EmissiveColor.IsConnected()){
+				emissiveMesh = true;
+				break;
+			}
+		}
+		meshComp->LightmassSettings.bUseEmissiveForStaticLighting = emissiveMesh;
+	}
+	*/
+
+	if (emissiveMesh)
+		meshComp->LightmassSettings.bUseEmissiveForStaticLighting = true;
+	return true;
+}
 
 ImportedObject JsonImporter::processStaticMesh(ImportWorkData &workData, const JsonGameObject &jsonGameObj, int objId, ImportedObject *parentObject, const FString& folderPath){
 	if (!jsonGameObj.hasMesh())
 		return ImportedObject();
 
+	FActorSpawnParameters spawnParams;
+	FTransform transform;
+	transform.SetFromMatrix(jsonGameObj.ueWorldMatrix);
+
+	//I wonder why it is "spawn" here and Add everywhere else. But whatever.
+	auto *meshActor = workData.world->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass(), transform, spawnParams);
+	if (!meshActor){
+		UE_LOG(JsonLog, Warning, TEXT("Couldn ot spawn mesh actor"));
+		return ImportedObject();
+	}
+
+	meshActor->SetActorLabel(jsonGameObj.ueName, true);
+	auto meshComp = meshActor->GetStaticMeshComponent();
+
+	///This is awkward. Previously we couldd attempt loading the mesh prior to building the actor, but now...
+	if (!configureStaticMeshComponent(meshComp, jsonGameObj)){
+		UE_LOG(JsonLog, Warning, TEXT("Configuration of static mesh component failed on object '%s'(%d)"), *jsonGameObj.name, objId);
+		//return ImportedObject(meshActor);
+	}
+
+	const auto* renderer = jsonGameObj.getFirstRenderer();
+	if (renderer){
+		if (renderer->castsShadowsOnly()){
+			meshActor->SetActorHiddenInGame(true);//this doesn't seem to do anything? (-_-)
+			if (meshComp){
+				meshComp->bCastHiddenShadow = true;
+				meshComp->bHiddenInGame = true;
+			}
+		}
+	}
+	else{
+		UE_LOG(JsonLog, Warning, TEXT("First renderer not found on %s(%d)"), *jsonGameObj.name, objId);
+	}
+
+	/*
+	We actually probably need to switch it to , well, constructing object on the fly at some point.
+	*/
+	auto result = ImportedObject(meshActor);
+	workData.importedObjects.Add(jsonGameObj.id, result);
+	setObjectHierarchy(result, parentObject, folderPath, workData, jsonGameObj);
+
+	meshActor->MarkComponentsRenderStateDirty();
+
+	return result;
+
+#if 0
 	UE_LOG(JsonLog, Log, TEXT("Mesh found in object %d, name %s"), objId, *jsonGameObj.ueName);
 	
 	auto meshPath = meshIdMap[jsonGameObj.meshId];
@@ -352,24 +468,6 @@ ImportedObject JsonImporter::processStaticMesh(ImportWorkData &workData, const J
 		return ImportedObject();
 	}
 	meshActor->SetActorLabel(jsonGameObj.ueName, true);
-	/*
-	//Uh, what the hell is going on with the upcasting? Is it some leftover code?
-	AActor *meshActor = workData.world->SpawnActor<AActor>(AStaticMeshActor::StaticClass(), transform, spawnParams);
-	if (!meshActor){
-		UE_LOG(JsonLog, Warning, TEXT("Couldn't spawn actor"));
-		return ImportedObject();
-	}
-
-	meshActor->SetActorLabel(jsonGameObj.ueName, true);
-
-	AStaticMeshActor *worldMesh = Cast<AStaticMeshActor>(meshActor);
-	//if params is static
-	if (!worldMesh){
-		UE_LOG(JsonLog, Warning, TEXT("Wrong actor class"));
-		return ImportedObject();
-	}
-	auto meshComp = worldMesh->GetStaticMeshComponent();
-	*/
 
 	auto meshComp = meshActor->GetStaticMeshComponent();
 	meshComp->SetStaticMesh(meshObject);
@@ -440,7 +538,6 @@ ImportedObject JsonImporter::processStaticMesh(ImportWorkData &workData, const J
 	/*
 	We actually probably need to switch it to , well, constructing object on the fly at some point.
 	*/
-	//workData.objectActors.Add(jsonGameObj.id, meshActor);
 	auto result = ImportedObject(meshActor);
 	workData.importedObjects.Add(jsonGameObj.id, result);
 	setObjectHierarchy(result, parentObject, folderPath, workData, jsonGameObj);
@@ -451,6 +548,7 @@ ImportedObject JsonImporter::processStaticMesh(ImportWorkData &workData, const J
 	meshActor->MarkComponentsRenderStateDirty();
 
 	return result;
+#endif
 }
 
 //void setupReflectionCapture(UReflectionCaptureComponent *reflComponent, const JsonReflectionProbe &probe);
