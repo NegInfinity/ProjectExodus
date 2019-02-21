@@ -346,6 +346,14 @@ ImportedObject JsonImporter::processStaticMesh(ImportWorkData &workData, const J
 	}
 
 	//I wonder why it is "spawn" here and Add everywhere else. But whatever.
+	auto *meshActor = workData.world->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass(), transform, spawnParams);
+	if (!meshActor){
+		UE_LOG(JsonLog, Warning, TEXT("Couldn ot spawn mesh actor"));
+		return ImportedObject();
+	}
+	meshActor->SetActorLabel(jsonGameObj.ueName, true);
+	/*
+	//Uh, what the hell is going on with the upcasting? Is it some leftover code?
 	AActor *meshActor = workData.world->SpawnActor<AActor>(AStaticMeshActor::StaticClass(), transform, spawnParams);
 	if (!meshActor){
 		UE_LOG(JsonLog, Warning, TEXT("Couldn't spawn actor"));
@@ -360,8 +368,10 @@ ImportedObject JsonImporter::processStaticMesh(ImportWorkData &workData, const J
 		UE_LOG(JsonLog, Warning, TEXT("Wrong actor class"));
 		return ImportedObject();
 	}
-
 	auto meshComp = worldMesh->GetStaticMeshComponent();
+	*/
+
+	auto meshComp = meshActor->GetStaticMeshComponent();
 	meshComp->SetStaticMesh(meshObject);
 
 	if (!jsonGameObj.hasRenderers()){
@@ -403,7 +413,7 @@ ImportedObject JsonImporter::processStaticMesh(ImportWorkData &workData, const J
 	logValue("hasShadows", hasShadows);
 	logValue("twoSidedShadows", twoSidedShadows);
 
-	worldMesh->SetActorHiddenInGame(hideInGame);
+	meshActor->SetActorHiddenInGame(hideInGame);
 
 	meshComp->SetMobility(jsonGameObj.getUnrealMobility());
 	/*if (jsonGameObj.isStatic)
@@ -438,7 +448,7 @@ ImportedObject JsonImporter::processStaticMesh(ImportWorkData &workData, const J
 	meshComp->SetCastShadow(hasShadows);
 	meshComp->bCastShadowAsTwoSided = twoSidedShadows;
 
-	worldMesh->MarkComponentsRenderStateDirty();
+	meshActor->MarkComponentsRenderStateDirty();
 
 	return result;
 }
