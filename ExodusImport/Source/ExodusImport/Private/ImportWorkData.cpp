@@ -99,21 +99,21 @@ const JsonGameObject* ImportWorkData::findJsonObject(JsonId id) const{
 	return nullptr;
 }
 
-const JsonRigidbody* ImportWorkData::locateRigidbody(const JsonGameObject &gameObj) const{
+const JsonRigidbody* ImportWorkData::locateRigidbody(const JsonGameObject &srcGameObj) const{
 	using namespace JsonObjects;
 
-	const JsonGameObject *currentObject = &gameObj;
+	const JsonGameObject *currentObject = &srcGameObj;
 	while (currentObject){
-		if (gameObj.rigidbodies.Num() > 0){
-			return &gameObj.rigidbodies[0];
+		if (currentObject->rigidbodies.Num() > 0){
+			return &currentObject->rigidbodies[0];
 		}
-		if (!isValidId(gameObj.parentId))
+		if (!isValidId(currentObject->parentId))
 			break;
 
 		if (!scene)
 			break;
 
-		currentObject = findJsonObject(gameObj.parentId);
+		currentObject = findJsonObject(currentObject->parentId);
 	}
 	return nullptr;
 }
