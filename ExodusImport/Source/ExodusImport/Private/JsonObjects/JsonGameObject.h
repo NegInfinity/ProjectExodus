@@ -82,6 +82,10 @@ public:
 		return -1;
 	}
 
+	const JsonCollider* getMainMeshCollider() const{
+		return getColliderByIndex(findMainMeshColliderIndex());
+	}
+
 	const JsonCollider* getColliderByIndex(int index) const{
 		if (index < 0)
 			return nullptr;

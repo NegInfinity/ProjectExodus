@@ -36,6 +36,7 @@ class UAnimSequence;
 class UBoxComponent;
 class USphereComponent;
 class UCapsuleComponent;
+class UPrimitiveComponent;
 
 class JsonImporter{
 protected:
@@ -91,8 +92,20 @@ protected:
 	UCapsuleComponent *createCapsuleCollider(UObject *ownerPtr, const JsonGameObject &gameObj, const JsonCollider &collider) const;
 	UStaticMeshComponent *createMeshCollider(UObject *ownerPtr, const JsonGameObject &gameObj, const JsonCollider &collider) const;
 
-	ImportedObject processCollider(ImportWorkData &workData, const JsonGameObject &gameObj, UObject *ownerPtr, const JsonCollider &collider);
-	void processColliders(ImportWorkData &workData, const JsonGameObject &gameObj, UObject *ownerPtr, ImportedObjectArray *createdObjects);
+	void makeComponentVisibleInEditor(USceneComponent *comp) const;
+
+	UPrimitiveComponent* processCollider(ImportWorkData &workData, const JsonGameObject &gameObj, UObject *ownerPtr, const JsonCollider &collider);
+	//void processColliders(ImportWorkData &workData, const JsonGameObject &gameObj, UObject *ownerPtr, TArray<UPrimitiveComponent*> &createdObjects);
+
+	/*
+	Alright....
+
+	This function processes mesh and colliders for the game object, and if either of them are present, it returns ImportedObject that is meant to serve as a root object 
+	for everything else found on this object.
+
+	The function is a headache.
+	*/
+	ImportedObject processMeshAndColliders(ImportWorkData &workData, const JsonGameObject &gameObj, int objId, ImportedObject *parentObject, const FString &folderPath);
 
 	ImportedObject processReflectionProbe(ImportWorkData &workData, const JsonGameObject &gameObj,
 		const JsonReflectionProbe &probe, int32 objId, ImportedObject *parentObject, const FString &folderPath);

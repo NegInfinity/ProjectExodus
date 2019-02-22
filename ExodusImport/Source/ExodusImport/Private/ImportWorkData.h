@@ -36,6 +36,13 @@ public:
 	AActor *actor = nullptr;
 	USceneComponent *component = nullptr;
 
+	AActor *findRootActor() const{
+		if (component){
+			return component->GetAttachmentRootActor();
+		}
+		return actor;
+	}
+
 	bool isValid() const{
 		return actor || component;
 	}
