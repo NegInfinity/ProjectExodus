@@ -96,8 +96,6 @@ ImportedObject JsonImporter::processMeshAndColliders(ImportWorkData &workData, c
 	Mesh must be attached to a moving collider, as collider doubles down as a rigidbody.
 	*/
 
-	//ImportedObject rootObject, mainMesh;
-
 	bool hasMainMesh = jsonGameObj.hasMesh();
 	int mainMeshColliderIndex = jsonGameObj.findMainMeshColliderIndex();
 	auto mainMeshCollider = jsonGameObj.getColliderByIndex(mainMeshColliderIndex);
@@ -114,8 +112,6 @@ ImportedObject JsonImporter::processMeshAndColliders(ImportWorkData &workData, c
 	}
 
 	ImportedObject rootObject;
-
-	//bool hasMainMeshCollider = hasMainMesh && (mainMeshCollider != nullptr);
 
 	if (!jsonGameObj.hasColliders()){
 		check(!(collisionMesh.isValid() && displayOnlyMesh.isValid()));
@@ -254,129 +250,7 @@ void JsonImporter::importObject(const JsonGameObject &jsonGameObj , int32 objId,
 	ImportedObject rootObject = processMeshAndColliders(workData, jsonGameObj, objId, parentObject, folderPath);
 
 	if (rootObject.isValid()){
-		//workData.registerObject(rootObject)
 	}
-	//ImportedObject mainMesh;
-
-	/*
-	ImportedObject rootObject, mainMesh;
-	int mainMeshColliderIndex = jsonGameObj.findMainMeshColliderIndex();
-	auto mainMeshCollider = jsonGameObj.getColliderByIndex(mainMeshColliderIndex);
-
-	//int mainMeshColliderIndex = -1;
-	if (jsonGameObj.hasMesh()){
-		mainMesh = processStaticMesh(workData, jsonGameObj, objId, parentObject, folderPath, mainMeshCollider);
-		registerImportedObject(&createdObjects, mainMesh);
-	}
-
-	if (jsonGameObj.hasColliders()){
-		USceneComponent *rootComponent = nullptr;
-		AActor *rootActor = nullptr;
-
-		bool hasMainMesh = false;
-		if (mainMesh.isValid()){
-			rootActor = mainMesh.findRootActor();
-			hasMainMesh = rootActor != nullptr;
-		}
-
-		if (!rootActor){
-			rootActor = workData.world->SpawnActor<AActor>(AActor::StaticClass(), jsonGameObj.getUnrealTransform());
-			rootActor->SetActorLabel(jsonGameObj.ueName);
-		}
-		else{
-			rootComponent = rootActor->GetRootComponent();
-		}
-
-		check(rootActor);
-
-		TArray<UPrimitiveComponent*> newColliders;
-		for (int i = 0; i < jsonGameObj.colliders.Num(); i++){
-			const auto &curCollider = jsonGameObj.colliders[i];
-
-			if (hasMainMesh && (i == mainMeshColliderIndex) && (curCollider.isMeshCollider()))
-				continue;
-
-			auto collider = processCollider(workData, jsonGameObj, rootActor, curCollider);
-			createdObjects.Add(collider);
-		}
-
-		int rootCompIndex = mainMeshColliderIndex;
-		if (!hasMainMesh){
-			int rootCompIndex = jsonGameObj.findSuitableRootColliderIndex();
-			if ((rootCompIndex < 0) || (rootCompIndex >= newColliders.Num())){
-				UE_LOG(JsonLog, Warning, TEXT("Could not find suitable root collider on %s(%d)"), *jsonGameObj.name, objId);
-				rootCompIndex = 0;
-			}
-
-			check(newColliders.Num() > 0);
-			rootComponent = newColliders[rootCompIndex];
-			check(rootComponent);
-			rootActor->SetRootComponent(rootComponent);
-
-			///newColliders.RemoveAt(rootCompIndex);//It is easier to handle this here... or not
-		}
-		check(rootComponent);
-
-		rootObject = ImportedObject(rootComponent);
-
-		for (int i = 0; i < newColliders.Num(); i++){
-			auto curCollider = newColliders[i];
-			if (!curCollider)
-				continue;
-			if (i != rootCompIndex){
-				auto tmpObj = ImportedObject(curCollider);
-				tmpObj.attachTo(&rootObject);
-			}
-
-			auto *root = curCollider->GetAttachmentRootActor();
-			if (!root)
-				continue;
-			root->AddInstanceComponent(curCollider);
-		}
-	}
-	*/
-
-	/*
-	//int mainMeshColliderIndex = -1;
-	if (jsonGameObj.hasMesh()){
-		//mainMeshColliderIndex = jsonGameObj.findMainMeshColliderIndex();
-		//auto meshCollider = jsonGameObj.getColliderByIndex(mainMeshColliderIndex);
-		//Let's save this for later
-		auto mainMesh = processStaticMesh(workData, jsonGameObj, objId, parentObject, folderPath, nullptr);
-		//mainMesh = processStaticMesh(workData, jsonGameObj, objId, parentObject, folderPath, meshCollider);
-		registerImportedObject(&createdObjects, mainMesh);
-	}
-	*/
-
-	/*
-	if (jsonGameObj.hasColliders()){
-		auto blankActor = createBlankActor(workData, jsonGameObj);
-
-		check(blankActor.actor && !blankActor.component);
-
-		auto rootColliderIndex = jsonGameObj.findSuitableRootColliderIndex();
-		if (rootColliderIndex < 0){
-			UE_LOG(JsonLog, Warning, TEXT("Warning! No collider suitable for root collider found on object %s(%d), defaulting to the first collider"),
-				*jsonGameObj.name, objId);
-		}
-
-
-		for (int colliderIndex = 0; colliderIndex < jsonGameObj.colliders.Num(); colliderIndex++){
-		}
-
-		FTransform transform;
-		transform.SetFromMatrix(jsonGameObj.ueWorldMatrix);
-		AActor *rootActor = workData.world->SpawnActor<AActor>(AActor::StaticClass(), transform);
-		USceneComponent *rootComponent = nullptr;
-
-		
-		auto *rootComponent = NewObject<USceneComponent>(blankActor);
-		rootComponent->SetWorldTransform(transform);
-		rootComponent->SetRootComponent(rootComponent);
-		blankActor->SetActorLabel(jsonGameObj.ueName, true);
-		rootComponent->SetMobility(jsonGameObj.getUnrealMobility());
-	}
-	*/
 
 	if (jsonGameObj.hasProbes()){
 		processReflectionProbes(workData, jsonGameObj, objId, parentObject, folderPath, &createdObjects);
@@ -415,45 +289,10 @@ void JsonImporter::importObject(const JsonGameObject &jsonGameObj , int32 objId,
 		}
 	}
 
-	/*
-	if (createdObjects.Num() > 1){
-		check(rootObject.isValid());
-		for (auto& cur : createdObjects){
-			check(cur.isValid());
-			setObjectHierarchy(cur, &rootObject, folderPath, workData, jsonGameObj);
-		}
-	}
-	else if (createdObjects.Num() == 1){
-		check(!rootObject.isValid());
-		rootObject = createdObjects[0];
-	}
-	*/
-
 	if (rootObject.isValid()){
 		workData.importedObjects.Add(jsonGameObj.id, rootObject);
 		setObjectHierarchy(rootObject, parentObject, folderPath, workData, jsonGameObj);
 	}
-
-	/*
-	if ((createdObjects.Num() > 1) 
-		|| ((createdObjects.Num() == 1) && (!createdObjects[0].actor))
-		|| ((createdObjects.Num() == 0) && (jsonGameObj.hasColliders()))
-		){
-		//Collapse nodes under single actor. 
-		auto blankActor = createBlankActor(workData, jsonGameObj);
-		setObjectHierarchy(blankActor, parentObject, folderPath, workData, jsonGameObj);
-		workData.importedObjects.Add(jsonGameObj.id, blankActor);
-
-		for (auto& cur : createdObjects){
-			check(cur.isValid());
-			setObjectHierarchy(cur, &blankActor, folderPath, workData, jsonGameObj);
-		}
-		objectRoot = blankActor;
-	}
-	else if (createdObjects.Num() == 1){
-		objectRoot = createdObjects[0];
-	}
-	*/
 
 	/*
 	Let's summarize collision approach and differences.
@@ -484,27 +323,6 @@ void JsonImporter::importObject(const JsonGameObject &jsonGameObj , int32 objId,
 	This is ... convoluted.
 
 	Let's see if I can, after all, turn rigibody into a component instead of relying on semi-random merges.
-	*/
-	/*
-	if (jsonGameObj.hasColliders()){
-		check(objectRoot.isValid());//Should've been created within previous if/else
-
-		ImportedObjectArray newColliders;
-		processColliders(workData, jsonGameObj, &objectRoot, &newColliders);//&createdObjects);
-		for (auto& cur : newColliders){
-			check(cur.isValid());
-			cur.attachTo(&objectRoot);
-			if (!cur.component)
-				continue;
-			//if we don't do that... the component won't show up in the editor.
-			auto *root = cur.component->GetAttachmentRootActor();
-			if (!root)
-				continue;
-			//cur.component->RegisterComponent();
-			root->AddInstanceComponent(cur.component);
-			//setObjectHierarchy(cur, &blankActor, folderPath, workData, jsonGameObj);
-		}
-	}
 	*/
 
 	/*
@@ -723,9 +541,6 @@ ImportedObject JsonImporter::processStaticMesh(ImportWorkData &workData, const J
 		UE_LOG(JsonLog, Warning, TEXT("First renderer not found on %s(%d)"), *jsonGameObj.name, objId);
 	}
 
-	/*
-	We actually probably need to switch it to , well, constructing object on the fly at some point.
-	*/
 	auto result = ImportedObject(meshActor);
 	workData.importedObjects.Add(jsonGameObj.id, result);
 	setObjectHierarchy(result, parentObject, folderPath, workData, jsonGameObj);
@@ -1205,19 +1020,3 @@ UPrimitiveComponent* JsonImporter::processCollider(ImportWorkData &workData, con
 
 	return colliderComponent;// ImportedObject(colliderComponent);
 }
-
-#if 0
-void JsonImporter::processColliders(ImportWorkData &workData, const JsonGameObject &gameObj, UObject *ownerPtr, TArray<UPrimitiveComponent*> &createdObjects){
-	if (!gameObj.hasColliders())
-		return;
-
-	for (int i = 0; i < gameObj.colliders.Num(); i++){
-		const auto &curCollider = gameObj.colliders[i];
-
-		auto collider = processCollider(workData, gameObj, ownerPtr, curCollider);
-		createdObjects.Add(collider);
-		/*registerImportedObject(createdObjects,
-			processCollider(workData, gameObj, ownerPtr, curCollider));*/
-	}
-}
-#endif
