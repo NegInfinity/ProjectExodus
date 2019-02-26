@@ -33,6 +33,30 @@ public:
 	FVector velocity = FVector::ZeroVector;
 	FVector worldCenterOfMass = FVector::ZeroVector;
 
+	bool usesInterpolation() const{
+		return interpolation == "Interpolate";
+	}
+
+	bool usesExtrapolation() const{
+		return interpolation == "Extrapolate";
+	}
+
+	bool usesDiscreteCollision() const{
+		return collisionDetectionMode == "Discrete";
+	}
+
+	bool usesContinuousCollision() const{
+		return collisionDetectionMode == "Continuous";
+	}
+
+	bool usesContinuousDynamicCollision() const{
+		return collisionDetectionMode == "ContinuousDynamic";
+	}
+
+	bool usesContinuousSpeculativeCollision() const{
+		return collisionDetectionMode == "ContinuousSpeculative";
+	}
+
 	JsonRigidbody() = default;
 	JsonRigidbody(JsonObjPtr data);
 	void load(JsonObjPtr data);

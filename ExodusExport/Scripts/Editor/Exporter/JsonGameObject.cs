@@ -105,6 +105,7 @@ namespace SceneExport{
 			writer.writeKeyVal("animators", animators, true);
 			writer.writeKeyVal("terrains", terrains, true);
 			writer.writeKeyVal("colliders", colliders, true);
+			writer.writeKeyVal("rigidbodies", rigidbodies, true);
 			
 			writer.endObject();
 		}

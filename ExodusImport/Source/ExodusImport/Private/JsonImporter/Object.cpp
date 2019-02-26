@@ -985,6 +985,7 @@ UStaticMeshComponent* JsonImporter::createMeshCollider(UObject *ownerPtr, const 
 
 
 void JsonImporter::setupCommonColliderSettings(const ImportWorkData &workData, UPrimitiveComponent *dstCollider, const JsonGameObject &jsonGameObj, const JsonCollider &collider) const{
+	check(dstCollider);
 	if (collider.trigger){
 		dstCollider->SetCollisionProfileName(FName("OverlapAll"));//this is not available as a constant 
 		dstCollider->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
@@ -994,8 +995,22 @@ void JsonImporter::setupCommonColliderSettings(const ImportWorkData &workData, U
 		dstCollider->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	}
 	const auto *rigBody = workData.locateRigidbody(jsonGameObj);
+	//Hmm. Shoudl this even be here?
 	if (rigBody){
 		//rigBody->
+		//kinematic rigidbodies?
+		//
+		dstCollider->SetSimulatePhysics(!rigBody->isKinematic);
+		dstCollider->SetMassOverrideInKg(NAME_None, rigBody->mass, true);
+		dstCollider->SetEnableGravity(rigBody->useGravity);
+
+		auto ccd = rigBody->usesContinuousCollision() 
+			|| rigBody->usesContinuousDynamicCollision() 
+			|| rigBody->usesContinuousSpeculativeCollision();
+
+		dstCollider->SetAllUseCCD(ccd);
+
+		//Well, we can't set rigidbody drag and angular drag, it seems.
 	}
 }
 
