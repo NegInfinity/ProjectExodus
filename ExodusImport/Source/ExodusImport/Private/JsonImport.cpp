@@ -46,6 +46,7 @@
 #include "Tests/LandscapeTest.h"
 #include "Tests/OutlinerTest.h"
 #include "Tests/SkinMeshTest.h"
+#include "Tests/PluginDebugTest.h"
 
 #define LOCTEXT_NAMESPACE "FJsonImportModule"
 
@@ -64,6 +65,10 @@ void FJsonImportModule::StartupModule(){
 	PluginCommands->MapAction(
 		FJsonImportCommands::Get().PluginImportAction,
 		FExecuteAction::CreateRaw(this, &FJsonImportModule::PluginImportButtonClicked),
+		FCanExecuteAction());
+	PluginCommands->MapAction(
+		FJsonImportCommands::Get().PluginDebugAction,
+		FExecuteAction::CreateRaw(this, &FJsonImportModule::PluginDebugButtonClicked),
 		FCanExecuteAction());
 	PluginCommands->MapAction(
 		FJsonImportCommands::Get().PluginTestAction,
@@ -105,6 +110,10 @@ void FJsonImportModule::ShutdownModule(){
 	FJsonImportCommands::Unregister();
 }
 
+void FJsonImportModule::PluginDebugButtonClicked(){
+	PluginDebugTest test;
+	test.run();
+}
 
 void FJsonImportModule::PluginTestButtonClicked(){
 	OutlinerTest test;
@@ -146,9 +155,12 @@ void FJsonImportModule::AddMenuExtension(FMenuBuilder& Builder){
 
 void FJsonImportModule::AddToolbarExtension(FToolBarBuilder& Builder){
 	Builder.AddToolBarButton(FJsonImportCommands::Get().PluginImportAction);
+	Builder.AddToolBarButton(FJsonImportCommands::Get().PluginDebugAction);
+	/*
 	Builder.AddToolBarButton(FJsonImportCommands::Get().PluginTestAction);
 	Builder.AddToolBarButton(FJsonImportCommands::Get().PluginLandscapeTestAction);
 	Builder.AddToolBarButton(FJsonImportCommands::Get().PluginSkinMeshTestAction);
+	*/
 }
 
 #undef LOCTEXT_NAMESPACE

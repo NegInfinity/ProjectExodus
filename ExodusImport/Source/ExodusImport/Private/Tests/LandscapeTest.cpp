@@ -72,11 +72,11 @@ Crash in runnable thread TaskGraphThreadNP 1
 
 using namespace MaterialTools;
 
-static FString getTestRootPath(){
+FString LandscapeTest::getTestRootPath(){
 	return FString("/Game/Import/LandscapeTest");
 }
 
-static FLinearColor indexToColor(int index){
+FLinearColor LandscapeTest::indexToColor(int index){
 	int32 colIndex = 1 + index % 7;
 	return FLinearColor(
 		(colIndex & 0x1) ? 1.0f: 0.0f,
@@ -85,7 +85,7 @@ static FLinearColor indexToColor(int index){
 	);
 }
 
-static ULandscapeLayerInfoObject* createTerrainLayerInfo(const FString &layerName, int layerIndex){
+ULandscapeLayerInfoObject* LandscapeTest::createTerrainLayerInfo(const FString &layerName, int layerIndex){
 	auto fullPath = FString::Printf(TEXT("%s/%s"), *getTestRootPath(), *layerName);
 	auto pkg = CreatePackage(0, *fullPath);
 
@@ -107,7 +107,7 @@ static ULandscapeLayerInfoObject* createTerrainLayerInfo(const FString &layerNam
 }
 
 
-ALandscape* createTestLandscape(UWorld *world, const TArray<FString> &layerNames, UMaterial *landMaterial){
+ALandscape* LandscapeTest::createTestLandscape(UWorld *world, const TArray<FString> &layerNames, UMaterial *landMaterial){
 	//FlushRenderingCommands(true);
 	ALandscape * result = nullptr;
 	const int32 xComps = 1;
@@ -178,7 +178,7 @@ ALandscape* createTestLandscape(UWorld *world, const TArray<FString> &layerNames
 	return result;
 }
 
-UMaterial *createLandscapeMaterial(const TArray<FString> &names){
+UMaterial* LandscapeTest::createLandscapeMaterial(const TArray<FString> &names){
 	auto fullPath = FString::Printf(TEXT("%s/%s"), *getTestRootPath(), TEXT("material"));
 	auto matPkg = CreatePackage(0, *fullPath);
 

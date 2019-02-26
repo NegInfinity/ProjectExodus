@@ -93,6 +93,7 @@ protected:
 	UStaticMeshComponent *createMeshCollider(UObject *ownerPtr, const JsonGameObject &gameObj, const JsonCollider &collider) const;
 
 	void makeComponentVisibleInEditor(USceneComponent *comp) const;
+	void convertToInstanceComponent(USceneComponent *comp) const;
 
 	UPrimitiveComponent* processCollider(ImportWorkData &workData, const JsonGameObject &gameObj, UObject *ownerPtr, const JsonCollider &collider);
 	//void processColliders(ImportWorkData &workData, const JsonGameObject &gameObj, UObject *ownerPtr, TArray<UPrimitiveComponent*> &createdObjects);

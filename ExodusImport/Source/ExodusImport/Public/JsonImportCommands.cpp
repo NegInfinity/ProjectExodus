@@ -9,7 +9,9 @@ void FJsonImportCommands::RegisterCommands()
 {
 	UI_COMMAND(PluginImportAction, "ExodusImport", "Execute ExodusImport action", 
 		EUserInterfaceActionType::Button, FInputGesture());
-	UI_COMMAND(PluginTestAction, "Exodus object test", "Run ExodusImport Test", 
+	UI_COMMAND(PluginDebugAction, "ExodusImport Debug", "Execute ExodusImport debug action (do not use)",
+		EUserInterfaceActionType::Button, FInputGesture());
+	UI_COMMAND(PluginTestAction, "Exodus object test", "Run ExodusImport Test",
 		EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND(PluginLandscapeTestAction, "Exodus landscape crash test", "Run ExodusImport landscape test", 
 		EUserInterfaceActionType::Button, FInputGesture());

@@ -19,6 +19,7 @@ public:
 	/** This function will be bound to Command. */
 	void PluginImportButtonClicked();
 	void PluginTestButtonClicked();
+	void PluginDebugButtonClicked();
 	void PluginLandscapeTestButtonClicked();
 	void PluginSkinMeshTestButtonClicked();
 	

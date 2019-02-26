@@ -22,6 +22,7 @@ public:
 
 public:
 	TSharedPtr< FUICommandInfo > PluginImportAction;
+	TSharedPtr< FUICommandInfo > PluginDebugAction;
 	TSharedPtr< FUICommandInfo > PluginTestAction;
 	TSharedPtr< FUICommandInfo > PluginLandscapeTestAction;
 	TSharedPtr< FUICommandInfo > PluginSkinMeshTestAction;

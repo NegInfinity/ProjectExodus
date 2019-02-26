@@ -46,6 +46,7 @@ TSharedRef< FSlateStyleSet > FJsonImportStyle::Create()
 	Style->SetContentRoot(IPluginManager::Get().FindPlugin("ExodusImport")->GetBaseDir() / TEXT("Resources"));
 
 	Style->Set("ExodusImport.PluginImportAction", new IMAGE_BRUSH(TEXT("ButtonIcon_40x"), Icon40x40));
+	Style->Set("ExodusImport.PluginDebugAction", new IMAGE_BRUSH(TEXT("ButtonIcon_40x"), Icon40x40));
 	Style->Set("ExodusImport.PluginTestAction", new IMAGE_BRUSH(TEXT("ButtonIcon_40x"), Icon40x40));
 	Style->Set("ExodusImport.PluginLandscapeTestAction", new IMAGE_BRUSH(TEXT("ButtonIcon_40x"), Icon40x40));
 	Style->Set("ExodusImport.PluginSkinMeshTestAction", new IMAGE_BRUSH(TEXT("ButtonIcon_40x"), Icon40x40));

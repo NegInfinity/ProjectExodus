@@ -194,6 +194,7 @@ ImportedObject JsonImporter::processMeshAndColliders(ImportWorkData &workData, c
 		}
 
 		makeComponentVisibleInEditor(curCollider);
+		convertToInstanceComponent(curCollider);
 	}
 
 	if (displayOnlyMesh.isValid()){
@@ -202,6 +203,14 @@ ImportedObject JsonImporter::processMeshAndColliders(ImportWorkData &workData, c
 	}
 
 	return rootObject;
+}
+
+void JsonImporter::convertToInstanceComponent(USceneComponent *comp) const{
+	if (!comp)
+		return;
+	auto rootActor = comp->GetAttachmentRootActor();
+	check(rootActor);
+	rootActor->AddInstanceComponent(comp);
 }
 
 void JsonImporter::makeComponentVisibleInEditor(USceneComponent *comp) const{
