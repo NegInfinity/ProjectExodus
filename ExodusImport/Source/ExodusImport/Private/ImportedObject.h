@@ -15,6 +15,14 @@ public:
 	AActor *actor = nullptr;
 	USceneComponent *component = nullptr;
 
+	bool hasActor() const{
+		return actor;
+	}
+
+	bool hasComponent() const{
+		return component;
+	}
+
 	AActor *findRootActor() const{
 		if (component){
 			return component->GetAttachmentRootActor();
@@ -37,6 +45,8 @@ public:
 
 	void attachTo(AActor *actor, USceneComponent *component) const;
 	void attachTo(ImportedObject *parent) const;
+
+	void setNameOrLabel(const FString &newName);
 
 	ImportedObject() = default;
 

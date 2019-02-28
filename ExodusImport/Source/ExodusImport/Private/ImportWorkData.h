@@ -41,14 +41,8 @@ public:
 	ImportedObjectMap importedObjects;
 	TStrongObjectPtr<UWorld> world;
 	bool editorMode;
-	bool storeActors;
-
-	TArray<ImportedObject> rootObjects;
-	TArray<ImportedObject> childObjects;
-	TArray<ImportedObject> allObjects;
 
 	TArray<AnimControllerIdKey> delayedAnimControllers;
-
 	TArray<JsonId> postProcessAnimatorObjects;
 
 	const JsonGameObject* findJsonObject(JsonId id) const;
@@ -58,10 +52,8 @@ public:
 	void registerAnimatorForPostProcessing(const JsonGameObject &jsonObj);
 	void registerDelayedAnimController(JsonId skelId, JsonId controllerId);
 
-	void registerObject(const ImportedObject &object, AActor *parent);
-
-	ImportWorkData(UWorld *world_, bool editorMode_, const JsonScene *scene_, bool storeActors_ = false)
-	:world(world_), editorMode(editorMode_), scene(scene_), storeActors(storeActors_){
+	ImportWorkData(UWorld *world_, bool editorMode_, const JsonScene *scene_)
+	:world(world_), editorMode(editorMode_), scene(scene_){
 	}
 
 	void clear(){

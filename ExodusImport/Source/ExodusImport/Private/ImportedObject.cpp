@@ -71,3 +71,10 @@ void ImportedObject::setFolderPath(const FString &folderPath) const{
 		return;
 	actor->SetFolderPath(*folderPath);
 }
+
+void ImportedObject::setNameOrLabel(const FString &newName){
+	if (actor)
+		actor->SetActorLabel(newName);
+	if (component)
+		component->Rename(*newName);
+}
