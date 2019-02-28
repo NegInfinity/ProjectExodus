@@ -66,10 +66,13 @@ void ImportedObject::setActiveInHierarchy(bool active) const{
 	}
 }
 
-void ImportedObject::setFolderPath(const FString &folderPath) const{
+void ImportedObject::setFolderPath(const FString &folderPath, bool recursive) const{
 	if (!actor)
 		return;
-	actor->SetFolderPath(*folderPath);
+	if (recursive)
+		actor->SetFolderPath_Recursively(*folderPath);
+	else
+		actor->SetFolderPath(*folderPath);
 }
 
 void ImportedObject::setNameOrLabel(const FString &newName){
@@ -78,3 +81,4 @@ void ImportedObject::setNameOrLabel(const FString &newName){
 	if (component)
 		component->Rename(*newName);
 }
+

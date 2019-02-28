@@ -45,6 +45,13 @@ public:
 	TArray<AnimControllerIdKey> delayedAnimControllers;
 	TArray<JsonId> postProcessAnimatorObjects;
 
+	const ImportedObject* findImportedObject(JsonId id) const;
+	ImportedObject* findImportedObject(JsonId id);
+	FString processFolderPath(const JsonGameObject &jsonObj);
+
+	const FString* findFolderPath(JsonId id) const;
+	void registerGameObject(const JsonGameObject &gameObj, ImportedObject imported);
+
 	const JsonGameObject* findJsonObject(JsonId id) const;
 
 	const JsonRigidbody* locateRigidbody(const JsonGameObject &gameObj) const;

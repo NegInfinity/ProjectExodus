@@ -143,6 +143,7 @@ ImportedObject JsonImporter::processMeshAndColliders(ImportWorkData &workData, c
 		*/
 		rootActor = workData.world->SpawnActor<AActor>(AActor::StaticClass(), jsonGameObj.getUnrealTransform());
 		rootActor->SetActorLabel(jsonGameObj.ueName);
+		rootActor->SetFolderPath(*folderPath);
 	}
 	else{
 		rootComponent = rootActor->GetRootComponent();
@@ -226,24 +227,9 @@ void JsonImporter::makeComponentVisibleInEditor(USceneComponent *comp) const{
 void JsonImporter::importObject(const JsonGameObject &jsonGameObj , int32 objId, ImportWorkData &workData){
 	//UE_LOG(JsonLog, Log, TEXT("Importing object %d"), objId);
 
-	FString folderPath;
+	auto* parentObject = workData.findImportedObject(jsonGameObj.parentId);
 
-	auto* parentObject = workData.importedObjects.Find(jsonGameObj.parentId);
-
-	FString childFolderPath = jsonGameObj.ueName;
-	if (jsonGameObj.parentId >= 0){
-		const FString* found = workData.objectFolderPaths.Find(jsonGameObj.parentId);
-		if (found){
-			folderPath = *found;
-			childFolderPath = folderPath + "/" + jsonGameObj.ueName;
-		}
-		else{
-			UE_LOG(JsonLog, Warning, TEXT("Object parent not found, folder path may be invalid"));
-		}
-	}
-
-	//UE_LOG(JsonLog, Log, TEXT("Folder path for object: %d: %s"), jsonGameObj.id, *folderPath);
-	workData.objectFolderPaths.Add(jsonGameObj.id, childFolderPath);
+	auto folderPath = workData.processFolderPath(jsonGameObj);
 	UE_LOG(JsonLog, Log, TEXT("Num components for object %d(%s): %d"), jsonGameObj.id, *folderPath, jsonGameObj.getNumComponents());
 
 	bool multiComponentObject = jsonGameObj.getNumComponents() > 1;
@@ -277,12 +263,9 @@ void JsonImporter::importObject(const JsonGameObject &jsonGameObj , int32 objId,
 		processSkinMeshes(workData, jsonGameObj, parentObject, folderPath, &createdObjects);
 	}
 
-	//ImportedObject objectRoot;
-
 	if ((createdObjects.Num() > 1) && (!rootObject.isValid())){
 		rootObject = createBlankActor(workData, jsonGameObj);
 	}
-
 
 	if (rootObject.isValid()){
 		for (auto& cur : createdObjects){
@@ -299,8 +282,9 @@ void JsonImporter::importObject(const JsonGameObject &jsonGameObj , int32 objId,
 	}
 
 	if (rootObject.isValid()){
-		workData.importedObjects.Add(jsonGameObj.id, rootObject);
+		workData.registerGameObject(jsonGameObj, rootObject);
 		setObjectHierarchy(rootObject, parentObject, folderPath, workData, jsonGameObj);
+		rootObject.setFolderPath(folderPath, true);
 	}
 
 	/*
@@ -359,7 +343,8 @@ void JsonImporter::importObject(const JsonGameObject &jsonGameObj , int32 objId,
 			ImportedObject importedObject(blankActor);
 			*/
 			setObjectHierarchy(blankActor, parentObject, folderPath, workData, jsonGameObj);
-			workData.importedObjects.Add(jsonGameObj.id, blankActor);
+			//workData.importedObjects.Add(jsonGameObj.id, blankActor);
+			workData.registerGameObject(jsonGameObj, blankActor);
 		}
 	}
 }
@@ -432,7 +417,8 @@ ImportedObject JsonImporter::processSkinRenderer(ImportWorkData &workData, const
 	}
 
 	ImportedObject importedObject(meshActor);
-	workData.importedObjects.Add(jsonGameObj.id, importedObject);
+	//workData.importedObjects.Add(jsonGameObj.id, importedObject);
+	workData.registerGameObject(jsonGameObj, importedObject);
 	setObjectHierarchy(importedObject, parentObject, folderPath, workData, jsonGameObj);
 	return importedObject;
 }
@@ -551,7 +537,8 @@ ImportedObject JsonImporter::processStaticMesh(ImportWorkData &workData, const J
 	}
 
 	auto result = ImportedObject(meshActor);
-	workData.importedObjects.Add(jsonGameObj.id, result);
+	workData.registerGameObject(jsonGameObj, result);
+	//workData.importedObjects.Add(jsonGameObj.id, result);
 	setObjectHierarchy(result, parentObject, folderPath, workData, jsonGameObj);
 
 	meshActor->MarkComponentsRenderStateDirty();

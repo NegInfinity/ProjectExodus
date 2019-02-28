@@ -41,7 +41,7 @@ public:
 	}
 
 	void setActiveInHierarchy(bool active) const;
-	void setFolderPath(const FString &folderPath) const;
+	void setFolderPath(const FString &folderPath, bool recursive = false) const;
 
 	void attachTo(AActor *actor, USceneComponent *component) const;
 	void attachTo(ImportedObject *parent) const;
