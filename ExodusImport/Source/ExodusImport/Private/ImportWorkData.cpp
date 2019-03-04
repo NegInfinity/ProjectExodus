@@ -79,3 +79,51 @@ FString ImportWorkData::processFolderPath(const JsonGameObject &jsonGameObj){
 	objectFolderPaths.Add(jsonGameObj.id, childFolderPath);
 	return folderPath;
 }
+
+UObject* ImportWorkData::findSuitableOuter(const JsonGameObject &jsonObj) const{
+	using namespace JsonObjects;
+
+	JsonId parentId = jsonObj.parentId;
+	UObject* result = nullptr;
+	while (isValidId(parentId)){
+		auto foundImported = importedObjects.Find(parentId);
+		if (foundImported){
+			auto rootActor = foundImported->findRootActor();
+			if (rootActor)
+				return rootActor;
+		}
+		auto foundJson = findJsonObject(parentId);
+		if (!foundJson)
+			break;
+		parentId = foundJson->parentId;
+	}
+	return result;
+}
+
+bool ImportWorkData::isCompoundRigidbodyRootCollider(const JsonGameObject &gameObj) const{
+	using namespace JsonObjects;
+
+	if (!gameObj.hasColliders())
+		return false;
+	if (gameObj.hasRigidbody())
+		return true;
+	int parentId = gameObj.parentId;
+	auto rigBody = locateRigidbody(gameObj);
+	if (!rigBody)
+		return false;
+
+	while (isValidId(parentId)){
+		auto parentJson = findJsonObject(parentId);
+		if (!parentJson){
+			UE_LOG(JsonLog, Warning, TEXT("Broken object chain at %s(\"%s\", %d)"), *gameObj.name, *gameObj.scenePath, gameObj.id);
+			return false;//broken object chain. Report?
+		}
+		if (parentJson->hasColliders())
+			return false;//we are not at compound object root, because parent has collides of its own.
+		if (parentJson->hasRigidbody())
+			return true;//parent has rigibody and no colliders. We're possible compound root.
+		parentId = parentJson->parentId;		
+	}
+	check(false);//somehow we found neither rigidbody nor colliders? This is an illegal scene graph and likely an error
+	return false;
+}

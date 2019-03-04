@@ -158,8 +158,9 @@ namespace SceneExport{
 					(c) => new JsonSkinRendererData(c, objMap, resMap)
 			);
 
+			int colliderIndex = 0;
 			colliders = ExportUtility.convertComponentsList<Collider, JsonCollider>(
-				obj, (arg) => new JsonCollider(arg, resMap)
+				obj, (arg) => new JsonCollider(arg, colliderIndex++, resMap)
 			);
 
 			rigidbodies = ExportUtility.convertComponentsList<Rigidbody, JsonRigidbody>(

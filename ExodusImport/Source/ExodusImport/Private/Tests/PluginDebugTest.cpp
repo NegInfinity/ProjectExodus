@@ -14,7 +14,9 @@ void PluginDebugTest::run(){
 	auto actor1 = world->SpawnActor<AActor>(AActor::StaticClass(), transform);
 	actor1->SetActorLabel("Actor 1");
 
-	auto scene1 = NewObject<USceneComponent>(actor1, USceneComponent::StaticClass());
+	//auto scene1 = NewObject<USceneComponent>(actor1, USceneComponent::StaticClass());
+	auto scene1 = NewObject<USceneComponent>();//Will this make it move to another outer?
+	scene1->Rename(nullptr, actor1);
 	actor1->SetRootComponent(scene1);
 	scene1->RegisterComponent();
 	actor1->AddInstanceComponent(scene1);

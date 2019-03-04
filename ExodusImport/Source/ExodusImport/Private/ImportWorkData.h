@@ -45,6 +45,8 @@ public:
 	TArray<AnimControllerIdKey> delayedAnimControllers;
 	TArray<JsonId> postProcessAnimatorObjects;
 
+	UObject* findSuitableOuter(const JsonGameObject &jsonObj) const;
+
 	const ImportedObject* findImportedObject(JsonId id) const;
 	ImportedObject* findImportedObject(JsonId id);
 	FString processFolderPath(const JsonGameObject &jsonObj);
@@ -53,6 +55,8 @@ public:
 	void registerGameObject(const JsonGameObject &gameObj, ImportedObject imported);
 
 	const JsonGameObject* findJsonObject(JsonId id) const;
+
+	bool isCompoundRigidbodyRootCollider(const JsonGameObject &gameObj) const;
 
 	const JsonRigidbody* locateRigidbody(const JsonGameObject &gameObj) const;
 

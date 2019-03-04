@@ -8,6 +8,7 @@ public:
 		XAxis = 0, YAxis = 1, ZAxis = 2
 	};
 	FString colliderType;
+	int colliderIndex = -1;
 	FVector center = FVector::ZeroVector;
 	FVector size = FVector::ZeroVector;
 	int direction = 0;//0 == x, 1 == y, 2 == z

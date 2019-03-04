@@ -34,11 +34,10 @@ public:
 		return actor || component;
 	}
 
-	UObject* getPtrForOuter() const{
-		if (component)
-			return component;
-		return actor;
-	}
+	/*
+	Fixes object ownership in case of complex reattachment scenarios
+	*/
+	void fixMismatchingOwner() const;//Erm... const modifier.
 
 	void setActiveInHierarchy(bool active) const;
 	void setFolderPath(const FString &folderPath, bool recursive = false) const;
@@ -46,7 +45,10 @@ public:
 	void attachTo(AActor *actor, USceneComponent *component) const;
 	void attachTo(ImportedObject *parent) const;
 
-	void setNameOrLabel(const FString &newName);
+	void setNameOrLabel(const FString &newName, bool markDirty = true);
+
+	void fixEditorVisibility() const;
+	void convertToInstanceComponent() const;
 
 	ImportedObject() = default;
 

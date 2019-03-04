@@ -24,6 +24,8 @@ void ImportedObject::attachTo(AActor *parentActor, USceneComponent *parentCompon
 				//check(false);
 			}
 		}
+
+		fixMismatchingOwner();
 	}
 	else if (actor){
 		UE_LOG(JsonLog, Log, TEXT("Attaching an actor %s"), *actor->GetName());
@@ -75,10 +77,38 @@ void ImportedObject::setFolderPath(const FString &folderPath, bool recursive) co
 		actor->SetFolderPath(*folderPath);
 }
 
-void ImportedObject::setNameOrLabel(const FString &newName){
+void ImportedObject::setNameOrLabel(const FString &newName, bool markDirty){
 	if (actor)
-		actor->SetActorLabel(newName);
+		actor->SetActorLabel(newName, markDirty);
 	if (component)
 		component->Rename(*newName);
 }
 
+void ImportedObject::fixMismatchingOwner() const{
+	if (!component)
+		return;//nothing to do, an AActor is supposed to have a proper container by default.
+	auto root = component->GetAttachmentRoot();
+	if (!root)
+		return;//how? should we fail in this case?
+	auto rootOuter = root->GetOuter();
+	auto curOuter = component->GetOuter();
+	if (curOuter != rootOuter)
+		component->Rename(0, rootOuter);
+}
+
+void ImportedObject::fixEditorVisibility() const{
+	if (!component)
+		return;
+	auto rootActor = component->GetAttachmentRootActor();
+	check(rootActor);
+	rootActor->AddInstanceComponent(component);
+}
+
+void ImportedObject::convertToInstanceComponent() const{
+	if (!component)
+		return;
+	auto rootActor = component->GetAttachmentRootActor();
+	check(rootActor);
+	component->bEditableWhenInherited = true;
+	component->RegisterComponent();
+}

@@ -5,6 +5,7 @@ namespace SceneExport{
     [System.Serializable]
     public class JsonCollider: IFastJsonValue{
         public string colliderType;//"box", "sphere", "capsule", "mesh"
+		public int colliderIndex = -1;
         public Vector3 center = Vector3.zero;//all colliders
         public Vector3 size = Vector3.zero;
         public int direction = 0;//0 = x, 1 = y, 2 = z; 
@@ -21,6 +22,7 @@ namespace SceneExport{
         public void writeRawJsonValue(FastJsonWriter writer){
 			writer.beginRawObject();
             writer.writeKeyVal("colliderType", colliderType);
+            writer.writeKeyVal("colliderIndex", colliderIndex);
             writer.writeKeyVal("center", center);
             writer.writeKeyVal("size", size);
             writer.writeKeyVal("direction", direction);
@@ -42,7 +44,8 @@ namespace SceneExport{
 			writer.endObject();
         }
 
-        public JsonCollider(Collider col, ResourceMapper resMap){
+        public JsonCollider(Collider col, int colliderIndex_, ResourceMapper resMap){
+			colliderIndex = colliderIndex_;
             if (!col)
                 throw new System.ArgumentNullException("col");
             if (resMap == null)

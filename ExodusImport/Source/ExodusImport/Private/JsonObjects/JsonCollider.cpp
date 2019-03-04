@@ -10,6 +10,7 @@ void JsonCollider::load(JsonObjPtr data){
 	using namespace JsonObjects;
 
 	JSON_GET_VAR(data, colliderType);
+	JSON_GET_VAR(data, colliderIndex);
 	JSON_GET_VAR(data, center);
 	JSON_GET_VAR(data, size);
 	JSON_GET_VAR(data, direction);

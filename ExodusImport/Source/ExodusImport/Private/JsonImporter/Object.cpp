@@ -71,10 +71,6 @@ ImportedObject JsonImporter::createBlankActor(ImportWorkData &workData, const Js
 	blankActor->SetRootComponent(rootComponent);
 	blankActor->SetActorLabel(jsonGameObj.ueName, true);
 	rootComponent->SetMobility(jsonGameObj.getUnrealMobility());
-
-	/*if (jsonGameObj.isStatic)
-		rootComponent->SetMobility(EComponentMobility::Static);*/
-
 	ImportedObject importedObject(blankActor);
 	return importedObject;
 }
@@ -84,7 +80,7 @@ This does it.
 
 This method processess collision and mesh during object import
 */
-ImportedObject JsonImporter::processMeshAndColliders(ImportWorkData &workData, const JsonGameObject &jsonGameObj, int objId, ImportedObject *parentObject, const FString &folderPath){
+ImportedObject JsonImporter::processMeshAndColliders(ImportWorkData &workData, const JsonGameObject &jsonGameObj, int objId, ImportedObject *parentObject, const FString &folderPath, DesiredObjectType desiredObjectType){
 	/*
 	There are several scenarios ....
 
@@ -96,60 +92,84 @@ ImportedObject JsonImporter::processMeshAndColliders(ImportWorkData &workData, c
 	Mesh must be attached to a moving collider, as collider doubles down as a rigidbody.
 	*/
 
+	/*
+	"Outer" woes.
+
+	A component cannot be created in vacuum and needs to be enclosed in a package.
+	By default the package is "Transient", but transient packages disappear.
+
+	Meaning.... by default we need to find closest parent, and grab "Outer" from there.
+
+	If there's no such parent, OR if the user requested an actor, then we either spawn a blank, OR process static mesh as an actor and return that.
+	*/
+
+	UObject *outer = workData.findSuitableOuter(jsonGameObj);
+	//can be null at this point
+
 	bool hasMainMesh = jsonGameObj.hasMesh();
 	int mainMeshColliderIndex = jsonGameObj.findMainMeshColliderIndex();
 	auto mainMeshCollider = jsonGameObj.getColliderByIndex(mainMeshColliderIndex);
 
 	ImportedObject collisionMesh, displayOnlyMesh;
 
-	if (hasMainMesh){
-		if (mainMeshCollider){
-			collisionMesh = processStaticMesh(workData, jsonGameObj, objId, parentObject, folderPath, mainMeshCollider);
+	/*
+	Not spawning mesh as component means spawning it as actor.
+	We... we only want to spawn static mesh as an actor if:
+	1. The object has no colliders
+	2. It has a signle collider that uses the same mesh
+
+	And that's it.
+	*/
+	if (jsonGameObj.hasMesh()){
+		bool componentRequested = (desiredObjectType == DesiredObjectType::Component);
+		if (jsonGameObj.colliders.Num() == 0){//only display mesh is present
+			return processStaticMesh(workData, jsonGameObj, objId, parentObject, folderPath, nullptr, componentRequested && outer, outer);
 		}
-		else{
-			displayOnlyMesh = processStaticMesh(workData, jsonGameObj, objId, parentObject, folderPath, nullptr);
+		if ((jsonGameObj.colliders.Num() == 1) && mainMeshCollider){
+			return processStaticMesh(workData, jsonGameObj, objId, parentObject, folderPath, mainMeshCollider, componentRequested && outer, outer);
 		}
 	}
 
-	ImportedObject rootObject;
-
-	if (!jsonGameObj.hasColliders()){
-		check(!(collisionMesh.isValid() && displayOnlyMesh.isValid()));
-		check(!collisionMesh.isValid());
-		if (displayOnlyMesh.isValid())
-			return displayOnlyMesh;
-		return ImportedObject();
+	if (!jsonGameObj.hasMesh() && !jsonGameObj.hasColliders()){
+		return ImportedObject();//We're processing an empty and by default they're not recreated as scene components. This may change in future.
 	}
 
-	if ((jsonGameObj.colliders.Num() == 1) && (collisionMesh.isValid())){
-		check(jsonGameObj.colliders[0].isMeshCollider());
-		return collisionMesh;
-	}
+	/*
+	Goddamit this is getting too complicated.
+	*/
 
-	//We have colliders and they have to be processed.
+	if (desiredObjectType == DesiredObjectType::Actor){
+		outer = nullptr;//this will force creation of blank actor that will also serve as outer package.
+	}
 
 	USceneComponent *rootComponent = nullptr;
 	AActor *rootActor = nullptr;
 
-	bool hasMainMeshCollider = false;
-	if (collisionMesh.isValid()){
-		rootActor = collisionMesh.findRootActor();
-		hasMainMeshCollider = rootActor != nullptr;
-	}
-
-	if (!rootActor){
-		/*
-		No root actor provided, spawning a dummy.
-		*/
+	bool spawnMeshAsComponent = true;
+	if (!outer){
 		rootActor = workData.world->SpawnActor<AActor>(AActor::StaticClass(), jsonGameObj.getUnrealTransform());
 		rootActor->SetActorLabel(jsonGameObj.ueName);
 		rootActor->SetFolderPath(*folderPath);
-	}
-	else{
-		rootComponent = rootActor->GetRootComponent();
+		outer = rootActor;
 	}
 
-	check(rootActor);
+	check(outer);
+	if (hasMainMesh){
+		if (mainMeshCollider){
+			collisionMesh = processStaticMesh(workData, jsonGameObj, objId, nullptr, folderPath, mainMeshCollider, spawnMeshAsComponent, outer);
+			auto name = FString::Printf(TEXT("%s_collisionMesh"), *jsonGameObj.ueName);
+			collisionMesh.setNameOrLabel(*name);
+		}
+		else{
+			displayOnlyMesh = processStaticMesh(workData, jsonGameObj, objId, nullptr, folderPath, nullptr, spawnMeshAsComponent, outer);
+			auto name = FString::Printf(TEXT("%s_displayMesh"), *jsonGameObj.ueName);
+			displayOnlyMesh.setNameOrLabel(*name);
+		}
+	}
+	check(outer);
+
+	ImportedObject rootObject;
+	check(outer);
 
 	TArray<UPrimitiveComponent*> newColliders;
 	//Walk through collider list, create primtivies, except that one collider used for the main static mesh.
@@ -161,13 +181,17 @@ ImportedObject JsonImporter::processMeshAndColliders(ImportWorkData &workData, c
 			continue;
 		}
 
-		auto collider = processCollider(workData, jsonGameObj, rootActor, curCollider);
+		//auto collider = processCollider(workData, jsonGameObj, rootActor, curCollider);
+		auto collider = processCollider(workData, jsonGameObj, outer, curCollider);
+		auto name = FString::Printf(TEXT("%s_collider#%d(%s)"), *jsonGameObj.ueName, i, *curCollider.colliderType);
+
+		collider->Rename(*name);
 		newColliders.Add(collider);
 	}
 
 	//Pick a component suitable for the "root" of the collider hierarchy
 	int rootCompIndex = mainMeshColliderIndex;
-	if (!hasMainMeshCollider){
+	if (!mainMeshCollider){
 		rootCompIndex = jsonGameObj.findSuitableRootColliderIndex();
 		if ((rootCompIndex < 0) || (rootCompIndex >= newColliders.Num())){
 			UE_LOG(JsonLog, Warning, TEXT("Could not find suitable root collider on %s(%d)"), *jsonGameObj.name, objId);
@@ -177,12 +201,12 @@ ImportedObject JsonImporter::processMeshAndColliders(ImportWorkData &workData, c
 		check(newColliders.Num() > 0);
 		rootComponent = newColliders[rootCompIndex];
 		check(rootComponent);
-		rootActor->SetRootComponent(rootComponent);
-
+		if (rootActor)
+			rootActor->SetRootComponent(rootComponent);
 		///newColliders.RemoveAt(rootCompIndex);//It is easier to handle this here... or not
 	}
-	check(rootComponent);
 
+	check(rootComponent);
 	rootObject = ImportedObject(rootComponent);
 
 	for (int i = 0; i < newColliders.Num(); i++){
@@ -201,6 +225,25 @@ ImportedObject JsonImporter::processMeshAndColliders(ImportWorkData &workData, c
 	if (displayOnlyMesh.isValid()){
 		check(rootObject.isValid());
 		displayOnlyMesh.attachTo(&rootObject);
+		displayOnlyMesh.fixEditorVisibility();
+	}
+
+	if (displayOnlyMesh.isValid()){
+		displayOnlyMesh.fixEditorVisibility();
+		displayOnlyMesh.convertToInstanceComponent();
+	}
+
+	if (collisionMesh.isValid()){
+		collisionMesh.fixEditorVisibility();
+		collisionMesh.convertToInstanceComponent();
+	}
+
+	if (rootObject.isValid() && !rootActor){
+		/*
+		Well... in this case we're rebuilding as components and there's no dummy to replicate unity name.
+		So we rename the component.
+		*/
+		rootObject.setNameOrLabel(jsonGameObj.ueName);
 	}
 
 	return rootObject;
@@ -242,7 +285,9 @@ void JsonImporter::importObject(const JsonGameObject &jsonGameObj , int32 objId,
 	//ImportedObjectArray colliderObjects;
 	ImportedObjectArray createdObjects;
 
-	ImportedObject rootObject = processMeshAndColliders(workData, jsonGameObj, objId, parentObject, folderPath);
+	auto objectType = DesiredObjectType::Default;
+
+	ImportedObject rootObject = processMeshAndColliders(workData, jsonGameObj, objId, parentObject, folderPath, objectType);
 
 	if (rootObject.isValid()){
 	}
@@ -498,7 +543,7 @@ bool JsonImporter::configureStaticMeshComponent(UStaticMeshComponent *meshComp, 
 	return true;
 }
 
-ImportedObject JsonImporter::processStaticMesh(ImportWorkData &workData, const JsonGameObject &jsonGameObj, int objId, ImportedObject *parentObject, const FString& folderPath, const JsonCollider *colliderData){
+ImportedObject JsonImporter::processStaticMesh(ImportWorkData &workData, const JsonGameObject &jsonGameObj, int objId, ImportedObject *parentObject, const FString& folderPath, const JsonCollider *colliderData, bool spawnAsComponent, UObject *outer){
 	if (!jsonGameObj.hasMesh())
 		return ImportedObject();
 
@@ -506,15 +551,26 @@ ImportedObject JsonImporter::processStaticMesh(ImportWorkData &workData, const J
 	FTransform transform;
 	transform.SetFromMatrix(jsonGameObj.ueWorldMatrix);
 
-	//I wonder why it is "spawn" here and Add everywhere else. But whatever.
-	auto *meshActor = workData.world->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass(), transform, spawnParams);
-	if (!meshActor){
-		UE_LOG(JsonLog, Warning, TEXT("Couldn ot spawn mesh actor"));
-		return ImportedObject();
-	}
+	AStaticMeshActor *meshActor = nullptr;
+	UStaticMeshComponent *meshComp = nullptr;
 
-	meshActor->SetActorLabel(jsonGameObj.ueName, true);
-	auto meshComp = meshActor->GetStaticMeshComponent();
+	//
+	if (spawnAsComponent){
+		UObject* curOuter = outer ? outer: GetTransientPackage();
+		meshComp = NewObject<UStaticMeshComponent>(curOuter);
+		meshComp->SetWorldTransform(transform);
+	}
+	else{
+		//I wonder why it is "spawn" here and Add everywhere else. But whatever.
+		meshActor = workData.world->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass(), transform, spawnParams);
+		if (!meshActor){
+			UE_LOG(JsonLog, Warning, TEXT("Couldn ot spawn mesh actor"));
+			return ImportedObject();
+		}
+
+		meshActor->SetActorLabel(jsonGameObj.ueName, true);
+		meshComp = meshActor->GetStaticMeshComponent();
+	}
 
 	///This is awkward. Previously we couldd attempt loading the mesh prior to building the actor, but now...
 	if (!configureStaticMeshComponent(meshComp, jsonGameObj, true, colliderData)){
@@ -525,7 +581,9 @@ ImportedObject JsonImporter::processStaticMesh(ImportWorkData &workData, const J
 	const auto* renderer = jsonGameObj.getFirstRenderer();
 	if (renderer){
 		if (renderer->castsShadowsOnly()){
-			meshActor->SetActorHiddenInGame(true);//this doesn't seem to do anything? (-_-)
+			if (meshActor){
+				meshActor->SetActorHiddenInGame(true);//this doesn't seem to do anything? (-_-)
+			}
 			if (meshComp){
 				meshComp->bCastHiddenShadow = true;
 				meshComp->bHiddenInGame = true;
@@ -536,12 +594,14 @@ ImportedObject JsonImporter::processStaticMesh(ImportWorkData &workData, const J
 		UE_LOG(JsonLog, Warning, TEXT("First renderer not found on %s(%d)"), *jsonGameObj.name, objId);
 	}
 
-	auto result = ImportedObject(meshActor);
-	workData.registerGameObject(jsonGameObj, result);
-	//workData.importedObjects.Add(jsonGameObj.id, result);
-	setObjectHierarchy(result, parentObject, folderPath, workData, jsonGameObj);
+	auto result = meshActor ? ImportedObject(meshActor) : ImportedObject(meshComp);
 
-	meshActor->MarkComponentsRenderStateDirty();
+	if (meshActor)
+		meshActor->MarkComponentsRenderStateDirty();
+
+	result.setNameOrLabel(jsonGameObj.ueName);
+	setObjectHierarchy(result, parentObject, folderPath, workData, jsonGameObj);
+	workData.registerGameObject(jsonGameObj, result);
 
 	return result;
 }
@@ -764,11 +824,9 @@ ImportedObject JsonImporter::processLight(ImportWorkData &workData, const JsonGa
 	}
 
 	if (actor){
-		//importedActor.setActorLabel(
 		actor->SetActorLabel(gameObj.ueName, true);
 		if (gameObj.isStatic)
 			actor->SetMobility(EComponentMobility::Static);
-		//setActorHierarchy(&importedActor, parentObject, folderPath, workData, gameObj);
 		setObjectHierarchy(ImportedObject(actor), parentObject, folderPath, workData, gameObj);
 		actor->MarkComponentsRenderStateDirty();
 	}
@@ -879,10 +937,23 @@ void JsonImporter::setupCommonColliderSettings(const ImportWorkData &workData, U
 	const auto *rigBody = workData.locateRigidbody(jsonGameObj);
 	//Hmm. Shoudl this even be here?
 	if (rigBody){
-		//rigBody->
+		//bool compoundColliderRoot = workData.isCompoundRigidbodyRootCollider(jsonGameObj);//TODO: Cache this?
+		//int rootIndex = workData.
+
+		bool physicsEnabled = !rigBody->isKinematic;
+		if (rigBody){
+			//It is necessary to do this in order to utilize body welding on compound colliders
+			auto compoundColliderChild = true;
+			if (workData.isCompoundRigidbodyRootCollider(jsonGameObj)){
+				if (jsonGameObj.findSuitableRootColliderIndex() == collider.colliderIndex){
+					compoundColliderChild = false;
+				}
+			}
+			physicsEnabled = physicsEnabled && !compoundColliderChild;
+		}
+
 		//kinematic rigidbodies?
-		//
-		dstCollider->SetSimulatePhysics(!rigBody->isKinematic);
+		dstCollider->SetSimulatePhysics(physicsEnabled);
 		dstCollider->SetMassOverrideInKg(NAME_None, rigBody->mass, true);
 		dstCollider->SetEnableGravity(rigBody->useGravity);
 

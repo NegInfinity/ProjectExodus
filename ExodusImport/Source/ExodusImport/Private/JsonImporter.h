@@ -38,6 +38,11 @@ class USphereComponent;
 class UCapsuleComponent;
 class UPrimitiveComponent;
 
+enum class DesiredObjectType{
+	Default = 0,
+	Actor, Component
+};
+
 class JsonImporter{
 protected:
 	FString assetRootPath;//TODO: rename to srcAssetRootPath. Points to json file folder.
@@ -106,7 +111,7 @@ protected:
 
 	The function is a headache.
 	*/
-	ImportedObject processMeshAndColliders(ImportWorkData &workData, const JsonGameObject &gameObj, int objId, ImportedObject *parentObject, const FString &folderPath);
+	ImportedObject processMeshAndColliders(ImportWorkData &workData, const JsonGameObject &gameObj, int objId, ImportedObject *parentObject, const FString &folderPath, DesiredObjectType objectType);
 
 	ImportedObject processReflectionProbe(ImportWorkData &workData, const JsonGameObject &gameObj,
 		const JsonReflectionProbe &probe, int32 objId, ImportedObject *parentObject, const FString &folderPath);
@@ -119,7 +124,7 @@ protected:
 
 	void setupCommonColliderSettings(const ImportWorkData &workData, UPrimitiveComponent *dstCollider, const JsonGameObject &jsonGameObj, const JsonCollider &collider) const;
 	bool configureStaticMeshComponent(UStaticMeshComponent *meshComp, const JsonGameObject &gameObj, bool configForRender, const JsonCollider *collider) const;
-	ImportedObject processStaticMesh(ImportWorkData &workData, const JsonGameObject &gameObj, int objId, ImportedObject *parentObject, const FString& folderPath, const JsonCollider *collider);
+	ImportedObject processStaticMesh(ImportWorkData &workData, const JsonGameObject &gameObj, int objId, ImportedObject *parentObject, const FString& folderPath, const JsonCollider *collider, bool spawnAsComponent, UObject *outer);
 
 	ImportedObject processTerrain(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonTerrain &jsonTerrain, ImportedObject *parentObject, 
 		const FString& folderPath);

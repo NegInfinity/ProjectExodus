@@ -86,6 +86,10 @@ public:
 		return getColliderByIndex(findMainMeshColliderIndex());
 	}
 
+	bool hasMainMeshCollider() const{
+		return getMainMeshCollider();
+	}
+
 	const JsonCollider* getColliderByIndex(int index) const{
 		if (index < 0)
 			return nullptr;
@@ -136,6 +140,10 @@ public:
 
 	bool hasColliders() const{
 		return colliders.Num() > 0;
+	}
+
+	bool hasRigidbody() const{
+		return rigidbodies.Num() > 0;
 	}
 
 	bool hasLights() const{
