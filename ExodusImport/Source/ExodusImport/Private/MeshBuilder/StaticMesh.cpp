@@ -2,6 +2,8 @@
 #include "MeshBuilder.h"
 #include "UnrealUtilities.h"
 
+#include "Editor/UnrealEd/Private/GeomFitUtils.h"
+
 void MeshBuilder::setupStaticMesh(UStaticMesh *mesh, const JsonMesh &jsonMesh, std::function<void(TArray<FStaticMaterial> &meshMaterial)> materialSetup){
 	check(mesh);
 	UE_LOG(JsonLog, Log, TEXT("Static mesh num lods: %d"), mesh->SourceModels.Num());
@@ -159,10 +161,15 @@ void MeshBuilder::setupStaticMesh(UStaticMesh *mesh, const JsonMesh &jsonMesh, s
 	mesh->Build(false, &buildErrors);
 	if (buildErrors.Num() > 0){
 		FString errMsg;
-		for(FText& err: buildErrors){
+		for (FText& err : buildErrors){
 			errMsg += FString::Printf(TEXT("MeshBuildError: %s"), *(err.ToString()));
 			//UE_LOG(JsonLog, Error, TEXT("MeshBuildError: %s"), *(err.ToString()));
 		}
 		UE_LOG(JsonLog, Warning, TEXT("Build errors while loading mesh %d(\"%s\"):\n%s"), jsonMesh.id, *jsonMesh.name, *errMsg);
+	}
+	else{
+		TArray<FVector> verts(KDopDir18, 18);
+		GenerateKDopAsSimpleCollision(mesh, verts);
+		//GenerateBoxAsSimpleCollision(mesh);
 	}
 }

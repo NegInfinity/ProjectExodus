@@ -485,7 +485,7 @@ void JsonImporter::processSkinMeshes(ImportWorkData &workData, const JsonGameObj
 	}
 }
 
-bool JsonImporter::configureStaticMeshComponent(UStaticMeshComponent *meshComp, const JsonGameObject &jsonGameObj, bool configForRender, const JsonCollider *collider) const{
+bool JsonImporter::configureStaticMeshComponent(ImportWorkData &workData, UStaticMeshComponent *meshComp, const JsonGameObject &jsonGameObj, bool configForRender, const JsonCollider *collider) const{
 	check(meshComp);
 
 	if (!jsonGameObj.hasRenderers()){
@@ -507,6 +507,11 @@ bool JsonImporter::configureStaticMeshComponent(UStaticMeshComponent *meshComp, 
 	meshComp->SetMobility(jsonGameObj.getUnrealMobility());
 
 	if (collider){
+		setupCommonColliderSettings(workData, meshComp, jsonGameObj, *collider);
+	}
+	else{
+		meshComp->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+		meshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
 
 	if (!configForRender){
@@ -573,7 +578,7 @@ ImportedObject JsonImporter::processStaticMesh(ImportWorkData &workData, const J
 	}
 
 	///This is awkward. Previously we couldd attempt loading the mesh prior to building the actor, but now...
-	if (!configureStaticMeshComponent(meshComp, jsonGameObj, true, colliderData)){
+	if (!configureStaticMeshComponent(workData, meshComp, jsonGameObj, true, colliderData)){
 		UE_LOG(JsonLog, Warning, TEXT("Configuration of static mesh component failed on object '%s'(%d)"), *jsonGameObj.name, objId);
 		//return ImportedObject(meshActor);
 	}
@@ -911,11 +916,11 @@ UCapsuleComponent* JsonImporter::createCapsuleCollider(UObject *ownerPtr, const 
 	return capsule;
 }
 
-UStaticMeshComponent* JsonImporter::createMeshCollider(UObject *ownerPtr, const JsonGameObject &jsonGameObj, const JsonCollider &collider) const{
+UStaticMeshComponent* JsonImporter::createMeshCollider(UObject *ownerPtr, const JsonGameObject &jsonGameObj, const JsonCollider &collider, ImportWorkData &workData) const{
 	using namespace UnrealUtilities;
 	auto *meshComponent = NewObject<UStaticMeshComponent>(ownerPtr ? ownerPtr : GetTransientPackage(), UStaticMeshComponent::StaticClass());
 
-	configureStaticMeshComponent(meshComponent, jsonGameObj, false, &collider);
+	configureStaticMeshComponent(workData, meshComponent, jsonGameObj, false, &collider);
 
 	meshComponent->SetWorldTransform(jsonGameObj.getUnrealTransform());//no center for the static mesh
 	meshComponent->SetMobility(jsonGameObj.getUnrealMobility());
@@ -981,7 +986,7 @@ UPrimitiveComponent* JsonImporter::processCollider(ImportWorkData &workData, con
 		colliderComponent = createCapsuleCollider(ownerPtr, jsonGameObj, collider);
 	}
 	else if (collider.isMeshCollider()){
-		colliderComponent = createMeshCollider(ownerPtr, jsonGameObj, collider);
+		colliderComponent = createMeshCollider(ownerPtr, jsonGameObj, collider, workData);
 	}
 	else{
 		UE_LOG(JsonLog, Warning, TEXT("Unknown or unsupported collider type \'%s\" on object \'%s\' (%d)"),

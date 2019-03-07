@@ -95,7 +95,7 @@ protected:
 	UBoxComponent *createBoxCollider(UObject *ownerPtr, const JsonGameObject &gameObj, const JsonCollider &collider) const;
 	USphereComponent *createSphereCollider(UObject *ownerPtr, const JsonGameObject &gameObj, const JsonCollider &collider) const;
 	UCapsuleComponent *createCapsuleCollider(UObject *ownerPtr, const JsonGameObject &gameObj, const JsonCollider &collider) const;
-	UStaticMeshComponent *createMeshCollider(UObject *ownerPtr, const JsonGameObject &gameObj, const JsonCollider &collider) const;
+	UStaticMeshComponent *createMeshCollider(UObject *ownerPtr, const JsonGameObject &gameObj, const JsonCollider &collider, ImportWorkData &workData) const;
 
 	void makeComponentVisibleInEditor(USceneComponent *comp) const;
 	void convertToInstanceComponent(USceneComponent *comp) const;
@@ -123,7 +123,7 @@ protected:
 		ImportedObjectArray *createdObjects);
 
 	void setupCommonColliderSettings(const ImportWorkData &workData, UPrimitiveComponent *dstCollider, const JsonGameObject &jsonGameObj, const JsonCollider &collider) const;
-	bool configureStaticMeshComponent(UStaticMeshComponent *meshComp, const JsonGameObject &gameObj, bool configForRender, const JsonCollider *collider) const;
+	bool configureStaticMeshComponent(ImportWorkData &workData, UStaticMeshComponent *meshComp, const JsonGameObject &gameObj, bool configForRender, const JsonCollider *collider) const;
 	ImportedObject processStaticMesh(ImportWorkData &workData, const JsonGameObject &gameObj, int objId, ImportedObject *parentObject, const FString& folderPath, const JsonCollider *collider, bool spawnAsComponent, UObject *outer);
 
 	ImportedObject processTerrain(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonTerrain &jsonTerrain, ImportedObject *parentObject, 

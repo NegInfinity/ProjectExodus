@@ -33,6 +33,7 @@
 #include "DesktopPlatformModule.h"
 #include "MeshBuilder.h"
 #include "SkeletalMeshBuilder.h"
+#include "Classes/PhysicsEngine/BodySetup.h"
 
 using namespace UnrealUtilities;
 using namespace JsonObjects;
@@ -57,6 +58,13 @@ void JsonImporter::importStaticMesh(const JsonMesh &jsonMesh, int32 meshId){
 	);
 
 	if (mesh){
+		/*
+		auto bodySetup = mesh->BodySetup;
+		if (!bodySetup){
+			mesh->CreateBodySetup();
+		}
+		*/
+
 		auto meshPath = mesh->GetPathName();
 		meshIdMap.Add(jsonMesh.id, meshPath);
 	}
