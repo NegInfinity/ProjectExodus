@@ -27,6 +27,10 @@ namespace SceneExport{
 		public bool hasObject(Resource obj){
 			return ExportUtility.isValidId(getId(obj, false));
 		}
+
+		public bool isValidId(int id){
+			return (id >= 0) && (id < objectList.Count);
+		}
 			
 		public int findId(Resource obj){
 			return getId(obj, false, null);

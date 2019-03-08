@@ -4,6 +4,13 @@ using System.Collections.Generic;
 using System.Linq;
 
 namespace SceneExport{
+	[System.Serializable]
+	public class MeshUsageFlags{
+		public bool triMeshCollision = false;
+		public bool convexMeshCollision = false;
+	}
+
+	[System.Serializable]
 	public class ResourceMapper{
 		public ObjectMapper<Texture> textures = new ObjectMapper<Texture>();
 		
@@ -11,7 +18,7 @@ namespace SceneExport{
 		public ObjectMapper<Cubemap> cubemaps = new ObjectMapper<Cubemap>();
 		public ObjectMapper<AudioClip> audioClips = new ObjectMapper<AudioClip>();
 		//public ObjectMapper<AnimationClip> animationClips = new ObjectMapper<AnimationClip>();
-		
+
 		public ObjectMapper<AnimationClipKey> animationClips = new ObjectMapper<AnimationClipKey>();
 		
 		public ObjectMapper<Animator> characterPrefabAnimators = new ObjectMapper<Animator>();
@@ -44,6 +51,8 @@ namespace SceneExport{
 		Dictionary<Transform, JsonSkeleton> jsonSkeletons = new Dictionary<Transform, JsonSkeleton>();
 		Dictionary<int, Transform> jsonSkeletonRootTransforms = new Dictionary<int, Transform>();
 		public ObjectMapper<MeshStorageKey> meshes = new ObjectMapper<MeshStorageKey>();
+		public Dictionary<int, MeshUsageFlags> meshUsage = new Dictionary<int, MeshUsageFlags>();
+
 		//Dictionary<Mesh, MeshDefaultSkeletonData> meshDefaultSkeletonData = new Dictionary<Mesh, MeshDefaultSkeletonData>();
 		Dictionary<MeshStorageKey, MeshDefaultSkeletonData> meshDefaultSkeletonData = new Dictionary<MeshStorageKey, MeshDefaultSkeletonData>();
 		Dictionary<Mesh, List<Material>> meshMaterials = new Dictionary<Mesh, List<Material>>();
@@ -119,6 +128,34 @@ namespace SceneExport{
 			var key = new MeshStorageKey(obj);
 			return meshes.getId(key, true);
 		}
+
+		public bool isValidMeshId(int id){
+			return meshes.isValidId(id);
+		}
+
+		public void flagMeshId(int meshId, bool flagConvexMesh, bool flagTriMesh){
+			if (!meshes.isValidId(meshId))
+				throw new System.ArgumentException(string.Format("invalid mesh id {0}", meshId));
+			
+			var flags = meshUsage.getValOrSetDefault(meshId);
+			flags.convexMeshCollision |= flagConvexMesh;
+			flags.triMeshCollision |= flagTriMesh;
+		}
+
+		public MeshUsageFlags GetMeshUsageFlags(int meshId){
+			return meshUsage.getValOrDefault(meshId);
+		}
+
+		/*
+		public Mesh getMeshById(int id){
+			if(!meshes.isValidId(id))
+				return null;
+
+			var key = meshes.getObject(id);
+			return key.
+			return meshes.getObject(id);
+		}
+		*/
 		
 		public int findAnimationClipId(AnimationClip animClip, Animator animator){
 			return animationClips.getId(new AnimationClipKey(animClip, animator), false);

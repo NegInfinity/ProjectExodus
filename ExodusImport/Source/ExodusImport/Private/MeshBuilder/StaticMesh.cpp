@@ -3,6 +3,7 @@
 #include "UnrealUtilities.h"
 
 #include "Editor/UnrealEd/Private/GeomFitUtils.h"
+#include "Classes/PhysicsEngine/BodySetup.h"
 
 void MeshBuilder::setupStaticMesh(UStaticMesh *mesh, const JsonMesh &jsonMesh, std::function<void(TArray<FStaticMaterial> &meshMaterial)> materialSetup){
 	check(mesh);
@@ -170,6 +171,11 @@ void MeshBuilder::setupStaticMesh(UStaticMesh *mesh, const JsonMesh &jsonMesh, s
 	else{
 		TArray<FVector> verts(KDopDir18, 18);
 		GenerateKDopAsSimpleCollision(mesh, verts);
-		//GenerateBoxAsSimpleCollision(mesh);
+
+		UBodySetup* bodySetup = mesh->BodySetup;
+		if (bodySetup && bodySetup->AggGeom.GetElementCount()){
+			UE_LOG(JsonLog, Warning, TEXT("Could not generate convex collision for mesh %d(\"%s\"):\nRebuilding as a box."), jsonMesh.id, *jsonMesh.name);
+			GenerateBoxAsSimpleCollision(mesh);
+		}
 	}
 }

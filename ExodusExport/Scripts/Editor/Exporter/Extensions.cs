@@ -122,6 +122,23 @@ namespace SceneExport{
 			return defaultVal;
 		}
 	
+		static public Val getValOrDefault<Key, Val>(this IDictionary<Key, Val> dict, Key key) where Val: new(){
+			Val result;
+			if (dict.TryGetValue(key, out result))
+				return result;
+			return new Val();
+		}
+
+		static public Val getValOrSetDefault<Key, Val>(this IDictionary<Key, Val> dict, Key key) where Val: new(){
+			Val result;
+			if (dict.TryGetValue(key, out result))
+				return result;
+
+			result = new Val();
+			dict.Add(key, result);
+			return result;
+		}
+
 		static public float[] toFloatArray(this Matrix4x4 arg){
 			float[] result = new float[16];
 			for(int i = 0; i < 4; i++){

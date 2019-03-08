@@ -960,6 +960,7 @@ void JsonImporter::setupCommonColliderSettings(const ImportWorkData &workData, U
 		dstCollider->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
 		dstCollider->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	}
+
 	const auto *rigBody = workData.locateRigidbody(jsonGameObj);
 	//Hmm. Shoudl this even be here?
 	if (rigBody){
