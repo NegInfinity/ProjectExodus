@@ -488,13 +488,30 @@ void JsonImporter::processSkinMeshes(ImportWorkData &workData, const JsonGameObj
 bool JsonImporter::configureStaticMeshComponent(ImportWorkData &workData, UStaticMeshComponent *meshComp, const JsonGameObject &jsonGameObj, bool configForRender, const JsonCollider *collider) const{
 	check(meshComp);
 
+	/*
 	if (!jsonGameObj.hasRenderers()){
 		UE_LOG(JsonLog, Warning, TEXT("Renderer not found on %s(%d), cannot create mesh"), *jsonGameObj.ueName, jsonGameObj.id);
 		return false;
 	}
 	check(jsonGameObj.renderers.Num() > 0);
+	*/
+	if (!jsonGameObj.hasRenderers() && configForRender){
+		UE_LOG(JsonLog, Warning, TEXT("Renderer not found on %s(%d), while the mesh was being configured for rendering"), *jsonGameObj.ueName, jsonGameObj.id);
+	}
 
-	auto meshPath = meshIdMap[jsonGameObj.meshId];
+	/*
+	We're now utilizing static mesh for both visible geometry and colliders. 
+	Colliders might not match the geometry.
+	If collider is provided, its meshId takes priority.
+	*/
+	bool collisionOnlyMesh = false;
+	JsonId meshId = jsonGameObj.meshId;
+	if (collider && isValidId(collider->meshId) && !configForRender){
+		meshId = collider->meshId;
+		collisionOnlyMesh = true;
+	}
+
+	auto meshPath = meshIdMap[meshId];
 	UE_LOG(JsonLog, Log, TEXT("Mesh path: %s"), *meshPath);
 
 	auto *meshObject = LoadObject<UStaticMesh>(0, *meshPath);
@@ -516,34 +533,38 @@ bool JsonImporter::configureStaticMeshComponent(ImportWorkData &workData, UStati
 
 	if (!configForRender){
 		meshComp->bHiddenInGame = true;//Is this the right way, though...
+		meshComp->SetCastShadow(false);
+		meshComp->SetVisibility(false);
 		return true;
 	}
 
-	const auto &renderer = jsonGameObj.renderers[0];
-	auto materials = jsonGameObj.getFirstMaterials();
+	if (!collisionOnlyMesh){
+		const auto &renderer = jsonGameObj.renderers[0];
+		auto materials = jsonGameObj.getFirstMaterials();
 
-	bool emissiveMesh = false;
-	if (materials.Num() > 0){
-		for (int i = 0; i < materials.Num(); i++){
-			auto matId = materials[i];
+		bool emissiveMesh = false;
+		if (materials.Num() > 0){
+			for (int i = 0; i < materials.Num(); i++){
+				auto matId = materials[i];
 
-			auto *jsonMat = getJsonMaterial(matId);
-			if (jsonMat && (jsonMat->isEmissive()))
-				emissiveMesh = true;
+				auto *jsonMat = getJsonMaterial(matId);
+				if (jsonMat && (jsonMat->isEmissive()))
+					emissiveMesh = true;
 
-			auto material = loadMaterialInterface(matId);
-			meshComp->SetMaterial(i, material);
+				auto material = loadMaterialInterface(matId);
+				meshComp->SetMaterial(i, material);
+			}
 		}
+
+		logValue("hasShadows", renderer.castsShadows());
+		logValue("twoSidedShadows", renderer.castsTwoSidedShadows());
+
+		meshComp->SetCastShadow(renderer.castsShadows());
+		meshComp->bCastShadowAsTwoSided = renderer.castsTwoSidedShadows();//twoSidedShadows;
+
+		if (emissiveMesh)
+			meshComp->LightmassSettings.bUseEmissiveForStaticLighting = true;
 	}
-
-	logValue("hasShadows", renderer.castsShadows());
-	logValue("twoSidedShadows", renderer.castsTwoSidedShadows());
-
-	meshComp->SetCastShadow(renderer.castsShadows());
-	meshComp->bCastShadowAsTwoSided = renderer.castsTwoSidedShadows();//twoSidedShadows;
-
-	if (emissiveMesh)
-		meshComp->LightmassSettings.bUseEmissiveForStaticLighting = true;
 
 	return true;
 }
