@@ -12,7 +12,8 @@ namespace SceneExport{
 
 	[System.Serializable]
 	public class ResourceMapper{
-		public ObjectMapper<Texture> textures = new ObjectMapper<Texture>();
+		protected ObjectMapper<Texture> textures = new ObjectMapper<Texture>();
+		//protected DelayedResourceMapper<Texture> delayedTextures = new DelayedResourceMapper<Texture>();
 		
 		public ObjectMapper<Material> materials = new ObjectMapper<Material>();
 		public ObjectMapper<Cubemap> cubemaps = new ObjectMapper<Cubemap>();
@@ -51,7 +52,8 @@ namespace SceneExport{
 		Dictionary<Transform, JsonSkeleton> jsonSkeletons = new Dictionary<Transform, JsonSkeleton>();
 		Dictionary<int, Transform> jsonSkeletonRootTransforms = new Dictionary<int, Transform>();
 		public ObjectMapper<MeshStorageKey> meshes = new ObjectMapper<MeshStorageKey>();
-		public Dictionary<int, MeshUsageFlags> meshUsage = new Dictionary<int, MeshUsageFlags>();
+		//public Dictionary<int, MeshUsageFlags> meshUsage = new Dictionary<int, MeshUsageFlags>();
+		public Dictionary<ResId, MeshUsageFlags> meshUsage = new Dictionary<ResId, MeshUsageFlags>();
 
 		//Dictionary<Mesh, MeshDefaultSkeletonData> meshDefaultSkeletonData = new Dictionary<Mesh, MeshDefaultSkeletonData>();
 		Dictionary<MeshStorageKey, MeshDefaultSkeletonData> meshDefaultSkeletonData = new Dictionary<MeshStorageKey, MeshDefaultSkeletonData>();
@@ -78,32 +80,40 @@ namespace SceneExport{
 			return null;
 		}
 		
-		public int findAnimatorControllerId(UnityEditor.Animations.AnimatorController obj, Animator animator){
+		public ResId findAnimatorControllerId(UnityEditor.Animations.AnimatorController obj, Animator animator){
 			return animatorControllers.getId(new AnimatorControllerKey(obj, animator), false);
 		}
 		
-		public int getAnimatorControllerId(UnityEditor.Animations.AnimatorController obj, Animator animator){
+		public ResId getAnimatorControllerId(UnityEditor.Animations.AnimatorController obj, Animator animator){
 			if (!animator || !obj)
-				return -1;
+				return ResId.invalid;
 			return animatorControllers.getId(new AnimatorControllerKey(obj, animator), true);
 		}
 		
-		public int getTerrainId(TerrainData data){
+		public ResId getTerrainId(TerrainData data){
 			return terrains.getId(data, true);
 		}
 		
-		public int findTerrainId(TerrainData terrain){
+		public ResId findTerrainId(TerrainData terrain){
 			return terrains.getId(terrain, false);
 		}
 
-		public int getAudioClipId(AudioClip clip){
+		public ResId getAudioClipId(AudioClip clip){
 			return audioClips.getId(clip, true);
 		}
 		
-		public int findAudioClipId(AudioClip clip){
+		public ResId findAudioClipId(AudioClip clip){
 			return audioClips.getId(clip, false);
 		}
 		
+		public ResId getTextureId(Texture tex){
+			return textures.getId(tex, true);
+		}
+		
+		public ResId findTextureId(Texture tex){
+			return textures.getId(tex, false);
+		}
+		/*
 		public int getTextureId(Texture tex){
 			return textures.getId(tex, true);
 		}
@@ -111,12 +121,13 @@ namespace SceneExport{
 		public int findTextureId(Texture tex){
 			return textures.getId(tex, false);
 		}
+		*/
 		
-		public int getCubemapId(Cubemap cube){
+		public ResId getCubemapId(Cubemap cube){
 			return cubemaps.getId(cube, true);
 		}
 		
-		public int findCubemapId(Cubemap cube){
+		public ResId findCubemapId(Cubemap cube){
 			return cubemaps.getId(cube, false);
 		}
 		
@@ -124,16 +135,16 @@ namespace SceneExport{
 			return new MeshIdData(srcObj, this);
 		}
 
-		public int getMeshId(Mesh obj){
+		public ResId getMeshId(Mesh obj){
 			var key = new MeshStorageKey(obj);
 			return meshes.getId(key, true);
 		}
 
-		public bool isValidMeshId(int id){
+		public bool isValidMeshId(ResId id){
 			return meshes.isValidId(id);
 		}
 
-		public void flagMeshId(int meshId, bool flagConvexMesh, bool flagTriMesh){
+		public void flagMeshId(ResId meshId, bool flagConvexMesh, bool flagTriMesh){
 			if (!meshes.isValidId(meshId))
 				throw new System.ArgumentException(string.Format("invalid mesh id {0}", meshId));
 			
@@ -142,30 +153,19 @@ namespace SceneExport{
 			flags.triMeshCollision |= flagTriMesh;
 		}
 
-		public MeshUsageFlags GetMeshUsageFlags(int meshId){
+		public MeshUsageFlags GetMeshUsageFlags(ResId meshId){
 			return meshUsage.getValOrDefault(meshId);
 		}
 
-		/*
-		public Mesh getMeshById(int id){
-			if(!meshes.isValidId(id))
-				return null;
-
-			var key = meshes.getObject(id);
-			return key.
-			return meshes.getObject(id);
-		}
-		*/
-		
-		public int findAnimationClipId(AnimationClip animClip, Animator animator){
+		public ResId findAnimationClipId(AnimationClip animClip, Animator animator){
 			return animationClips.getId(new AnimationClipKey(animClip, animator), false);
 		}
 		
-		public int getAnimationClipId(AnimationClip animClip, Animator animator){
+		public ResId getAnimationClipId(AnimationClip animClip, Animator animator){
 			return animationClips.getId(new AnimationClipKey(animClip, animator), true);
 		}
 		
-		public int findMeshId(Mesh obj){
+		public ResId findMeshId(Mesh obj){
 			var key = new MeshStorageKey(obj);
 			return meshes.getId(key, false);
 		}
@@ -225,11 +225,11 @@ namespace SceneExport{
 			return skel.id;
 		}
 		
-		public int getMaterialId(Material obj){
+		public ResId getMaterialId(Material obj){
 			return materials.getId(obj, true);
 		}
 		
-		public int findMaterialId(Material obj){
+		public ResId findMaterialId(Material obj){
 			return materials.getId(obj, false);
 		}
 
@@ -238,6 +238,7 @@ namespace SceneExport{
 		}
 		
 		public void registerTexture(Texture tex){
+			//delayedTextures.getId(tex);
 			textures.getId(tex, true, null);
 		}
 		
@@ -261,14 +262,15 @@ namespace SceneExport{
 			}
 		}
 
-		int getOrRegMeshId(MeshStorageKey meshKey, GameObject obj, Mesh mesh){
+		ResId getOrRegMeshId(MeshStorageKey meshKey, GameObject obj, Mesh mesh){
 			//Debug.LogFormat("getOrRegMeshId: {0}, {1}, {2}", meshKey, obj, mesh);
 			if (!mesh){
 				//Debug.LogFormat("Mesh is null");
-				return ExportUtility.invalidId;
+				//return ExportUtility.invalidId;
+				return ResId.invalid;
 			}
 			//var meshKey = new MeshStorageKey(mesh);
-			int result = meshes.getId(meshKey, true, null);
+			ResId result = meshes.getId(meshKey, true, null);
 			//Debug.LogFormat("id found: {0}", result);
 			if (meshMaterials.ContainsKey(mesh))
 				return result;
@@ -345,10 +347,10 @@ namespace SceneExport{
 			return newSkel.id;
 		}
 		
-		public int getOrRegMeshId(SkinnedMeshRenderer meshRend, Transform skeletonRoot){
+		public ResId getOrRegMeshId(SkinnedMeshRenderer meshRend, Transform skeletonRoot){
 			var mesh = meshRend.sharedMesh;
 			if (!mesh)
-				return ExportUtility.invalidId;
+				return ResId.invalid;//ExportUtility.invalidId;
 				
 			var meshKey = buildMeshKey(meshRend, true);
 			if (!meshDefaultSkeletonData.ContainsKey(meshKey)){				
@@ -371,25 +373,25 @@ namespace SceneExport{
 			return getOrRegMeshId(meshKey, meshRend.gameObject, mesh);
 		}
 		
-		public int getOrRegMeshId(MeshFilter meshFilter){
+		public ResId getOrRegMeshId(MeshFilter meshFilter){
 			var mesh = meshFilter.sharedMesh;
 			if (!mesh)
-				return ExportUtility.invalidId;
+				return ResId.invalid;//ExportUtility.invalidId;
 				
 			return getOrRegMeshId(new MeshStorageKey(mesh), meshFilter.gameObject, mesh);
 		}
 		
-		public int getPrefabObjectId(GameObject obj, bool createMissing){
+		public ResId getPrefabObjectId(GameObject obj, bool createMissing){
 			if (!obj)
-				return ExportUtility.invalidId;
+				return ResId.invalid;//ExportUtility.invalidId;
 				
 			var linkedPrefab = ExportUtility.getLinkedPrefab(obj);
 			if (!linkedPrefab)
-				return ExportUtility.invalidId;
+				return ResId.invalid;//ExportUtility.invalidId;
 			
 			var rootPrefabId = getRootPrefabId(obj, createMissing);
 			if (!ExportUtility.isValidId(rootPrefabId))
-				return ExportUtility.invalidId;
+				return ResId.invalid;//ExportUtility.invalidId;
 				
 			var rootPrefab = prefabs.getObject(rootPrefabId);
 			
@@ -411,21 +413,21 @@ namespace SceneExport{
 			prefabObjects.Add(rootPrefab, newMapper);
 		}
 		
-		public int getRootPrefabId(GameObject obj, bool createMissing){
+		public ResId getRootPrefabId(GameObject obj, bool createMissing){
 			if (!obj)
-				return ExportUtility.invalidId;
+				return ResId.invalid;//ExportUtility.invalidId;
 			var rootPrefab = ExportUtility.getLinkedRootPrefabAsset(obj);
 			if (!rootPrefab)
-				return ExportUtility.invalidId;
+				return ResId.invalid;//ExportUtility.invalidId;
 			
 			var result = prefabs.getId(rootPrefab, createMissing, onNewRootPrefab);
 			
 			return result;
 		}
 		
-		public int gatherPrefabData(GameObject obj){
+		public ResId gatherPrefabData(GameObject obj){
 			if (!obj)
-				return ExportUtility.invalidId;
+				return ResId.invalid;//ExportUtility.invalidId;
 			return getRootPrefabId(obj, true);
 		}
 		
@@ -433,7 +435,7 @@ namespace SceneExport{
 			var result = new List<JsonPrefabData>();
 
 			for(int i = 0; i < prefabs.objectList.Count; i++){
-				var src = prefabs.getObject(i);
+				var src = prefabs.getObjectByIndex(i);
 				var dst = new JsonPrefabData(src, this);
 				result.Add(dst);
 			}
@@ -479,10 +481,34 @@ namespace SceneExport{
 		
 		public delegate ReturnType IndexedObjectConverter<SrcType, ReturnType> (SrcType src, int index);
 		
+		static string saveResourceToPath<ClassType, ObjType>(string baseDir, 
+				ObjType srcObj, int objIndex, int objCount,
+				IndexedObjectConverter<ObjType, ClassType> converter,
+				System.Func<ClassType, string> nameFunc, 
+				string baseName, bool showGui) where ClassType: IFastJsonValue{
+
+				if (showGui){
+					ExportUtility.showProgressBar(
+						string.Format("Saving file #{0} of resource type {1}", objIndex + 1, baseName), 
+						"Writing json data", objIndex, objCount);
+				}
+				var jsonObj = converter(srcObj, objIndex);	
+				string fileName;
+				if (nameFunc != null){
+					fileName = makeJsonResourcePath(baseName, nameFunc(jsonObj), objIndex);	
+				}
+				else{
+					fileName = makeJsonResourcePath(baseName, objIndex);	
+				}
+				var fullPath = System.IO.Path.Combine(baseDir, fileName);
+				
+				jsonObj.saveToJsonFile(fullPath);
+				return fileName;
+		}
+
 		static List<string> saveResourcesToPath<ClassType, ObjType>(string baseDir, 
 				List<ObjType> objects, 
 				IndexedObjectConverter<ObjType, ClassType> converter,
-				//System.Func<ObjType, ClassType> converter, 
 				System.Func<ClassType, string> nameFunc, string baseName, bool showGui) 
 				where ClassType: IFastJsonValue{
 				
@@ -493,6 +519,7 @@ namespace SceneExport{
 				var result = new List<string>();
 				if (objects != null){
 					for(int i = 0; i < objects.Count; i++){
+						/*
 						if (showGui){
 							ExportUtility.showProgressBar(
 								string.Format("Saving file #{0} of resource type {1}", i + 1, baseName), 
@@ -510,6 +537,13 @@ namespace SceneExport{
 				
 						jsonObj.saveToJsonFile(fullPath);				
 						result.Add(fileName);
+						*/
+						result.Add(
+							saveResourceToPath(
+								baseDir, objects[i], i, objects.Count, 
+								converter, nameFunc, baseName, showGui
+							)
+						);
 					}
 				}
 				return result;		
@@ -748,6 +782,8 @@ namespace SceneExport{
 		public JsonExternResourceList saveResourceToFolder(string baseDir, bool showGui, List<JsonScene> scenes, Logger logger){		
 			Logger.makeValid(ref logger);
 			var result = new JsonExternResourceList();
+
+			result.textures = new List<string>();
 			
 			result.scenes = saveResourcesToPath(baseDir, scenes, 
 				(objData, i) => objData, (obj) => obj.name, "scene", showGui);
@@ -765,8 +801,9 @@ namespace SceneExport{
 					}
 					return mat; 
 				}, (obj) => obj.name, "material", showGui);
-			result.textures = saveResourcesToPath(baseDir, textures.objectList, 
-				(objData, id) => new JsonTexture(objData, this), (obj) => obj.name, "texture", showGui);
+
+			result.textures.AddRange(saveResourcesToPath(baseDir, textures.objectList, 
+				(objData, id) => new JsonTexture(objData, this), (obj) => obj.name, "texture", showGui));
 			result.cubemaps = saveResourcesToPath(baseDir, cubemaps.objectList, 
 				(objData, id) => new JsonCubemap(objData, this), (obj) => obj.name, "cubemap", showGui);
 			result.audioClips = saveResourcesToPath(baseDir, audioClips.objectList, 
@@ -790,15 +827,60 @@ namespace SceneExport{
 				(obj) => obj.name, "animationClip", showGui);
 			/*result.prefabs = saveResourcesToPath(baseDir, prefabs.objectMap, 
 				(objData) => new JsonPref"prefab");*/
+
+			/*
+			bool allDelayedItemsProcessed = false;
+			while(!allDelayedItemsProcessed){
+				allDelayedItemsProcessed = true;
+				delayedTextures.processRemainingItems((resTex, resIndex) => {
+					saveResourceToPath(
+						baseDir, resTex, resIndex.rawId, delayedTextures.numRegisteredItems, 
+						(objData, id) => new JsonTexture(objData, this), (obj) => obj.name, "texture", showGui
+					);
+				});
+				allDelayedItemsProcessed &= delayedTextures.processingFinished;
+			}
+			*/
+
 			result.resources = new List<string>(resources);
 			result.resources.Sort();
 			
 			return result;
 		}
-		
+		/*
+		Essentually the whole unity scene is a resource graph.
+		There are two resource types - "leaf" resources and "node" resources.
+		Leafs are only referenced by something, while nodes can reference leafs and other nodes via Ids....
+
+		Well, the problem is we don't know how deep the rabbit hole goes, and one referenced resource can pull in other referenced
+		resources and so on. Given that a project can be huge, loading everything into memory at once might be unwise.
+
+		So I introduced delayed resource IDs - where a resource is mapped to an ID immediately, but there's no actual object spawned.
+
+		Actually, it seems this was a bad idea.
+
+		To accomodate for suddenly appearing resoruces we do not need a new resource container, althoguh the idea of 
+		using structs instead of raw ints seems good. 
+
+		Instead we need to introduce a new watcher object that monitors object count. 
+		*/
+
+		/*
+		public void collectRemainingResources(){
+			bool allObjectsResolved = false;
+			while(!allObjectsResolved){
+				allObjectsResolved = true;
+				delayedTextures.processRemainingItems((resTex, index) => {
+					result.textures.Add(new JsonTexture(resTex, this));
+				});
+				allObjectsResolved &= delayedTextures.processingFinished;
+			}
+		}
+		*/
+
 		public JsonResourceList makeResourceList(){
 			var result = new JsonResourceList();
-			
+
 			foreach(var cur in terrains.objectList){
 				result.terrains.Add(new JsonTerrainData(cur, this));
 			}
@@ -829,6 +911,9 @@ namespace SceneExport{
 			result.animationClips = animationClips.objectList
 				.Select((arg1, idx) => new JsonAnimationClip(arg1.animClip, arg1.animator, idx, this)).ToList();
 				
+			//This needs to be done last, as characters trigger registration as they're constructed.
+			//collectRemainingResources();
+
 			result.resources = new List<string>(resources);
 			result.resources.Sort();
 			

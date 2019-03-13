@@ -33,8 +33,7 @@ namespace SceneExport{
 		public UnityEditor.Animations.AnimatorController controller;
 		
 		public List<JsonAnimatorControllerParameter> parameters = new List<JsonAnimatorControllerParameter>();
-		//public List<JsonAnimationClip> animations = new List<JsonAnimationClip>();
-		public List<int> animationIds = new List<int>();
+		public List<ResId> animationIds = new List<ResId>();
 		
 		public void writeRawJsonValue(FastJsonWriter writer){
 			writer.beginRawObject();

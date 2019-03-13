@@ -19,7 +19,7 @@ namespace SceneExport{
 		[System.Serializable]
 		public class Bone: JsonValueObject{
 			public int id = -1;
-			public int parentId = -1;
+			public ResId parentId = ResId.invalid;
 			public string name = "";
 			public string path = "";
 			
@@ -56,7 +56,7 @@ namespace SceneExport{
 				writer.writeKeyVal("rootRelative", rootRelative);
 			}
 
-			public Bone(string name_, string path_, int id_, int parentId_, Matrix4x4 world_, Matrix4x4 local_, Matrix4x4 rootRelative_){
+			public Bone(string name_, string path_, int id_, ResId parentId_, Matrix4x4 world_, Matrix4x4 local_, Matrix4x4 rootRelative_){
 				name = name_;
 				path = path_;
 				id = id_;

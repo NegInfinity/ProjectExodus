@@ -72,11 +72,11 @@ namespace SceneExport{
 		}
 
 		public void fixNameClashes(){
-			var nameClashes = new Dictionary<NameClashKey, List<int>>();
+			var nameClashes = new Dictionary<NameClashKey, List<ResId>>();
 			for(int i = 0; i < objects.Count; i++){
 				var cur = objects[i];
 				var key = new NameClashKey(cur.name, cur.parent);
-				var idList = nameClashes.getValOrGenerate(key, (parId_) => new List<int>());
+				var idList = nameClashes.getValOrGenerate(key, (parId_) => new List<ResId>());
 				idList.Add(cur.id);
 			}
 			
@@ -88,12 +88,14 @@ namespace SceneExport{
 
 				for(int i = 1; i < list.Count; i++){
 					var curId = list[i];
-					if ((curId <= 0) || (curId >= objects.Count)){
+					//if ((curId <= 0) || (curId >= objects.Count)){
+					if (!curId.isValid || (curId.objectIndex > objects.Count)){
 						Debug.LogErrorFormat("Invalid object id {0}, while processing name clash {1};\"{2}\"", 
 							curId, key.parentId, key.name);
 						continue;
 					}
-					var curObj = objects[curId];
+
+					var curObj = objects[curId.objectIndex];
 					var altName = string.Format("{0}-#{1}", key.name, i);
 					while(nameClashes.ContainsKey(new NameClashKey(altName, key.parentId))){
 						altName = string.Format("{0}-#{1}({2})", 

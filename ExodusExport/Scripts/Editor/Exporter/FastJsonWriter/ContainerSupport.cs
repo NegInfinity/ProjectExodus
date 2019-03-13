@@ -15,6 +15,10 @@ namespace SceneExport{
 			writeRawValue(values, writeRawValue);
 		}
 		
+		public void writeRawValue(ResId[] values){
+			writeRawValue(values, writeRawValue);
+		}
+		
 		public void writeKeyVal(string key, int[] val){
 			writeKeyVal<int>(key, val, writeRawValue);
 		}
@@ -57,6 +61,14 @@ namespace SceneExport{
 		
 		public void writeKeyVal(string key, List<int> val, int stride){
 			writeKeyVal<int>(key, val, writeRawValue, stride);
+		}
+		
+		public void writeKeyVal(string key, List<ResId> val){
+			writeKeyVal<ResId>(key, val, writeRawValue);
+		}
+		
+		public void writeKeyVal(string key, List<ResId> val, int stride){
+			writeKeyVal<ResId>(key, val, writeRawValue, stride);
 		}
 		
 		public void writeOptionalKeyVal(string key, List<int> val, int stride){

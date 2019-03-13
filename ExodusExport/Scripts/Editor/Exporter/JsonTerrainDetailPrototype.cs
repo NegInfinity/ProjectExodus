@@ -7,9 +7,9 @@ namespace SceneExport{
 	public class JsonTerrainDetailPrototype: IFastJsonValue{
 		public DetailPrototype data;
 		
-		public int textureId = -1;
-		public int detailPrefabId = -1;
-		public int detailPrefabObjectId = -1;
+		public ResId textureId = ResId.invalid;
+		public ResId detailPrefabId = ResId.invalid;
+		public ResId detailPrefabObjectId = ResId.invalid;
 		
 		public MeshIdData meshIdData = new MeshIdData();
 		public void writeRawJsonValue(FastJsonWriter writer){

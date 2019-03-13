@@ -5,7 +5,7 @@ namespace SceneExport{
 	[System.Serializable]
 	public class JsonCubemap: IFastJsonValue{
 		public Cubemap cubemap = null;
-		public int id = -1;
+		public ResId id = ResId.invalid;
 		public string name;
 		public string exportPath;
 		public string rawPath;

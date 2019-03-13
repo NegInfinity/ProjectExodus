@@ -13,7 +13,7 @@ namespace SceneExport{
 		public int id = -1;
 		public string name;
 		public string path;
-		public List<int> materials = new List<int>();
+		public List<ResId> materials = new List<ResId>();
 		public bool readable = false;
 		public int vertexCount = 0;
 		

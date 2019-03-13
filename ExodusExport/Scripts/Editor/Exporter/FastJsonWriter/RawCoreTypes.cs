@@ -15,6 +15,10 @@ namespace SceneExport{
 			builder.Append(val);
 		}
 
+		public void writeRawValue(ResId val){
+			builder.Append(val.rawId);
+		}
+
 		public void writeRawValue(byte val){
 			builder.Append(val);
 		}

@@ -5,7 +5,7 @@ using System.Collections.Generic;
 namespace SceneExport{
 	[System.Serializable]
 	public class JsonMaterial: IFastJsonValue{
-		public int id = -1;
+		public ResId id = ResId.invalid;
 		public int renderQueue = 0;
 		public string name;
 		public string path;
@@ -19,7 +19,7 @@ namespace SceneExport{
 												*/
 		
 		//public string renderType;
-		public int mainTexture = -1;
+		public ResId mainTexture = ResId.invalid;
 		public Vector2 mainTextureOffset = Vector2.zero;
 		public Vector2 mainTextureScale = Vector2.one;
 		
@@ -41,16 +41,16 @@ namespace SceneExport{
 		public bool hasEmission = false;
 			
 		public bool useSpecular = false;
-		public int albedoTex = -1;
-		public int specularTex = -1;
-		public int metallicTex = -1;
-		public int normalMapTex = -1;
-		public int occlusionTex = -1;
-		public int parallaxTex = -1;
-		public int emissionTex = -1;
-		public int detailMaskTex = -1;
-		public int detailAlbedoTex = -1;
-		public int detailNormalMapTex = -1;
+		public ResId albedoTex = ResId.invalid;
+		public ResId specularTex = ResId.invalid;
+		public ResId metallicTex = ResId.invalid;
+		public ResId normalMapTex = ResId.invalid;
+		public ResId occlusionTex = ResId.invalid;
+		public ResId parallaxTex = ResId.invalid;
+		public ResId emissionTex = ResId.invalid;
+		public ResId detailMaskTex = ResId.invalid;
+		public ResId detailAlbedoTex = ResId.invalid;
+		public ResId detailNormalMapTex = ResId.invalid;
 		
 		public float alphaCutoff = 1.0f;
 		public float smoothness = 0.5f;
@@ -179,9 +179,16 @@ namespace SceneExport{
 			registerLinkedTex(mat, TexParamNames.detailNormal, resMap);	
 		}		
 		
+		/*
 		static int getTexId(Material mat, string texName, ResourceMapper resMap){
 			if (!mat.HasProperty(texName))
 				return -1;
+			return resMap.getTextureId(mat.GetTexture(texName));
+		}
+		*/
+		static ResId getTexId(Material mat, string texName, ResourceMapper resMap){
+			if (!mat.HasProperty(texName))
+				return ResId.invalid;
 			return resMap.getTextureId(mat.GetTexture(texName));
 		}
 
@@ -325,7 +332,7 @@ namespace SceneExport{
 			hasMetallic = mat.HasProperty(ParamNames.metallic) && mat.HasProperty(TexParamNames.metallic);
 			hasSpecular = mat.HasProperty(TexParamNames.specular) && mat.HasProperty(ParamNames.specularColor);
 			hasEmissionColor = mat.HasProperty(ParamNames.emissionColor) && (emissionColor.maxColorComponent > 0.01f);
-			hasEmission = hasEmissionColor || (emissionTex >= 0);
+			hasEmission = hasEmissionColor || ExportUtility.isValidId(emissionTex);//(emissionTex >= 0);
 		}
 	}
 }

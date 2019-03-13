@@ -9,18 +9,18 @@ namespace SceneExport{
 		public string name;
 		public string scenePath;
 		public int instanceId = -1;
-		public int id = -1;
+		public ResId id = ResId.invalid;
 		public Vector3 localPosition = Vector3.zero;
 		public Quaternion localRotation = Quaternion.identity;
 		public Vector3 localScale = Vector3.one;
 		public Matrix4x4 worldMatrix = Matrix4x4.identity;
 		public Matrix4x4 localMatrix = Matrix4x4.identity;
 		
-		public List<int> children = new List<int>();
+		public List<ResId> children = new List<ResId>();
 		public List<string> childNames = new List<string>();
-		public int parent = -1;
+		public ResId parent = ResId.invalid;
 		public string parentName = "";
-		public int mesh = -1;
+		public ResId mesh = ResId.invalid;
 		
 		public bool activeSelf = true;
 		public bool activeInHierarchy = true;
@@ -45,8 +45,8 @@ namespace SceneExport{
 		public bool nameClash = false;
 		public string uniqueName = "";
 		
-		public int prefabRootId = -1;
-		public int prefabObjectId = -1;
+		public ResId prefabRootId = ResId.invalid;
+		public ResId prefabObjectId = ResId.invalid;
 		public bool prefabInstance = false;
 		public bool prefabModelInstance = false;
 		public string prefabType = "";
@@ -190,8 +190,12 @@ namespace SceneExport{
 
 			foreach(Transform curChild in obj.transform){
 				var childId = objMap.getId(curChild.gameObject); 
+				/* ????
 				if (childId < 0){
 					//throw new System.ArgumentException("Could not find child id
+				}
+				*/
+				if (!childId.isValid){					
 				}
 				//var childId = objMap.getId(curChild.gameObject); 
 				children.Add(childId);

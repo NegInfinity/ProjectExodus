@@ -6,7 +6,7 @@ namespace SceneExport{
 	public class JsonAudioClip: IFastJsonValue{
 		public AudioClip audioClip = null;
 		public string name;
-		public int id = -1;
+		public ResId id = ResId.invalid;
 		public string assetPath;
 		public string exportPath;
 		void writeClipData(FastJsonWriter writer){

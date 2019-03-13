@@ -4,12 +4,11 @@ using System.Collections.Generic;
 namespace SceneExport{
 	public class ObjectMapper<Resource>{
 		public delegate void OnNewObjectAdded(Resource res);
-		//public int nextId = 0;
-		public Dictionary<Resource, int> objectMap = new Dictionary<Resource, int>();
+		public Dictionary<Resource, ResId> objectMap = new Dictionary<Resource, ResId>();
 		public List<Resource> objectList = new List<Resource>();
 
-		public bool isValidObjectId(int id){
-			return (id >= 0) && (id < objectList.Count);
+		public bool isValidObjectId(ResId id){
+			return (id.objectIndex >= 0) && (id.objectIndex < objectList.Count);
 		}
 		
 		public int numObjects{
@@ -18,25 +17,31 @@ namespace SceneExport{
 			}
 		}
 		
-		public Resource getObject(int id){
+		public Resource getObject(ResId id){
 			if (!isValidObjectId(id))
 				throw new System.ArgumentException(string.Format("Invalid object id {0}", id));
-			return objectList[id];
+			return objectList[id.rawId];
 		}
 		
+		public Resource getObjectByIndex(int index){
+			if ((index < 0) || (index >= objectList.Count))
+				throw new System.ArgumentException(string.Format("Invalid object index {0}", index));
+			return objectList[index];
+		}
+
 		public bool hasObject(Resource obj){
 			return ExportUtility.isValidId(getId(obj, false));
 		}
 
-		public bool isValidId(int id){
-			return (id >= 0) && (id < objectList.Count);
+		public bool isValidId(ResId id){
+			return (id.objectIndex >= 0) && (id.objectIndex < objectList.Count);
 		}
 			
-		public int findId(Resource obj){
+		public ResId findId(Resource obj){
 			return getId(obj, false, null);
 		}
 		
-		public int getId(Resource obj){
+		public ResId getId(Resource obj){
 			return getId(obj, true, null);
 		}
 		
@@ -44,10 +49,10 @@ namespace SceneExport{
 			return !Object.Equals(obj, null);
 		}
 		
-		protected int addNewObjectInternal(Resource obj, OnNewObjectAdded onAddCallback = null){
+		protected ResId addNewObjectInternal(Resource obj, OnNewObjectAdded onAddCallback = null){
 			if (objectMap.ContainsKey(obj))
 				throw new System.ArgumentException("Logic error: duplicate registertation");
-			var result = objectList.Count;
+			var result = new ResId(objectList.Count);
 			objectMap.Add(obj, result);
 			objectList.Add(obj);
 			
@@ -56,12 +61,13 @@ namespace SceneExport{
 			return result;						
 		}
 		
-		public int registerObject(Resource obj, OnNewObjectAdded onAddCallback = null){
+		public ResId registerObject(Resource obj, OnNewObjectAdded onAddCallback = null){
 			return getId(obj, true, onAddCallback, false, false);			
 		}
 		
-		public int getId(Resource obj, bool createMissing, OnNewObjectAdded onAddCallback = null, bool throwIfMissing = false, bool throwIfExists = false){
-			int result = ExportUtility.invalidId;
+		public ResId getId(Resource obj, bool createMissing, OnNewObjectAdded onAddCallback = null, bool throwIfMissing = false, bool throwIfExists = false){
+			//int result = ExportUtility.invalidId;
+			var result = ResId.invalid;
 			if (!isValidObject(obj))
 				return result;
 			if (objectMap.TryGetValue(obj, out result)){
@@ -78,7 +84,7 @@ namespace SceneExport{
 						string.Format("Could not find id for resource {0}", obj)
 					);
 				}
-				return -1;
+				return ResId.invalid;
 			}
 			
 			return addNewObjectInternal(obj, onAddCallback);

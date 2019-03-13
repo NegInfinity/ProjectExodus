@@ -85,6 +85,10 @@ namespace SceneExport{
 			walkHierarchy(q, callback);
 		}
 		
+		public static bool isValidId(ResId id){
+			return id.isValid;
+		}
+
 		public static bool isValidId(int id){
 			return id >= 0;
 		}

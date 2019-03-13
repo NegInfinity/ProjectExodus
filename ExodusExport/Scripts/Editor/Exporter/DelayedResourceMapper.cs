@@ -28,6 +28,12 @@ namespace SceneExport{
 
 		public delegate void ResourceProcessCallback(Resource res, ResId resId);
 
+		public bool processingFinished{
+			get{
+				return !hasUnprocessedItems;
+			}
+		}
+
 		public bool hasUnprocessedItems{
 			get{
 				return numProcessedItems < numRegisteredItems;
@@ -49,9 +55,13 @@ namespace SceneExport{
 			return isValidId(id);
 		}
 
-		public ResId findId(Resource res, bool createNew = false){
+		public ResId findId(Resource res){
+			return getId(res, false, false);
+		}
+
+		public ResId getId(Resource res, bool createNew, bool throwIfMissing = false){
 			if (res == null){
-				if (createNew && (res == null)){
+				if (createNew && (res == null) && throwIfMissing){
 					throw new System.ArgumentNullException("resType");
 				}
 				return ResId.invalid;
@@ -76,7 +86,7 @@ namespace SceneExport{
 			Returns existing ID or creates a new one.
 		*/
 		public ResId getId(Resource resType){
-			return findId(resType, true);
+			return getId(resType, true, false);
 		}
 
 		public bool processRemainingItems(ResourceProcessCallback callback){
@@ -85,10 +95,15 @@ namespace SceneExport{
 			if (!hasUnprocessedItems)
 				return false;
 
-			for(int i = numRegisteredItems; i < numProcessedItems; i++){
+			for(int i = numProcessedItems; i < numRegisteredItems; i++){
 				var id = new ResId(i);
 				var obj = registered[i];
-				callback(obj, id);
+				try{
+					callback(obj, id);
+				}
+				finally{
+					processed.Add(obj);
+				}
 				//resourceMap.Add(obj, id);, No this should be done earlier
 			}
 

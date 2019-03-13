@@ -40,7 +40,7 @@ namespace SceneExport{
 			var result = new JsonProject();
 			var scene = JsonScene.fromObjects(obj, result.resourceMapper, showGui);
 			result.scenes.Add(scene);
-			result.generateResourceList();
+			result.generateResourceList();//This is basically triggering a side effect to ensure all resources are loaded
 			return result;
 		}
 		

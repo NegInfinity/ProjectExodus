@@ -12,9 +12,21 @@ namespace SceneExport{
 			}
 		}
 
+		public int objectIndex{
+			get{
+				return id;
+			}
+		}
+
 		public int rawId{
 			get{
 				return id;
+			}
+		}
+
+		public bool isValid{
+			get{
+				return id >= 0;
 			}
 		}
 

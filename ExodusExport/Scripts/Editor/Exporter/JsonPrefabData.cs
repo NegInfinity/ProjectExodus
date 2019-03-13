@@ -5,7 +5,7 @@ using System.Collections.Generic;
 namespace SceneExport{
 	[System.Serializable]
 	public class JsonPrefabData: IFastJsonValue{
-		public int id;
+		public ResId id = ResId.invalid;
 		public string name;
 		public string path;
 		public string guid;
@@ -43,7 +43,8 @@ namespace SceneExport{
 			
 			var mapper = resMap.getPrefabObjectMapper(prefabObject);
 			for(int i = 0; i < mapper.numObjects; i++){
-				var src = mapper.getObject(i);
+				///Well, this is certainly not the best way to go about it...
+				var src = mapper.getObjectByIndex(i);
 				var dst = new JsonGameObject(src, mapper, resMap);
 				objects.Add(dst);
 			}

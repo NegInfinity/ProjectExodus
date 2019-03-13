@@ -7,6 +7,11 @@ using System.Collections.Generic;
 
 namespace SceneExport{
 	public partial class FastJsonWriter{
+		public void writeKeyVal(string key, ResId val){
+			writeKey(key);
+			writeRawValue(val.rawId);
+		}
+
 		public void writeKeyVal(string key, int val){
 			writeKey(key);
 			writeRawValue(val);

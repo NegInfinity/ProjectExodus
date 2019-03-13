@@ -9,11 +9,11 @@ namespace SceneExport{
 		public bool skinnedMotionVectors = false;
 		public bool updateWhenOffscreen = false;
 		public List<string> boneNames = new List<string>();
-		public List<int> boneIds = new List<int>();
+		public List<ResId> boneIds = new List<ResId>();
 		public List<Matrix4x4> boneTransforms = new List<Matrix4x4>();
 		
-		public int meshId = -1;
-		public List<int> materials = new List<int>();		
+		public ResId meshId = ResId.invalid;
+		public List<ResId> materials = new List<ResId>();		
 		
 		public void writeRawJsonValue(FastJsonWriter writer){
 			writer.beginRawObject();

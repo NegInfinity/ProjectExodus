@@ -11,7 +11,7 @@ namespace SceneExport{
         public int direction = 0;//0 = x, 1 = y, 2 = z; 
         public float radius = 0.0f;//capsule and sphere
         public float height = 0.0f;//capsule only        
-        public int meshId = -1; //meshCollider
+        public ResId meshId = ResId.invalid; //meshCollider
         public Collider collider= null;
 
 		public bool triMeshCollision = false;//used for triangular mesh collision somewhere if this is set

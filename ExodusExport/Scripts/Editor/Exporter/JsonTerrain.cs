@@ -21,7 +21,7 @@ namespace SceneExport{
 		public int lightmapIndex;
 		public Vector4 lightmapScaleOffet;
 
-		public int materialTemplateIndex = -1;
+		public ResId materialTemplateIndex = ResId.invalid;
 		public string materialType;		
 		
 		public Vector3 patchBoundsMultiplier;
@@ -29,7 +29,7 @@ namespace SceneExport{
 		public int realtimeLightmapIndex;
 		public Vector4 realtimeLightmapScaleOffset;
 		
-		public int terrainDataId = -1;
+		public ResId terrainDataId = ResId.invalid;
 		
 		public float treeBillboardDistance;
 		public float treeCrossFadeLength;
@@ -126,7 +126,7 @@ namespace SceneExport{
 			treeMaximumFullLODCount = srcObj.treeMaximumFullLODCount;
 			
 			//And once again I doubt whehter the approahc of making a temporary object is justified.
-			materialTemplateIndex = -1;
+			materialTemplateIndex = ResId.invalid;
 			if (srcObj.materialType == Terrain.MaterialType.Custom)
 				materialTemplateIndex = resMap.getMaterialId(srcObj.materialTemplate);//-1;
 				//material keeps picking up splat texutre :-\

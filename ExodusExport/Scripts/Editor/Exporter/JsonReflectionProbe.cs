@@ -21,8 +21,8 @@ namespace SceneExport{
 		public string refreshMode = "awake";
 		
 		//well, that's cute. customBakedTexture on reflection probe is Texture, despite being limited to cubemap in editor
-		public int customCubemapId = -1;
-		public int customTex2dId = -1;
+		public ResId customCubemapId = ResId.invalid;
+		public ResId customTex2dId = ResId.invalid;
 		//public string timeSlicingMode;
 		
 		public void writeRawJsonValue(FastJsonWriter writer){

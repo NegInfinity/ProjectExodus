@@ -48,8 +48,8 @@ namespace SceneExport{
 		public string name = "";
 		
 		public int skeletonId = -1;
-		public List<int> skinMeshIds = new List<int>();
-		public int animatorControllerId = -1;
+		public List<ResId> skinMeshIds = new List<ResId>();
+		public ResId animatorControllerId = ResId.invalid;
 		
 		public Animator animator;
 		

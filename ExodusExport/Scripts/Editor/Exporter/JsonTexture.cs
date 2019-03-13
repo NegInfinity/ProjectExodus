@@ -6,7 +6,7 @@ namespace SceneExport{
 	[System.Serializable]
 	public class JsonTexture: IFastJsonValue{		
 		public string name;
-		public int id = -1;
+		public ResId id = ResId.invalid;
 		public string path;
 		public string filterMode;
 		public float mipMapBias = 0.0f;

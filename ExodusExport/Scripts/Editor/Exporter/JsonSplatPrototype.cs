@@ -5,8 +5,8 @@ namespace SceneExport{
 	[System.Serializable]
 	public class JsonSplatPrototype: IFastJsonValue{
 		public SplatPrototype data;
-		public int normalMapId = -1;
-		public int textureId = -1;
+		public ResId normalMapId = ResId.invalid;
+		public ResId textureId = ResId.invalid;
 		public void writeRawJsonValue(FastJsonWriter writer){
 			writer.beginRawObject();
 			writer.writeKeyVal("textureId", textureId);

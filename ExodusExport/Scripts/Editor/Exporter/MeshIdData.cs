@@ -5,8 +5,8 @@ using System.Collections.Generic;
 namespace SceneExport{
 	[System.Serializable]
 	public class MeshIdData{
-		public int meshId = -1;
-		public List<int> meshMaterials = new List<int>();
+		public ResId meshId = ResId.invalid;
+		public List<ResId> meshMaterials = new List<ResId>();
 		public MeshIdData(){
 		}
 		public MeshIdData(GameObject srcObj, ResourceMapper resMap){

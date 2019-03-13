@@ -6,7 +6,7 @@ namespace SceneExport{
 	[System.Serializable]
 	struct NameClashKey{
 		public string name;
-		public int parentId;
+		public ResId parentId;
 			
 		public override int GetHashCode(){
 			int result = Utility.beginHash();
@@ -22,7 +22,7 @@ namespace SceneExport{
 			return (name == other.name) && (parentId == other.parentId);					
 		}
 			
-		public NameClashKey(string name_, int parentId_){
+		public NameClashKey(string name_, ResId parentId_){
 			name = name_;
 			parentId = parentId_;
 		}

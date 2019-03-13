@@ -6,8 +6,8 @@ namespace SceneExport{
 	[System.Serializable]
 	public class JsonTreePrototype: IFastJsonValue{		
 		public TreePrototype src;
-		public int prefabId = -1;
-		public int prefabObjectId = -1;
+		public ResId prefabId = ResId.invalid;
+		public ResId prefabObjectId = ResId.invalid;
 		//public int meshId = -1;//trees don't exactly spawn entire prefabs.. They use meshes.
 		//public List<int> meshMaterials = new List<int>();
 		
