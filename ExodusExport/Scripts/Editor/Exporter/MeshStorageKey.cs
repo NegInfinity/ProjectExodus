@@ -1,6 +1,10 @@
 ﻿using UnityEngine;
 
 namespace SceneExport{
+	/*
+	This class holds mesh-specific data --> The reference to the mesh itself, Prefab on which the mesh was originally found,
+	and the root skeleton.
+	*/
 	[System.Serializable]
 	public struct MeshStorageKey{
 		public readonly Mesh mesh;//Immutability, huh. Ugh.

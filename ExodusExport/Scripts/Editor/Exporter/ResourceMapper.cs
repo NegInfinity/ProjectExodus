@@ -26,21 +26,16 @@ namespace SceneExport{
 	[System.Serializable]
 	public class ResourceMapper{
 		protected ObjectMapper<Texture> textures = new ObjectMapper<Texture>();
-		//protected DelayedResourceMapper<Texture> delayedTextures = new DelayedResourceMapper<Texture>();
 		
 		public ObjectMapper<Material> materials = new ObjectMapper<Material>();
 		public ObjectMapper<Cubemap> cubemaps = new ObjectMapper<Cubemap>();
 		public ObjectMapper<AudioClip> audioClips = new ObjectMapper<AudioClip>();
-		//public ObjectMapper<AnimationClip> animationClips = new ObjectMapper<AnimationClip>();
 
 		public ObjectMapper<AnimationClipKey> animationClips = new ObjectMapper<AnimationClipKey>();
 		
 		public ObjectMapper<Animator> characterPrefabAnimators = new ObjectMapper<Animator>();
 		
 		public ObjectMapper<AnimatorControllerKey> animatorControllers = new ObjectMapper<AnimatorControllerKey>();
-		/*
-		public ObjectMapper<UnityEditor.Animations.AnimatorController> animatorControllers 
-			= new ObjectMapper<UnityEditor.Animations.AnimatorController>();*/
 
 		/*
 			Well, do to differences in handling unity's adn unreal skeletal meshes, we can no longer use naked mesh to uniquely id
@@ -50,16 +45,10 @@ namespace SceneExport{
 			This won't be needed for non-skinned meshes, of course.
 		*/
 		public SkeletonRegistry skelRegistry = new SkeletonRegistry();
-		//Dictionary<Transform, JsonSkeleton> jsonSkeletons = new Dictionary<Transform, JsonSkeleton>();
-		//Dictionary<int, Transform> jsonSkeletonRootTransforms = new Dictionary<int, Transform>();
-		//Dictionary<MeshStorageKey, MeshDefaultSkeletonData> meshDefaultSkeletonData = new Dictionary<MeshStorageKey, MeshDefaultSkeletonData>();
 
 		public ObjectMapper<MeshStorageKey> meshes = new ObjectMapper<MeshStorageKey>();
-		//public Dictionary<int, MeshUsageFlags> meshUsage = new Dictionary<int, MeshUsageFlags>();
 		public Dictionary<ResId, MeshUsageFlags> meshUsage = new Dictionary<ResId, MeshUsageFlags>();
 
-		//Dictionary<Mesh, MeshDefaultSkeletonData> meshDefaultSkeletonData = new Dictionary<Mesh, MeshDefaultSkeletonData>();
-		
 		Dictionary<Mesh, List<Material>> meshMaterials = new Dictionary<Mesh, List<Material>>();
 		
 		public HashSet<string> resources = new HashSet<string>();
@@ -164,63 +153,6 @@ namespace SceneExport{
 			return meshes.getId(key, false);
 		}
 		
-		/*
-		public string getDefaultMeshNodeName(MeshStorageKey key){
-			var tmp = meshDefaultSkeletonData.getValOrDefault(
-				key, null);
-			if ((tmp != null) && (tmp.meshNodeTransform))
-				return tmp.meshNodeTransform.name;
-			
-			return "";
-		}
-		
-		public string getDefaultMeshNodePath(MeshStorageKey key){
-			var tmp = meshDefaultSkeletonData.getValOrDefault(
-				key, null);
-			if ((tmp != null) && (tmp.meshNodeTransform))
-				return tmp.meshNodeTransform.getScenePath(tmp.defaultRoot);
-			
-			return "";
-		}
-		
-		public Matrix4x4 getDefaultMeshNodeMatrix(MeshStorageKey key){
-			var tmp = meshDefaultSkeletonData.getValOrDefault(
-				key, null);
-			if ((tmp != null) && (tmp.meshNodeTransform))
-				Utility.getRelativeMatrix(tmp.meshNodeTransform, tmp.defaultRoot);
-			
-			return Matrix4x4.identity;
-		}
-		
-		public List<string> getDefaultBoneNames(MeshStorageKey key){
-			var tmp = meshDefaultSkeletonData.getValOrDefault(
-				key, null);
-			if (tmp == null)
-				return new List<string>();
-			return tmp.defaultBoneNames.ToList();
-		}
-		
-		public MeshDefaultSkeletonData getDefaultSkeletonData(MeshStorageKey key){
-			return meshDefaultSkeletonData.getValOrDefault(key, null);
-		}		
-		
-		public JsonSkeleton getDefaultSkeleton(MeshStorageKey key){
-			var defaultData = getDefaultSkeletonData(key);
-			if (defaultData == null)
-				return null;
-				
-			var skel = jsonSkeletons.getValOrDefault(defaultData.defaultRoot, null);
-			return skel;
-		}
-		
-		public int getDefaultSkeletonId(MeshStorageKey key){
-			var skel = getDefaultSkeleton(key);
-			if (skel == null)
-				return ExportUtility.invalidId;
-			return skel.id;
-		}
-		*/
-		
 		public ResId getMaterialId(Material obj){
 			return materials.getId(obj, true);
 		}
@@ -259,15 +191,10 @@ namespace SceneExport{
 		}
 
 		ResId getOrRegMeshId(MeshStorageKey meshKey, GameObject obj, Mesh mesh){
-			//Debug.LogFormat("getOrRegMeshId: {0}, {1}, {2}", meshKey, obj, mesh);
 			if (!mesh){
-				//Debug.LogFormat("Mesh is null");
-				//return ExportUtility.invalidId;
 				return ResId.invalid;
 			}
-			//var meshKey = new MeshStorageKey(mesh);
 			ResId result = meshes.getId(meshKey, true, null);
-			//Debug.LogFormat("id found: {0}", result);
 			if (meshMaterials.ContainsKey(mesh))
 				return result;
 							
@@ -285,19 +212,11 @@ namespace SceneExport{
 			 Subtle. FindPrefabRoot does not find the root of the original object, but rather a root of object currently being processed.
 			 Meaning if you apply it to an instanced prefab, it'll find root of that that instanced prefab in the scene, and not the original asset
 			 */
-			 
 			 var prefabRoot = Utility.getSrcPrefabAssetObject(
 				 Utility.getPrefabInstanceRoot(meshRend.gameObject),
 				 //PrefabUtility.FindPrefabRoot(meshRend.gameObject),
 				false
 			);
-			 
-			 /*
-			 var prefabRoot = PrefabUtility.FindPrefabRoot(meshRend.gameObject);
-			 var linkedPrefabRoot = PrefabUtility.GetCorrespondingObjectFromSource(prefabRoot) as GameObject;
-			 if (linkedPrefabRoot)
-			 	prefabRoot = linkedPrefabRoot;
-			 */
 			 
 			 Transform skeletonRoot = null;
 			 if (includeSkeleton){
@@ -306,44 +225,6 @@ namespace SceneExport{
 			 return new MeshStorageKey(mesh, prefabRoot, skeletonRoot);
 		}
 		
-		/*
-		public Transform getSkeletonTransformById(int id){
-			if ((id < 0) || (id >= jsonSkeletons.Count))
-				throw new System.ArgumentException(string.Format("Invalid skeleton id %d", id));
-			
-			var skelTransform = jsonSkeletonRootTransforms.getValOrDefault(id, null);
-			return skelTransform;
-		}
-		
-		public JsonSkeleton getSkeletonById(int id){
-			var skelTransform = getSkeletonTransformById(id);
-			if (!skelTransform)
-				throw new System.ArgumentException(string.Format("skeleton with id {0} not found", id));
-				
-			var result = jsonSkeletons.getValOrDefault(skelTransform, null);
-			if (result == null)
-				throw new System.ArgumentException(string.Format("skeleton with id {0} not found", id));
-				
-			return result;
-			//return jsonSkeletons.[id];
-		}
-		
-		public int registerSkeleton(Transform rootTransform, bool findPrefab){
-			if (findPrefab)
-				rootTransform = Utility.getSrcPrefabAssetObject(rootTransform, false);
-				
-			JsonSkeleton skel = null;
-			if (jsonSkeletons.TryGetValue(rootTransform, out skel))
-				return skel.id;
-			var newSkel = JsonSkeletonBuilder.buildFromRootTransform(rootTransform);
-			var id = jsonSkeletons.Count;
-			newSkel.id = id;
-					
-			jsonSkeletons.Add(rootTransform, newSkel);
-			jsonSkeletonRootTransforms.Add(newSkel.id, rootTransform);
-			return newSkel.id;
-		}
-		*/
 		
 		public ResId getOrRegMeshId(SkinnedMeshRenderer meshRend, Transform skeletonRoot){
 			var mesh = meshRend.sharedMesh;
@@ -351,23 +232,7 @@ namespace SceneExport{
 				return ResId.invalid;//ExportUtility.invalidId;
 				
 			var meshKey = buildMeshKey(meshRend, true);
-			//TODO - this needs to be moved into a subroutine of SkeletonRepository
-			if (!skelRegistry.meshDefaultSkeletonData.ContainsKey(meshKey)){				
-				var rootTransform = skeletonRoot;//JsonSkeletonBuilder.findSkeletonRoot(meshRend);
-				if (!rootTransform)
-					rootTransform  = JsonSkeletonBuilder.findSkeletonRoot(meshRend);
-				if (!rootTransform)
-					throw new System.ArgumentException(
-						string.Format("Could not find skeleton root transform for {0}", meshRend));
-						
-				var boneNames = meshRend.bones.Select((arg) => arg.name).ToList();
-				
-				var meshNode = Utility.getSrcPrefabAssetObject(meshRend.gameObject.transform, false);
-				var defaultData = new MeshDefaultSkeletonData(rootTransform, meshNode, boneNames);
-				skelRegistry.meshDefaultSkeletonData.Add(meshKey, defaultData);
-				
-				skelRegistry.registerSkeleton(rootTransform, false);
-			}
+			skelRegistry.tryRegisterMeshSkeleton(meshKey, meshRend, skeletonRoot);
 			
 			return getOrRegMeshId(meshKey, meshRend.gameObject, mesh);
 		}
@@ -505,39 +370,6 @@ namespace SceneExport{
 				return fileName;
 		}
 
-		/*
-		static List<string> saveResourcesToPath<ClassType, ObjType>(string baseDir, 
-				List<ObjType> objects,
-				IndexedObjectConverter<ObjType, ClassType> converter,
-				System.Func<ClassType, string> nameFunc, string baseName, bool showGui) 
-				where ClassType: IFastJsonValue{
-				
-			if (converter == null)
-				throw new System.ArgumentNullException("converter");
-				
-			try{
-				var result = new List<string>();
-				if (objects != null){
-					//for(int i = 0; i < objects.Count; i++){
-					for(int i = 0; i < objects.Count; i++){
-						result.Add(
-							saveResourceToPath(
-								baseDir, objects[i], i, objects.Count, 
-								converter, nameFunc, baseName, showGui
-							)
-						);
-					}
-				}
-				return result;		
-			}
-			finally{
-				if (showGui){
-					ExportUtility.hideProgressBar();
-				}
-			}
-		}
-		*/
-		
 		static bool saveResourcesToPath<ClassType, SrcObjType>(
 				List<string> outObjectPaths,
 				ref int lastCount,
@@ -645,7 +477,6 @@ namespace SceneExport{
 			var meshInvMatrix = Utility.getRelativeInverseMatrix(skelData.meshNodeTransform, meshKey.prefab.transform);
 			
 			newMesh.processBindPoses((bindPose, index) => {
-				//var result = bindPose;
 				/*
 				Givent that i'm getting error that's squarely factor of 10 while bones themselves have scale factor of 100
 				(thanks, fbx exporter), it means I failed to accomodate for removal of mesh transform. Let's see...
@@ -653,13 +484,8 @@ namespace SceneExport{
 				var newTransform = meshInvMatrix * bindPose;
 				Debug.LogFormat("Converting bindpose {0}:\noriginal:\n{1}\nnew:\n{2}\nmesh:\n{3}\nmeshInv:\n{4}\nroot:\n{5}\nrootInv:\n{6}", 
 					index, bindPose, newTransform, meshMatrix, meshInvMatrix, srcRootTransform, srcRootInvTransform);
-				//Debug.LogFormat("Bone transform:\n{0}\nboneInverse:\n{1}\nBoneRootRelative:\n{2}\nBoneInverseRootRelative:\n{3}",
-					
-				//return result;
 				return newTransform;
 			});
-			//newMesh.bindPoses = 
-			//newMesh.transformWith(transformMatrix);
 			
 			return newMesh;
 		}
@@ -685,6 +511,20 @@ namespace SceneExport{
 			return result;
 		}
 		
+		/*
+		Essentually the whole unity scene is a resource graph.
+		There are two resource types - "leaf" resources and "node" resources.
+		Leafs are only referenced by something, while nodes can reference leafs and other nodes via Ids....
+
+		Well, the problem is we don't know how deep the rabbit hole goes, and one referenced resource can pull in other referenced
+		resources and so on. Given that a project can be huge, loading everything into memory at once might be unwise.
+
+		As a result exporter will have to loop through the resources multiple times to acomodate for resoruces that were 
+		possibly introduced. Henc the ugly "saveResourcesToPath" call with many many parameters.
+
+		Originally I tried to avoid that by forcing specific order of initialziation which would eradicat possibility of
+		missing resources, but then I got prefabs and animator contorllers...
+		*/
 		public JsonExternResourceList saveResourceToFolder(string baseDir, bool showGui, List<JsonScene> scenes, Logger logger){		
 			Logger.makeValid(ref logger);
 			var result = new JsonExternResourceList();
@@ -752,36 +592,6 @@ namespace SceneExport{
 			
 			return result;
 		}
-		/*
-		Essentually the whole unity scene is a resource graph.
-		There are two resource types - "leaf" resources and "node" resources.
-		Leafs are only referenced by something, while nodes can reference leafs and other nodes via Ids....
-
-		Well, the problem is we don't know how deep the rabbit hole goes, and one referenced resource can pull in other referenced
-		resources and so on. Given that a project can be huge, loading everything into memory at once might be unwise.
-
-		So I introduced delayed resource IDs - where a resource is mapped to an ID immediately, but there's no actual object spawned.
-
-		Actually, it seems this was a bad idea.
-
-		To accomodate for suddenly appearing resoruces we do not need a new resource container, althoguh the idea of 
-		using structs instead of raw ints seems good. 
-
-		Instead we need to introduce a new watcher object that monitors object count. 
-		*/
-
-		/*
-		public void collectRemainingResources(){
-			bool allObjectsResolved = false;
-			while(!allObjectsResolved){
-				allObjectsResolved = true;
-				delayedTextures.processRemainingItems((resTex, index) => {
-					result.textures.Add(new JsonTexture(resTex, this));
-				});
-				allObjectsResolved &= delayedTextures.processingFinished;
-			}
-		}
-		*/
 
 		public JsonResourceList makeResourceList(){
 			var result = new JsonResourceList();
@@ -816,9 +626,6 @@ namespace SceneExport{
 			result.animationClips = animationClips.objectList
 				.Select((arg1, idx) => new JsonAnimationClip(arg1.animClip, arg1.animator, idx, this)).ToList();
 				
-			//This needs to be done last, as characters trigger registration as they're constructed.
-			//collectRemainingResources();
-
 			result.resources = new List<string>(resources);
 			result.resources.Sort();
 			

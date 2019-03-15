@@ -5,6 +5,14 @@ using System.Linq;
 using System.Collections.Generic;
 
 namespace SceneExport{
+	/*
+	There are differences in handling skeletal meshes and animation between unity and unreal.
+
+	Unity does not /have/ a concept of skeleton, meaning there's no specific object we can poke and query with questions like
+	"how many bones", "what are default bone names", and so on.
+
+	As such it is assumed that skeletons are /prefabs/ that store skeletal meshes.
+	*/
 	public class SkeletonRegistry{
 		public Dictionary<Transform, JsonSkeleton> jsonSkeletons = new Dictionary<Transform, JsonSkeleton>();
 		//public Dictionary<Transform, ResId> jsonSkeletons = new Dictionary<Transform, ResId>();
@@ -104,5 +112,31 @@ namespace SceneExport{
 			jsonSkeletonRootTransforms.Add(newSkel.id, rootTransform);
 			return newSkel.id;
 		}		
+
+		//public ResId getOrRegMeshId(SkinnedMeshRenderer meshRend, Transform skeletonRoot){
+		public void tryRegisterMeshSkeleton(MeshStorageKey meshKey, SkinnedMeshRenderer meshRend, Transform skeletonRoot){
+			Sanity.nullCheck(meshKey.mesh, "mesh cannot be null");
+				
+			//var meshKey = buildMeshKey(meshRend, true);
+			//TODO - this needs to be moved into a subroutine of SkeletonRepository
+			if (!meshDefaultSkeletonData.ContainsKey(meshKey)){				
+				var rootTransform = skeletonRoot;//JsonSkeletonBuilder.findSkeletonRoot(meshRend);
+				if (!rootTransform)
+					rootTransform  = JsonSkeletonBuilder.findSkeletonRoot(meshRend);
+				if (!rootTransform)
+					throw new System.ArgumentException(
+						string.Format("Could not find skeleton root transform for {0}", meshRend));
+						
+				var boneNames = meshRend.bones.Select((arg) => arg.name).ToList();
+				
+				var meshNode = Utility.getSrcPrefabAssetObject(meshRend.gameObject.transform, false);
+				var defaultData = new MeshDefaultSkeletonData(rootTransform, meshNode, boneNames);
+				meshDefaultSkeletonData.Add(meshKey, defaultData);
+				
+				registerSkeleton(rootTransform, false);
+			}
+			
+			//return getOrRegMeshId(meshKey, meshRend.gameObject, mesh);
+		}
 	}
 }
