@@ -12,6 +12,10 @@ namespace SceneExport{
 			}
 		}
 
+		public static ResId fromObjectIndex(int index){
+			return new ResId(index);
+		}
+
 		public int objectIndex{
 			get{
 				return id;

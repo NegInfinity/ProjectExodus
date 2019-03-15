@@ -47,7 +47,7 @@ namespace SceneExport{
 	public class JsonAnimator: IFastJsonValue{
 		public string name = "";
 		
-		public int skeletonId = -1;
+		public ResId skeletonId = ResId.invalid;
 		public List<ResId> skinMeshIds = new List<ResId>();
 		public ResId animatorControllerId = ResId.invalid;
 		
@@ -107,10 +107,10 @@ namespace SceneExport{
 			if (!animator_)
 				throw new System.ArgumentNullException("animator_");
 			name = animator.name;
-			skeletonId = resMap.registerSkeleton(animator.transform, true);
+			skeletonId = resMap.skelRegistry.registerSkeleton(animator.transform, true);
 			
 			//var skel = resMap.getSkeletonById(skeletonId);
-			var skelTransform = resMap.getSkeletonTransformById(skeletonId);
+			var skelTransform = resMap.skelRegistry.getSkeletonTransformById(skeletonId);
 			//var root = PrefabUtility.FindPrefabRoot(skelTransform.gameObject);
 			
 			//var meshKey = new MeshStorageKey(

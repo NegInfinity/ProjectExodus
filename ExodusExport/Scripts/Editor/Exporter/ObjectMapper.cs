@@ -7,14 +7,90 @@ namespace SceneExport{
 		public Dictionary<Resource, ResId> objectMap = new Dictionary<Resource, ResId>();
 		public List<Resource> objectList = new List<Resource>();
 
+		public class IdEnumerator: IEnumerator<ResId>{
+			int index = -1;
+			ObjectMapper<Resource> owner = null;
+
+			bool gotValidIndex(){
+				return owner.isValidObjectIndex(index);
+			}
+
+			public object Current{
+				get{
+					return Current;
+				}
+			}
+
+			ResId IEnumerator<ResId>.Current{
+				get{
+					if (gotValidIndex())
+						return ResId.fromObjectIndex(index);
+					return ResId.invalid;
+				}
+			}
+
+			public void Dispose(){
+				owner = null;			
+			}
+
+			public bool MoveNext(){
+				int nextIndex = index + 1;
+				if (owner.isValidObjectIndex(nextIndex))
+					return false;
+
+				index = nextIndex;
+				return true;
+			}
+
+			public void Reset(){
+				index = -1;
+			}
+
+			public IdEnumerator(ObjectMapper<Resource> owner_){
+				if (owner_ == null)
+					throw new System.ArgumentNullException("owner_");
+				owner = owner_;
+			}
+		}
+
 		public bool isValidObjectId(ResId id){
 			return (id.objectIndex >= 0) && (id.objectIndex < objectList.Count);
+		}
+		
+		public bool isValidObjectIndex(int index){
+			return (index >= 0) && (index < objectList.Count);
 		}
 		
 		public int numObjects{
 			get{
 				return objectList.Count;
 			}
+		}
+
+		protected class ObjectIdsWrapper: IEnumerable<ResId>{
+			ObjectMapper<Resource> owner = null;
+
+			IEnumerator<ResId> IEnumerable<ResId>.GetEnumerator(){
+				return GetEnumerator();
+			}
+
+			System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator(){
+				return GetEnumerator();
+			}
+
+			public IdEnumerator GetEnumerator(){
+				return new IdEnumerator(owner);
+			}
+
+			public ObjectIdsWrapper(ObjectMapper<Resource> owner_){
+				if (owner_ == null)
+					throw new System.ArgumentNullException("owner_");
+				owner = owner_;
+			}
+		}
+
+		public IEnumerable<ResId> getObjectIds(){
+			return null;
 		}
 		
 		public Resource getObject(ResId id){

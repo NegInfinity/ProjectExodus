@@ -71,13 +71,13 @@ namespace SceneExport{
 		}
 		
 		void sampleMatrixCurves(ResourceMapper resMap, AnimationSampler providedSampler = null){
-			var skelId = resMap.registerSkeleton(animator.transform, true);
+			var skelId = resMap.skelRegistry.registerSkeleton(animator.transform, true);
 			if (!ExportUtility.isValidId(skelId)){
 				throw new System.ArgumentException(
 					string.Format("Skeleton not found for clip \"{0}\" and animator \"{1}\"", 
 						clip, animator));
 			}
-			var skeleton = resMap.getSkeletonById(skelId);
+			var skeleton = resMap.skelRegistry.getSkeletonById(skelId);
 			
 			var prefabAnim = Utility.getSrcPrefabAssetObject(animator, false);
 

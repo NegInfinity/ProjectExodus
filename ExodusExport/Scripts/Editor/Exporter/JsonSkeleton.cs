@@ -7,7 +7,7 @@ using System.Collections.Generic;
 namespace SceneExport{
 	[System.Serializable]
 	public class JsonSkeleton: JsonValueObject{
-		public int id = -1;
+		public ResId id = ResId.invalid;
 		public string name;
 		
 		//public List<string> defaultBoneNames = new List<string>();
@@ -81,7 +81,7 @@ namespace SceneExport{
 		public void clear(){
 			bones.Clear();
 			name = "";
-			id = ExportUtility.invalidId;
+			id = ResId.invalid;//ExportUtility.invalidId;
 		}
 		
 		public void assignFrom<Container>(Transform rootTransform, List<Transform> transforms) 
@@ -132,7 +132,7 @@ namespace SceneExport{
 			}			
 		}
 		
-		public JsonSkeleton(string name_, int id_, Transform rootTransform, ObjectMapper<Transform> transforms){
+		public JsonSkeleton(string name_, ResId id_, Transform rootTransform, ObjectMapper<Transform> transforms){
 			name = name_;
 			id = id_;
 			assignFrom(rootTransform, transforms);

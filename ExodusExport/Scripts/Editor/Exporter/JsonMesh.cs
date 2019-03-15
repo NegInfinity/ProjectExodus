@@ -35,7 +35,7 @@ namespace SceneExport{
 		public List<float> boneWeights = new List<float>();
 		public List<int> boneIndexes = new List<int>();
 		
-		public int defaultSkeletonId = -1;
+		public ResId defaultSkeletonId = ResId.invalid;
 		public List<string> defaultBoneNames = new List<string>();
 		
 		public string defaultMeshNodeName;
@@ -427,12 +427,12 @@ namespace SceneExport{
 			
 			boneWeights.Clear();
 			boneIndexes.Clear();
-			defaultSkeletonId = exp.getDefaultSkeletonId(meshKey);
-			defaultBoneNames = exp.getDefaultBoneNames(meshKey);
+			defaultSkeletonId = exp.skelRegistry.getDefaultSkeletonId(meshKey);
+			defaultBoneNames = exp.skelRegistry.getDefaultBoneNames(meshKey);
 			
-			defaultMeshNodeName = exp.getDefaultMeshNodeName(meshKey);
-			defaultMeshNodePath = exp.getDefaultMeshNodePath(meshKey);
-			defaultMeshNodeMatrix = exp.getDefaultMeshNodeMatrix(meshKey);
+			defaultMeshNodeName = exp.skelRegistry.getDefaultMeshNodeName(meshKey);
+			defaultMeshNodePath = exp.skelRegistry.getDefaultMeshNodePath(meshKey);
+			defaultMeshNodeMatrix = exp.skelRegistry.getDefaultMeshNodeMatrix(meshKey);
 			
 			var srcWeights = mesh.boneWeights;
 			if ((srcWeights != null) && (srcWeights.Length > 0)){
