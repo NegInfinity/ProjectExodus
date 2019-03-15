@@ -4,53 +4,74 @@ using System.Collections.Generic;
 namespace SceneExport{
 	public class ObjectMapper<Resource>{
 		public delegate void OnNewObjectAdded(Resource res);
+
 		public Dictionary<Resource, ResId> objectMap = new Dictionary<Resource, ResId>();
 		public List<Resource> objectList = new List<Resource>();
 
-		public class IdEnumerator: IEnumerator<ResId>{
-			int index = -1;
+		/*/
+		public class Watcher{
 			ObjectMapper<Resource> owner = null;
+			int lastCount = 0;
 
-			bool gotValidIndex(){
-				return owner.isValidObjectIndex(index);
+			public void reset(){
+				lastCount = 0;
 			}
 
-			public object Current{
+			void checkOwner(){
+				if (owner == null)
+					throw new System.ArgumentException("owner", "Owner cannot be null");
+			}
+
+			public bool hasNewObjects{
 				get{
-					return Current;
+					checkOwner();
+					return owner.numObjects != lastCount;
 				}
 			}
 
-			ResId IEnumerator<ResId>.Current{
-				get{
-					if (gotValidIndex())
-						return ResId.fromObjectIndex(index);
-					return ResId.invalid;
+			public IEnumerable<int> getNewIndexes(){
+				if (!hasNewObjects)
+					yield break;
+				for(int i = lastCount; i < owner.numObjects; i++){
+					yield return i;
 				}
 			}
 
-			public void Dispose(){
-				owner = null;			
+			public IEnumerable<ResId> getNewIds(){
+				if (!hasNewObjects)
+					yield break;
+				for(int i = lastCount; i < owner.numObjects; i++){
+					yield return ResId.fromObjectIndex(i);
+				}
 			}
 
-			public bool MoveNext(){
-				int nextIndex = index + 1;
-				if (owner.isValidObjectIndex(nextIndex))
-					return false;
-
-				index = nextIndex;
-				return true;
+			public IEnumerable<Resource> getNewObjects(){
+				checkOwner();
+				if (!hasNewObjects)
+					yield break;
+				foreach(ResId cur in getNewIds()){
+					yield return owner.getObject(cur);
+				}
 			}
 
-			public void Reset(){
-				index = -1;
+			public void updateCount(){
+				checkOwner();
+				lastCount = owner.numObjects;
 			}
 
-			public IdEnumerator(ObjectMapper<Resource> owner_){
+			public Watcher(ObjectMapper<Resource> owner_){
 				if (owner_ == null)
 					throw new System.ArgumentNullException("owner_");
 				owner = owner_;
 			}
+		}
+		*/
+		public ResourceStorageWatcher<ObjectMapper<Resource>, Resource> createWatcher(){
+			return new ResourceStorageWatcher<ObjectMapper<Resource>, Resource>(
+				this, 
+				(obj) => obj.numObjects, 
+				(obj, idx) => obj.getObjectByIndex(idx)
+			);
 		}
 
 		public bool isValidObjectId(ResId id){
@@ -67,27 +88,11 @@ namespace SceneExport{
 			}
 		}
 
-		protected class ObjectIdsWrapper: IEnumerable<ResId>{
-			ObjectMapper<Resource> owner = null;
-
-			IEnumerator<ResId> IEnumerable<ResId>.GetEnumerator(){
-				return GetEnumerator();
-			}
-
-			System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator(){
-				return GetEnumerator();
-			}
-
-			public IdEnumerator GetEnumerator(){
-				return new IdEnumerator(owner);
-			}
-
-			public ObjectIdsWrapper(ObjectMapper<Resource> owner_){
-				if (owner_ == null)
-					throw new System.ArgumentNullException("owner_");
-				owner = owner_;
-			}
+		/*
+		public Watcher makeWatcher(){
+			return new Watcher(this);
 		}
+		*/
 
 		public IEnumerable<ResId> getObjectIds(){
 			return null;

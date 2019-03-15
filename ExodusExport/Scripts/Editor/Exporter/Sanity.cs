@@ -14,6 +14,29 @@ namespace SceneExport{
 			}
 		}
 
+		/*
+		This begs to be a temlate, and additionally error string is going to be always evaluated regardless of whether
+		the argument passed a check or not.
+		*/
+		public static void checkArgument(bool condition, string paramName = null, string message = null){
+			if (!condition)
+				return;
+
+			if (!string.IsNullOrEmpty(paramName)){
+				if (!string.IsNullOrEmpty(message))
+					throw new System.ArgumentException(paramName, message);
+				else
+					throw new System.ArgumentException(paramName);
+			}
+			else{
+				if (!string.IsNullOrEmpty(message)){
+					throw new System.ArgumentException("obj", message);
+				}
+			}
+
+			throw new System.ArgumentException();
+		}
+
 		public static void nullCheck(object obj, string paramName = null, string message = null){
 			if (obj != null)
 				return;

@@ -14,11 +14,22 @@ namespace SceneExport{
 	As such it is assumed that skeletons are /prefabs/ that store skeletal meshes.
 	*/
 	public class SkeletonRegistry{
-		public Dictionary<Transform, JsonSkeleton> jsonSkeletons = new Dictionary<Transform, JsonSkeleton>();
+		Dictionary<Transform, JsonSkeleton> jsonSkeletons = new Dictionary<Transform, JsonSkeleton>();
 		//public Dictionary<Transform, ResId> jsonSkeletons = new Dictionary<Transform, ResId>();
-		public Dictionary<ResId, Transform> jsonSkeletonRootTransforms = new Dictionary<ResId, Transform>();
-		public Dictionary<MeshStorageKey, MeshDefaultSkeletonData> meshDefaultSkeletonData = new Dictionary<MeshStorageKey, MeshDefaultSkeletonData>();
-		//public List<JsonSkeleton> skeletons = new List<JsonSkeleton>();
+		Dictionary<ResId, Transform> jsonSkeletonRootTransforms = new Dictionary<ResId, Transform>();
+		Dictionary<MeshStorageKey, MeshDefaultSkeletonData> meshDefaultSkeletonData = new Dictionary<MeshStorageKey, MeshDefaultSkeletonData>();
+		//public List<JsonSkeleton> skeletons = new List<JsonSkeleton>();		
+
+		public int numSkeletons{
+			get{
+				return jsonSkeletons.Count;
+			}
+		}
+
+		public IEnumerable<JsonSkeleton> getAllSkeletons(){
+			foreach(var cur in jsonSkeletons.Values)
+				yield return cur;
+		}
 
 		public MeshDefaultSkeletonData getDefaultSkeletonData(MeshStorageKey key){
 			return meshDefaultSkeletonData.getValOrDefault(key, null);
@@ -38,6 +49,14 @@ namespace SceneExport{
 				return tmp.meshNodeTransform.name;
 			
 			return "";
+		}
+
+		public ResourceStorageWatcher<SkeletonRegistry, JsonSkeleton> createWatcher(){
+			return new ResourceStorageWatcher<SkeletonRegistry, JsonSkeleton>(
+				this, 
+				(obj) => obj.numSkeletons, 
+				(obj, idx) => obj.getSkeletonByIndex(idx)
+			);
 		}
 		
 		public string getDefaultMeshNodePath(MeshStorageKey key){
@@ -82,6 +101,10 @@ namespace SceneExport{
 			
 			var skelTransform = jsonSkeletonRootTransforms.getValOrDefault(id, null);
 			return skelTransform;
+		}
+
+		public JsonSkeleton getSkeletonByIndex(int index){
+			return getSkeletonById(ResId.fromObjectIndex(index));
 		}
 
 		public JsonSkeleton getSkeletonById(ResId id){
