@@ -394,6 +394,7 @@ namespace SceneExport{
 						);
 						result = true;
 					}
+					objects.updateNumObjects();//yup. I forgot that part.
 				}
 				return result;		
 			}
@@ -563,77 +564,101 @@ namespace SceneExport{
 			Logger.makeValid(ref logger);
 			var result = new JsonExternResourceList();
 
-			int lastSceneCount = 0, lastTerrainCount = 0, lastMeshCount = 0,
-				lastMaterialCount = 0, lastTextureCount = 0, lastCubemapCount = 0,
-				lastAudioClipCount = 0, lastSkeletonCount = 0, lastPrefabCount = 0,
-				lastAnimControllerCount = 0, lastAnimClipCount = 0;
+			//int lastSceneCount = 0;
+			///var sceneWatcher = scenes.createWatcher.... Nope!
+			var sceneWatcher = scenes.createWatcher();
+			var terrainWatcher = terrains.createWatcher();
+			var meshWatcher = meshes.createWatcher();
+			var materialsWatcher = materials.createWatcher();
+			var texWatcher = textures.createWatcher();
+			var cubemapWatcher = cubemaps.createWatcher();
+			var audioClipWatcher = audioClips.createWatcher();
+			var skeletonWatcher = skelRegistry.createWatcher();
+			var prefabWatcher = prefabs.createWatcher();
+			var animControllerWatcher = animatorControllers.createWatcher();
+			var animClipWatcher = animationClips.createWatcher();
+			
+			//processObjects = false;
 
-			var textureWatch = textures.createWatcher();
+			/* processObjects |= */
+			/*
+				saveResourcesToPath(result.scenes, ref lastSceneCount, baseDir, scenes, 
+				(objData, i) => objData, (obj) => obj.name, "scene", showGui);//Hmm. This one is not a resource mapper object...*/
 
 			bool processObjects = true;
-			
-			processObjects = false;
-			processObjects |= saveResourcesToPath(result.scenes, ref lastSceneCount, baseDir, scenes, 
-				(objData, i) => objData, (obj) => obj.name, "scene", showGui);
-			processObjects |= saveResourcesToPath(result.terrains, ref lastTerrainCount, baseDir, terrains.objectList, 
-				(objData, i) => new JsonTerrainData(objData, this), (obj) => obj.name, "terrainData", showGui);
-			processObjects |= saveResourcesToPath(result.meshes, ref lastMeshCount, baseDir, meshes.objectList, 
-				(meshKey, id) => makeJsonMesh(meshKey, id), (obj) => obj.name, "mesh", showGui);
-			processObjects |= saveResourcesToPath(result.materials, ref lastMaterialCount, baseDir, materials.objectList, 
-				(objData, i) => {
-					var mat = new JsonMaterial(objData, this);
-					if (!mat.supportedShader){
-						logger.logWarningFormat("Possibly unsupported shader \"{0}\" in material \"{1}\"(#{2}, path \"{3}\"). " + 
-							"Correct information transfer is not guaranteed.",
-							mat.shader, mat.name, mat.id, mat.path);
-					}
-					return mat; 
-				}, (obj) => obj.name, "material", showGui);
 
-			/*processObjects |= saveResourcesToPath(result.textures, ref lastTextureCount, baseDir, textures.objectList, 
-				(objData, id) => new JsonTexture(objData, this), (obj) => obj.name, "texture", showGui);*/
-			processObjects |= saveResourcesToPath(result.textures, baseDir, textureWatch, 
-				(objData, id) => new JsonTexture(objData, this), (obj) => obj.name, "texture", showGui);
+			while(processObjects){
+				/*
+				Here we go, finally. 
 
-			processObjects |= saveResourcesToPath(result.cubemaps, ref lastCubemapCount, baseDir, cubemaps.objectList, 
-				(objData, id) => new JsonCubemap(objData, this), (obj) => obj.name, "cubemap", showGui);
-			processObjects |= saveResourcesToPath(result.audioClips, ref lastAudioClipCount, baseDir, audioClips.objectList, 
-				(objData, id) => new JsonAudioClip(objData, this), (obj) => obj.name, "audioClip", showGui);
+				This loop is meant to accomodate extensive and interconnected resource graph used by unity.
 
+				Basically, during consturction of one or more JsonObjects, those objects may pull reference to something else that must
+				ALSO be converted to some sort of json object.
 
-			//skeletons are already sorted
-			/*
-			var skeletons = skelRegistry.getAllSkeletons().ToList();//skelRegistry.jsonSkeletons.Values.ToList();//<== needs a new class for htis 
-			skeletons.Sort((x, y) => x.id.objectIndex.CompareTo(y.id.objectIndex));
-			processObjects |= saveResourcesToPath(result.skeletons, ref lastSkeletonCount, baseDir, skeletons, 
-				(objData, id) => objData, (obj) => obj.name, "skeleton", showGui);
+				At this point a new resource reference (ResId) is created, and it has to be exported.
+				Except... it is possible that the new resource has been pulled at the moment where this particular resource type
+				has already been saved. 
+
+				Hence there's a resource watcher class which will monitor relevant resource registry for new IDs being added.
+				As long as new ids are being generated, resource loop will continue, once they're no longer added, this is it.
+
+				No more work to do, and the loop terminates.
 				*/
+				processObjects = false;
 
-			processObjects |= saveResourcesToPath(result.skeletons, ref lastSkeletonCount, baseDir, 
-				skelRegistry.getAllSkeletons().ToList(), 
-				(objData, id) => objData, (obj) => obj.name, "skeleton", showGui);			
+				processObjects |= saveResourcesToPath(result.textures, baseDir, texWatcher, 
+					(objData, id) => new JsonTexture(objData, this), (obj) => obj.name, "texture", showGui);
 
+				processObjects |= saveResourcesToPath(result.scenes, baseDir, sceneWatcher, 
+					(objData, i) => objData, (obj) => obj.name, "scene", showGui);
+				processObjects |= saveResourcesToPath(result.terrains, baseDir, terrainWatcher, 
+					(objData, i) => new JsonTerrainData(objData, this), (obj) => obj.name, "terrainData", showGui);
+				processObjects |= saveResourcesToPath(result.meshes, baseDir, meshWatcher, 
+					(meshKey, id) => makeJsonMesh(meshKey, id), (obj) => obj.name, "mesh", showGui);
+				processObjects |= saveResourcesToPath(result.materials, baseDir, materialsWatcher, 
+					(objData, i) => {
+						var mat = new JsonMaterial(objData, this);
+						if (!mat.supportedShader){
+							logger.logWarningFormat("Possibly unsupported shader \"{0}\" in material \"{1}\"(#{2}, path \"{3}\"). " + 
+								"Correct information transfer is not guaranteed.",
+								mat.shader, mat.name, mat.id, mat.path);
+						}
+						return mat; 
+					}, (obj) => obj.name, "material", showGui);
+
+				/*
+				processObjects |= saveResourcesToPath(result.textures, baseDir, texWatcher, 
+					(objData, id) => new JsonTexture(objData, this), (obj) => obj.name, "texture", showGui);
+					*/
+
+				processObjects |= saveResourcesToPath(result.cubemaps, baseDir, cubemapWatcher, 
+					(objData, id) => new JsonCubemap(objData, this), (obj) => obj.name, "cubemap", showGui);
+
+				processObjects |= saveResourcesToPath(result.audioClips, baseDir, audioClipWatcher, 
+					(objData, id) => new JsonAudioClip(objData, this), (obj) => obj.name, "audioClip", showGui);
+
+				//skeletons are already sorted by id
+				processObjects |= saveResourcesToPath(result.skeletons, baseDir, 
+					skeletonWatcher, 
+					(objData, id) => objData, (obj) => obj.name, "skeleton", showGui);			
 				
-			//var prefabList = makePrefabList();//Errrrm.... TODO: This needs fixing.			
-			//Why was this even used?
-			processObjects |= saveResourcesToPath<JsonPrefabData, GameObject>(result.prefabs, ref lastPrefabCount, baseDir, prefabs.objectList, 
-				(objData, id) => new JsonPrefabData(objData, this), 
-				(obj) => obj.name, 
-				"prefab", showGui);
-			/*saveResourcesToPath(result.prefabs, ref lastPrefabCount, baseDir, prefabList, 
-				(objData, id) => objData, (obj) => obj.name, "prefab", showGui);*/
+				processObjects |= saveResourcesToPath(
+					result.prefabs, baseDir, prefabWatcher, 
+					(objData, id) => new JsonPrefabData(objData, this), 
+					(obj) => obj.name, 
+					"prefab", showGui);
 				
-			processObjects |= saveResourcesToPath(result.animatorControllers, ref lastAnimControllerCount, 
-			 	baseDir, animatorControllers.objectList,
-				(objData, id) => new JsonAnimatorController(objData.controller, objData.animator, id, this), 
-					(obj) => obj.name, "animatorController", showGui);
+				processObjects |= saveResourcesToPath(result.animatorControllers, 
+				 	baseDir, animControllerWatcher,
+					(objData, id) => new JsonAnimatorController(objData.controller, objData.animator, id, this), 
+						(obj) => obj.name, "animatorController", showGui);
 				
-			processObjects |= saveResourcesToPath(result.animationClips, ref lastAnimClipCount, 
-				baseDir, animationClips.objectList,
-				(objData, id) => new JsonAnimationClip(objData.animClip, objData.animator, id, this), 
-				(obj) => obj.name, "animationClip", showGui);
-			/*result.prefabs = saveResourcesToPath(baseDir, prefabs.objectMap, 
-				(objData) => new JsonPref"prefab");*/
+				processObjects |= saveResourcesToPath(result.animationClips, 
+					baseDir, animClipWatcher,
+					(objData, id) => new JsonAnimationClip(objData.animClip, objData.animator, id, this), 
+					(obj) => obj.name, "animationClip", showGui);
+			}
 
 			result.resources = new List<string>(resources);
 			result.resources.Sort();
@@ -641,9 +666,65 @@ namespace SceneExport{
 			return result;
 		}
 
+		static bool processResourceListObject<Storage, SrcType, DstType>(
+			List<DstType> dstObjectList, 
+			ResourceStorageWatcher<Storage, SrcType> watcher,
+			System.Func<SrcType, int, DstType> converter){
+			var result = watcher.hasNewObjects;
+			
+			if (dstObjectList == null)
+				throw new System.ArgumentNullException("dstObjectList");
+			if (watcher == null)
+				throw new System.ArgumentNullException("watcher");
+			if (converter == null)
+				throw new System.ArgumentNullException("converter");
+
+			foreach(var cur in watcher.getNewObjectsData()){
+				var dst = converter(cur.data, cur.index);
+				dstObjectList.Add(dst);
+			}
+			watcher.updateNumObjects();
+
+			return result;
+		}
+
 		public JsonResourceList makeResourceList(){
 			var result = new JsonResourceList();
 
+			var terrainWatcher = terrains.createWatcher();
+			var meshWatcher = meshes.createWatcher();
+			var materialWatcher = materials.createWatcher();
+			var texWatcher = textures.createWatcher();
+			var cubemapWatcher = cubemaps.createWatcher();
+			var audioClipWatcher = audioClips.createWatcher();
+			var skeletonWatcher = skelRegistry.createWatcher();
+			var prefabWatcher = prefabs.createWatcher();
+			var animControllerWatcher = animatorControllers.createWatcher();
+			var animClipWatcher = animationClips.createWatcher();
+
+			bool processObjects = true;
+			while(processObjects){
+				processObjects = false;
+
+				processResourceListObject(result.terrains, terrainWatcher, 
+					(srcData, index) => new JsonTerrainData(srcData, this));
+				//Eh... there's still an integer id there...
+				processResourceListObject(result.meshes, meshWatcher, 
+					(srcData, index) => new JsonMesh(srcData, index, this));
+				processResourceListObject(result.materials, materialWatcher, 
+					(srcData, index) => new JsonMaterial(srcData, this));
+				processResourceListObject(result.textures, texWatcher, 
+					(srcData, index) => new JsonTexture(srcData, this));
+				processResourceListObject(result.cubemaps, cubemapWatcher, 
+					(srcData, index) => new JsonCubemap(srcData, this));
+				processResourceListObject(result.audioClips, audioClipWatcher, 
+					(srcData, index) => new JsonAudioClip(srcData, this));
+				processResourceListObject(result.animatorControllers, animControllerWatcher, 
+					(srcData, index) => new JsonAnimatorController(srcData.controller, srcData.animator, index, this));
+				processResourceListObject(result.animationClips, animClipWatcher, 
+					(srcData, index) => new JsonAnimationClip(srcData.animClip, srcData.animator, index, this));
+			}
+			/*
 			foreach(var cur in terrains.objectList){
 				result.terrains.Add(new JsonTerrainData(cur, this));
 			}
@@ -673,6 +754,7 @@ namespace SceneExport{
 				.Select((arg, idx) => new JsonAnimatorController(arg.controller, arg.animator, idx, this)).ToList();
 			result.animationClips = animationClips.objectList
 				.Select((arg1, idx) => new JsonAnimationClip(arg1.animClip, arg1.animator, idx, this)).ToList();
+			*/
 				
 			result.resources = new List<string>(resources);
 			result.resources.Sort();

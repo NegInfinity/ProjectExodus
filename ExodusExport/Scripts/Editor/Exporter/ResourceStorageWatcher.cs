@@ -99,4 +99,15 @@ namespace SceneExport{
 			lastNumObjects = 0;
 		}
 	}
+
+	public static class ResourceWatcherExtensions{
+		public static ResourceStorageWatcher<List<Resource>, Resource> createWatcher<Resource>(this List<Resource> storage){
+			var result = new ResourceStorageWatcher<List<Resource>, Resource>(
+				storage,
+				(store) => store.Count,
+				(store, index) => store[index]
+			);
+			return result;
+		}
+	}
 }
