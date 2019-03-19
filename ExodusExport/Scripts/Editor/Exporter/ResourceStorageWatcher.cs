@@ -14,6 +14,15 @@ namespace SceneExport{
 		System.Func<Storage, int> countGetter = null;
 		System.Func<Storage, int, Resource> indexedResourceGetter = null;
 
+		public struct IndexedObjectData{
+			public int index;
+			public Resource data;
+			public IndexedObjectData(int index_, Resource data_){
+				index = index_;
+				data = data_;
+			}
+		}
+
 		void sanityCheck(){
 			if (owner == null)
 				throw new System.ArgumentNullException("owner", "owner cannot be null");
@@ -43,14 +52,31 @@ namespace SceneExport{
 			}
 		}
 
+		public int baseIndex{
+			get{
+				return lastNumObjects;
+			}
+		}
+
+		Resource getObject(int index){
+			return indexedResourceGetter(owner, index);
+		}
+
+		public IEnumerable<IndexedObjectData> getNewObjectsData(){
+			foreach(var index in getNewIndexes()){
+				var obj = getObject(index);
+				yield return new IndexedObjectData(index, obj);
+			}
+		}
+
 		public IEnumerable<ResId> getNewIds(){
-			foreach(var cur in getNewIndexes())
-				yield return ResId.fromObjectIndex(cur);
+			foreach(var index in getNewIndexes())
+				yield return ResId.fromObjectIndex(index);
 		}
 
 		public IEnumerable<Resource> getNewObjects(){
-			foreach(var cur in getNewIndexes())
-				yield return indexedResourceGetter(owner, cur);
+			foreach(var index in getNewIndexes())
+				yield return getObject(index);
 		}
 
 		public void updateNumObjects(){
@@ -66,6 +92,10 @@ namespace SceneExport{
 				throw new System.ArgumentNullException("countGetter_");
 			if (indexedResourceGetter_ == null)
 				throw new System.ArgumentNullException("indexedResourceGetter_");
+
+			owner = storage_;
+			countGetter = countGetter_;
+			indexedResourceGetter = indexedResourceGetter_;
 			lastNumObjects = 0;
 		}
 	}

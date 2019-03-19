@@ -370,6 +370,40 @@ namespace SceneExport{
 				return fileName;
 		}
 
+		static bool saveResourcesToPath<ClassType, SrcObjType, StorageType>(
+				List<string> outObjectPaths,
+				string baseDir, 
+				ResourceStorageWatcher<StorageType, SrcObjType> objects,
+				IndexedObjectConverter<SrcObjType, ClassType> converter,
+				System.Func<ClassType, string> nameFunc, string baseName, bool showGui) 
+				where ClassType: IFastJsonValue{
+				
+			if (converter == null)
+				throw new System.ArgumentNullException("converter");
+				
+			bool result = false;
+			try{
+				if (objects != null){
+					foreach(var curData in objects.getNewObjectsData()){
+						outObjectPaths.Add(
+							saveResourceToPath(
+								baseDir, curData.data, curData.index, 
+								objects.numObjects, 
+								converter, nameFunc, baseName, showGui
+							)
+						);
+						result = true;
+					}
+				}
+				return result;		
+			}
+			finally{
+				if (showGui){
+					ExportUtility.hideProgressBar();
+				}
+			}
+		}
+
 		static bool saveResourcesToPath<ClassType, SrcObjType>(
 				List<string> outObjectPaths,
 				ref int lastCount,
@@ -534,6 +568,8 @@ namespace SceneExport{
 				lastAudioClipCount = 0, lastSkeletonCount = 0, lastPrefabCount = 0,
 				lastAnimControllerCount = 0, lastAnimClipCount = 0;
 
+			var textureWatch = textures.createWatcher();
+
 			bool processObjects = true;
 			
 			processObjects = false;
@@ -554,18 +590,29 @@ namespace SceneExport{
 					return mat; 
 				}, (obj) => obj.name, "material", showGui);
 
-			processObjects |= saveResourcesToPath(result.textures, ref lastTextureCount, baseDir, textures.objectList, 
+			/*processObjects |= saveResourcesToPath(result.textures, ref lastTextureCount, baseDir, textures.objectList, 
+				(objData, id) => new JsonTexture(objData, this), (obj) => obj.name, "texture", showGui);*/
+			processObjects |= saveResourcesToPath(result.textures, baseDir, textureWatch, 
 				(objData, id) => new JsonTexture(objData, this), (obj) => obj.name, "texture", showGui);
+
 			processObjects |= saveResourcesToPath(result.cubemaps, ref lastCubemapCount, baseDir, cubemaps.objectList, 
 				(objData, id) => new JsonCubemap(objData, this), (obj) => obj.name, "cubemap", showGui);
 			processObjects |= saveResourcesToPath(result.audioClips, ref lastAudioClipCount, baseDir, audioClips.objectList, 
 				(objData, id) => new JsonAudioClip(objData, this), (obj) => obj.name, "audioClip", showGui);
 
 
+			//skeletons are already sorted
+			/*
 			var skeletons = skelRegistry.getAllSkeletons().ToList();//skelRegistry.jsonSkeletons.Values.ToList();//<== needs a new class for htis 
 			skeletons.Sort((x, y) => x.id.objectIndex.CompareTo(y.id.objectIndex));
 			processObjects |= saveResourcesToPath(result.skeletons, ref lastSkeletonCount, baseDir, skeletons, 
+				(objData, id) => objData, (obj) => obj.name, "skeleton", showGui);
+				*/
+
+			processObjects |= saveResourcesToPath(result.skeletons, ref lastSkeletonCount, baseDir, 
+				skelRegistry.getAllSkeletons().ToList(), 
 				(objData, id) => objData, (obj) => obj.name, "skeleton", showGui);			
+
 				
 			//var prefabList = makePrefabList();//Errrrm.... TODO: This needs fixing.			
 			//Why was this even used?
