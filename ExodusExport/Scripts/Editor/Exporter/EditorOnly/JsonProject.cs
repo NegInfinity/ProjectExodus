@@ -10,7 +10,6 @@ namespace SceneExport{
 	public class JsonProject: JsonValueObject{
 		public JsonProjectConfig config = new JsonProjectConfig();
 		public List<JsonScene> scenes = new List<JsonScene>();
-		//public JsonResourceList resourceList = new JsonResourceList();
 		public JsonExternResourceList externResourceList = new JsonExternResourceList(true);
 		public ResourceMapper resourceMapper = new ResourceMapper();
 		public override void writeJsonObjectFields(FastJsonWriter writer){
@@ -21,7 +20,6 @@ namespace SceneExport{
 		public void clear(){
 			config = new JsonProjectConfig();
 			scenes.Clear();
-			//resourceList = new JsonResourceList();
 			resourceMapper = new ResourceMapper();
 		}
 		
@@ -29,15 +27,10 @@ namespace SceneExport{
 			return fromObjects(new GameObject[]{obj}, showGui);
 		}		
 		
-		public void generateResourceList(){
-			//resourceList = resourceMapper.makeResourceList();
-		}
-		
 		public static JsonProject fromObjects(GameObject[] obj, bool showGui){
 			var result = new JsonProject();
 			var scene = JsonScene.fromObjects(obj, result.resourceMapper, showGui);
 			result.scenes.Add(scene);
-			result.generateResourceList();//This is basically triggering a side effect to ensure all resources are loaded
 			return result;
 		}
 		
@@ -335,7 +328,6 @@ namespace SceneExport{
 				}
 			}
 			
-			generateResourceList();
 			return true;
 		}
 		
