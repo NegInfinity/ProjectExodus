@@ -14,21 +14,39 @@ namespace SceneExport{
 	As such it is assumed that skeletons are /prefabs/ that store skeletal meshes.
 	*/
 	public class SkeletonRegistry{
-		Dictionary<Transform, JsonSkeleton> jsonSkeletons = new Dictionary<Transform, JsonSkeleton>();
-		//public Dictionary<Transform, ResId> jsonSkeletons = new Dictionary<Transform, ResId>();
+		//Dictionary<Transform, JsonSkeleton> jsonSkeletons = new Dictionary<Transform, JsonSkeleton>();
+
+		Dictionary<Transform, ResId> skelIds = new Dictionary<Transform, ResId>();
+		Dictionary<ResId, JsonSkeleton> skeletons = new Dictionary<ResId, JsonSkeleton>();
+		List<ResId> sortedSkelIds = new List<ResId>();
+
 		Dictionary<ResId, Transform> jsonSkeletonRootTransforms = new Dictionary<ResId, Transform>();
 		Dictionary<MeshStorageKey, MeshDefaultSkeletonData> meshDefaultSkeletonData = new Dictionary<MeshStorageKey, MeshDefaultSkeletonData>();
-		//public List<JsonSkeleton> skeletons = new List<JsonSkeleton>();		
+
+		ResId findSkeletonId(Transform rootTransform){
+			return skelIds.getValOrDefault(rootTransform, ResId.invalid);
+		}
+
+		JsonSkeleton findSkeleton(Transform rootTransform){
+			return skeletons.getValOrDefault(findSkeletonId(rootTransform), null);
+		}
+
 
 		public int numSkeletons{
 			get{
-				return jsonSkeletons.Count;
+				return skeletons.Count;
+				//return jsonSkeletons.Count;
 			}
 		}
 
 		public IEnumerable<JsonSkeleton> getAllSkeletons(){
-			foreach(var cur in jsonSkeletons.Values)
+			foreach(var curId in sortedSkelIds)
+				yield return skeletons[curId];
+			//foreach(var cur in jsonSkeletons.Values)
+			/*
+			foreach(var cur in skeletons.Values)
 				yield return cur;
+			*/
 		}
 
 		public MeshDefaultSkeletonData getDefaultSkeletonData(MeshStorageKey key){
@@ -90,21 +108,32 @@ namespace SceneExport{
 			if (defaultData == null)
 				return null;
 				
-			var skel = jsonSkeletons.getValOrDefault(defaultData.defaultRoot, null);
+			//var skel = jsonSkeletons.getValOrDefault(defaultData.defaultRoot, null);
+			//var skel = skeletons.getValOrDefault(defaultData.defaultRoot, null);
+			var skel = findSkeleton(defaultData.defaultRoot);
 			return skel;
 		}
 
+		bool isValidId(ResId id){
+			return id.isValid && (id.objectIndex < skeletons.Count);
+		}
+
+		void checkValidId(ResId id){
+			if (!isValidId(id))
+				throw new System.ArgumentException(string.Format("Invalid skeleton id {0}", id));
+		}
+
 		public Transform getSkeletonTransformById(ResId id){
-			//if ((id < 0) || (id >= jsonSkeletons.Count))
-			if (!id.isValid || (id.objectIndex >= jsonSkeletons.Count))
-				throw new System.ArgumentException(string.Format("Invalid skeleton id %d", id));
-			
+			checkValidId(id);
 			var skelTransform = jsonSkeletonRootTransforms.getValOrDefault(id, null);
 			return skelTransform;
 		}
 
 		public JsonSkeleton getSkeletonByIndex(int index){
-			return getSkeletonById(ResId.fromObjectIndex(index));
+			if ((index < 0) || (index >= sortedSkelIds.Count))
+				throw new System.ArgumentOutOfRangeException("index");
+			//return getSkeletonById(ResId.fromObjectIndex(index));	
+			return getSkeletonById(sortedSkelIds[index]);		
 		}
 
 		public JsonSkeleton getSkeletonById(ResId id){
@@ -112,27 +141,40 @@ namespace SceneExport{
 			if (!skelTransform)
 				throw new System.ArgumentException(string.Format("skeleton with id {0} not found", id));
 				
-			var result = jsonSkeletons.getValOrDefault(skelTransform, null);
+			var result = findSkeleton(skelTransform);
 			if (result == null)
 				throw new System.ArgumentException(string.Format("skeleton with id {0} not found", id));
 				
 			return result;
-			//return jsonSkeletons.[id];
 		}
 
 		public ResId registerSkeleton(Transform rootTransform, bool findPrefab){
 			if (findPrefab)
 				rootTransform = Utility.getSrcPrefabAssetObject(rootTransform, false);
-				
-			JsonSkeleton skel = null;
-			if (jsonSkeletons.TryGetValue(rootTransform, out skel))
+										
+			JsonSkeleton skel = findSkeleton(rootTransform);
+			if (skel != null){
+				var testId = findSkeletonId(rootTransform);
+				Sanity.check(testId == skel.id, "ID mismatch within skeleton registry");
 				return skel.id;
+			}	
+
+			/* if (jsonSkeletons.TryGetValue(rootTransform, out skel))
+				return skel.id;*/
+
 			var newSkel = JsonSkeletonBuilder.buildFromRootTransform(rootTransform);
-			var id = ResId.fromObjectIndex(jsonSkeletons.Count);
-			newSkel.id = id;
+			var newId = ResId.fromObjectIndex(skeletons.Count);//ResId.fromObjectIndex(jsonSkeletons.Count);
+
+			Sanity.check(skeletons.Count == sortedSkelIds.Count, "Skeleton id and skeleton count mismatch");
+
+			newSkel.id = newId;
 					
-			jsonSkeletons.Add(rootTransform, newSkel);
+			//jsonSkeletons.Add(rootTransform, newSkel);
+			skelIds.Add(rootTransform, newId);
+			skeletons.Add(newId, newSkel);
+			sortedSkelIds.Add(newId);
 			jsonSkeletonRootTransforms.Add(newSkel.id, rootTransform);
+
 			return newSkel.id;
 		}		
 

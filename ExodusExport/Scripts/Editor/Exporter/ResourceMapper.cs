@@ -562,11 +562,6 @@ namespace SceneExport{
 				(objData, id) => new JsonAudioClip(objData, this), (obj) => obj.name, "audioClip", showGui);
 
 
-			for(int i = lastSkeletonCount; i < skelRegistry.numSkeletons; i++){
-								
-			}	
-			lastSkeletonCount = skelRegistry.numSkeletons;
-
 			var skeletons = skelRegistry.getAllSkeletons().ToList();//skelRegistry.jsonSkeletons.Values.ToList();//<== needs a new class for htis 
 			skeletons.Sort((x, y) => x.id.objectIndex.CompareTo(y.id.objectIndex));
 			processObjects |= saveResourcesToPath(result.skeletons, ref lastSkeletonCount, baseDir, skeletons, 
