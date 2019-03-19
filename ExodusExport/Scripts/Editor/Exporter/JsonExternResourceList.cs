@@ -4,6 +4,23 @@ using System.Collections.Generic;
 
 namespace SceneExport{
 	[System.Serializable]
+	public class ExternalAssetList{
+		public List<JsonTerrainData> terrains = new List<JsonTerrainData>();
+		public List<JsonTexture> textures = new List<JsonTexture>();
+		public List<JsonCubemap> cubemaps = new List<JsonCubemap>();
+
+		public void registerAsset(JsonTerrainData newObj){
+			terrains.Add(newObj);
+		}
+		public void registerAsset(JsonTexture newObj){
+			textures.Add(newObj);
+		}
+		public void registerAsset(JsonCubemap newObj){
+			cubemaps.Add(newObj);
+		}
+	};
+
+	[System.Serializable]
 	public class JsonExternResourceList: JsonValueObject{
 		public List<string> scenes = new List<string>();
 		public List<string> materials = new List<string>();
@@ -17,6 +34,25 @@ namespace SceneExport{
 		public List<string> animatorControllers = new List<string>();
 		public List<string> animationClips = new List<string>();
 		public List<string> resources = new List<string>();
+
+		public ExternalAssetList externalAssets = new ExternalAssetList();//This is NOT serialized as json
+
+		protected bool collectExternAssets = true;
+
+		public void registerAsset(JsonTexture asset){
+			if (collectExternAssets)
+				externalAssets.registerAsset(asset);
+		}
+		
+		public void registerAsset(JsonTerrainData asset){
+			if (collectExternAssets)
+				externalAssets.registerAsset(asset);
+		}
+
+		public void registerAsset(JsonCubemap asset){
+			if (collectExternAssets)
+				externalAssets.registerAsset(asset);
+		}
 		
 		public override void writeJsonObjectFields(FastJsonWriter writer){
 			writer.writeKeyVal("scenes", scenes);
@@ -33,6 +69,10 @@ namespace SceneExport{
 			writer.writeKeyVal("animatorControllers", animatorControllers);
 			
 			writer.writeKeyVal("resources", resources);
+		}
+
+		public JsonExternResourceList(bool collectExternAssets_){
+			collectExternAssets = collectExternAssets_;
 		}
 	}	
 }

@@ -10,21 +10,18 @@ namespace SceneExport{
 	public class JsonProject: JsonValueObject{
 		public JsonProjectConfig config = new JsonProjectConfig();
 		public List<JsonScene> scenes = new List<JsonScene>();
-		public JsonResourceList resourceList = new JsonResourceList();
-		public JsonExternResourceList externResourceList = new JsonExternResourceList();
+		//public JsonResourceList resourceList = new JsonResourceList();
+		public JsonExternResourceList externResourceList = new JsonExternResourceList(true);
 		public ResourceMapper resourceMapper = new ResourceMapper();
 		public override void writeJsonObjectFields(FastJsonWriter writer){
 			writer.writeKeyVal("config", config);
-			//writer.writeKeyVal("scenes", scenes);
-			//var resourceList = resourceMapper.makeResourceList();
 			writer.writeKeyVal("externResources", externResourceList);
-			//writer.writeKeyVal("resources", resourceList);
 		}
 		
 		public void clear(){
 			config = new JsonProjectConfig();
 			scenes.Clear();
-			resourceList = new JsonResourceList();
+			//resourceList = new JsonResourceList();
 			resourceMapper = new ResourceMapper();
 		}
 		
@@ -33,7 +30,7 @@ namespace SceneExport{
 		}		
 		
 		public void generateResourceList(){
-			resourceList = resourceMapper.makeResourceList();
+			//resourceList = resourceMapper.makeResourceList();
 		}
 		
 		public static JsonProject fromObjects(GameObject[] obj, bool showGui){
@@ -95,32 +92,28 @@ namespace SceneExport{
 			return true;			
 		}
 		
-		bool saveCubemaps(string baseFilename, string targetDir, string projectPath, bool showGui, Logger logger = null){
-			return saveResourceType(resourceList.cubemaps, baseFilename, targetDir, projectPath, showGui, logger,
-				(curTex, showGui_, logger_) => {
-					TextureUtility.copyCubemap(curTex, targetDir, projectPath, logger);
-					//TextureUtility.copyTexture(curTex, targetDir, projectPath, logger);
-				}, "cubemap", "cubemaps"
+		bool saveCubemaps(List<JsonCubemap> cubemaps, string baseFilename, string targetDir, string projectPath, bool showGui, Logger logger = null){
+			return saveResourceType(cubemaps, baseFilename, targetDir, projectPath, showGui, logger,
+				(curTex, showGui_, logger_) => TextureUtility.copyCubemap(curTex, targetDir, projectPath, logger), 
+				"cubemap", "cubemaps"
 			);
 		}
 		
-		bool saveTextures(string baseFilename, string targetDir, string projectPath, bool showGui, Logger logger = null){
-			return saveResourceType(resourceList.textures, baseFilename, targetDir, projectPath, showGui, logger,
-				(curTex, showGui_, logger_) => {
-					TextureUtility.copyTexture(curTex, targetDir, projectPath, logger);
-				}, "texture", "textures"
+		bool saveTextures(List<JsonTexture> textures, string baseFilename, string targetDir, string projectPath, bool showGui, Logger logger = null){
+			return saveResourceType(textures, baseFilename, targetDir, projectPath, showGui, logger,
+				(curTex, showGui_, logger_) => TextureUtility.copyTexture(curTex, targetDir, projectPath, logger), 
+				"texture", "textures"
 			);
 		}
 		
-		bool saveTerrains(string baseFilename, string targetDir, string projectPath, bool showGui, Logger logger = null){
-			return saveResourceType(resourceList.terrains, baseFilename, targetDir, projectPath, showGui, logger,
-				(curTerrain, showGui_, logger_) => {
-					TerrainUtility.saveTerrain(curTerrain, targetDir, projectPath, showGui_, logger_);				
-				}, "terrain", "terrains"
+		bool saveTerrains(List<JsonTerrainData> terrains, string baseFilename, string targetDir, string projectPath, bool showGui, Logger logger = null){
+			return saveResourceType(terrains, baseFilename, targetDir, projectPath, showGui, logger,
+				(curTerrain, showGui_, logger_) => TerrainUtility.saveTerrain(curTerrain, targetDir, projectPath, showGui_, logger_), 
+				"terrain", "terrains"
 			);;
 		}
 		
-		void saveResources(string baseFilename, bool showGui, Logger logger = null){
+		void saveResources(ExternalAssetList externAssets, string baseFilename, bool showGui, Logger logger = null){
 			try{
 				Logger.makeValid(ref logger);
 				logger.logFormat("Save resources entered");
@@ -130,15 +123,15 @@ namespace SceneExport{
 			
 				bool cancelled = false;
 				if (!cancelled){
-					if (!saveTerrains(baseFilename, targetDir, projectPath, showGui, logger))
+					if (!saveTerrains(externAssets.terrains, baseFilename, targetDir, projectPath, showGui, logger))
 						cancelled = true;
 				}
 				if (!cancelled){
-					if (!saveCubemaps(baseFilename, targetDir, projectPath, showGui, logger))
+					if (!saveCubemaps(externAssets.cubemaps, baseFilename, targetDir, projectPath, showGui, logger))
 						cancelled = true;
 				}
 				if (!cancelled){
-					if (!saveTextures(baseFilename, targetDir, projectPath, showGui, logger))
+					if (!saveTextures(externAssets.textures, baseFilename, targetDir, projectPath, showGui, logger))
 						cancelled = true;
 				}
 			}
@@ -170,7 +163,7 @@ namespace SceneExport{
 			string filesDir = System.IO.Path.Combine(targetDir, baseName);// + "_data");
 			System.IO.Directory.CreateDirectory(filesDir);
 			
-			externResourceList = resourceMapper.saveResourceToFolder(filesDir, showGui, scenes, logger);
+			externResourceList = resourceMapper.saveResourceToFolder(filesDir, showGui, scenes, logger, saveResourceFiles);
 			
 			Utility.saveStringToFile(filename, toJsonString());
 			
@@ -180,7 +173,7 @@ namespace SceneExport{
 			if (!saveResourceFiles)
 				return;
 
-			saveResources(filename, showGui, logger);
+			saveResources(externResourceList.externalAssets, filename, showGui, logger);
 		}
 		
 		string getProjectName(){
@@ -295,7 +288,7 @@ namespace SceneExport{
 			return true;
 		}
 		
-		bool loadCurrentProject(bool showGui, Logger logger){
+		bool collectProjectResources(bool showGui, Logger logger){
 			try{
 				var projectName = Application.productName;
 				var title = string.Format("Processing proejct \"{0}\"",
@@ -349,7 +342,7 @@ namespace SceneExport{
 		public static JsonProject fromCurrentProject(bool showGui, Logger logger = null){
 			Logger.makeValid(ref logger);
 			var result = new JsonProject();
-			if (!result.loadCurrentProject(showGui, logger)){
+			if (!result.collectProjectResources(showGui, logger)){
 				//logger.logErrorFormat("Project export failed");
 				return null;
 			}

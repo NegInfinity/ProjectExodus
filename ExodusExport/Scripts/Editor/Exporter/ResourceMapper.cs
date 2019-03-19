@@ -345,38 +345,42 @@ namespace SceneExport{
 		
 		public delegate ReturnType IndexedObjectConverter<SrcType, ReturnType> (SrcType src, int index);
 		
-		static string saveResourceToPath<DstClassType, SrcObjType>(string baseDir, 
-				SrcObjType srcObj, int objIndex, int objCount,
-				IndexedObjectConverter<SrcObjType, DstClassType> converter,
-				System.Func<DstClassType, string> nameFunc, 
-				string baseName, bool showGui) where DstClassType: IFastJsonValue{
+		static string saveResourceToPath<DstType, SrcType>(string baseDir, 
+				SrcType srcObj, int objIndex, int objCount,
+				IndexedObjectConverter<SrcType, DstType> converter,
+				System.Func<DstType, string> nameFunc,
+				string baseName, bool showGui,
+				System.Action<DstType> dstProcessor) where DstType: IFastJsonValue{
 
 				if (showGui){
 					ExportUtility.showProgressBar(
 						string.Format("Saving file #{0} of resource type {1}", objIndex + 1, baseName), 
 						"Writing json data", objIndex, objCount);
 				}
-				var jsonObj = converter(srcObj, objIndex);	
+				var dstObj = converter(srcObj, objIndex);	
 				string fileName;
+				if (dstProcessor != null)
+					dstProcessor(dstObj);
 				if (nameFunc != null){
-					fileName = makeJsonResourcePath(baseName, nameFunc(jsonObj), objIndex);	
+					fileName = makeJsonResourcePath(baseName, nameFunc(dstObj), objIndex);	
 				}
 				else{
 					fileName = makeJsonResourcePath(baseName, objIndex);	
 				}
 				var fullPath = System.IO.Path.Combine(baseDir, fileName);
 				
-				jsonObj.saveToJsonFile(fullPath);
+				dstObj.saveToJsonFile(fullPath);
 				return fileName;
 		}
 
-		static bool saveResourcesToPath<ClassType, SrcObjType, StorageType>(
+		static bool saveResourcesToPath<DstType, SrcType, StorageType>(
 				List<string> outObjectPaths,
 				string baseDir, 
-				ResourceStorageWatcher<StorageType, SrcObjType> objects,
-				IndexedObjectConverter<SrcObjType, ClassType> converter,
-				System.Func<ClassType, string> nameFunc, string baseName, bool showGui) 
-				where ClassType: IFastJsonValue{
+				ResourceStorageWatcher<StorageType, SrcType> objects,
+				IndexedObjectConverter<SrcType, DstType> converter,
+				System.Func<DstType, string> nameFunc, string baseName, bool showGui,
+				System.Action<DstType> dstProcessor = null) 
+				where DstType: IFastJsonValue{
 				
 			if (converter == null)
 				throw new System.ArgumentNullException("converter");
@@ -389,49 +393,14 @@ namespace SceneExport{
 							saveResourceToPath(
 								baseDir, curData.data, curData.index, 
 								objects.numObjects, 
-								converter, nameFunc, baseName, showGui
+								converter, nameFunc, baseName, showGui,
+								dstProcessor
 							)
 						);
 						result = true;
 					}
 					objects.updateNumObjects();//yup. I forgot that part.
 				}
-				return result;		
-			}
-			finally{
-				if (showGui){
-					ExportUtility.hideProgressBar();
-				}
-			}
-		}
-
-		static bool saveResourcesToPath<ClassType, SrcObjType>(
-				List<string> outObjectPaths,
-				ref int lastCount,
-				string baseDir, 
-				List<SrcObjType> objects,
-				IndexedObjectConverter<SrcObjType, ClassType> converter,
-				System.Func<ClassType, string> nameFunc, string baseName, bool showGui) 
-				where ClassType: IFastJsonValue{
-				
-			if (converter == null)
-				throw new System.ArgumentNullException("converter");
-				
-			bool result = false;
-			try{
-				if (objects != null){
-					//for(int i = 0; i < objects.Count; i++){
-					for(int i = lastCount; i < objects.Count; i++){
-						outObjectPaths.Add(
-							saveResourceToPath(
-								baseDir, objects[i], i, objects.Count, 
-								converter, nameFunc, baseName, showGui
-							)
-						);
-						result = true;
-					}
-				}
-				lastCount = objects.Count;
 				return result;		
 			}
 			finally{
@@ -560,9 +529,9 @@ namespace SceneExport{
 		Originally I tried to avoid that by forcing specific order of initialziation which would eradicat possibility of
 		missing resources, but then I got prefabs and animator contorllers...
 		*/
-		public JsonExternResourceList saveResourceToFolder(string baseDir, bool showGui, List<JsonScene> scenes, Logger logger){		
+		public JsonExternResourceList saveResourceToFolder(string baseDir, bool showGui, List<JsonScene> scenes, Logger logger, bool collectExternAssets){
 			Logger.makeValid(ref logger);
-			var result = new JsonExternResourceList();
+			var result = new JsonExternResourceList(collectExternAssets);
 
 			//int lastSceneCount = 0;
 			///var sceneWatcher = scenes.createWatcher.... Nope!
@@ -607,13 +576,12 @@ namespace SceneExport{
 				*/
 				processObjects = false;
 
-				processObjects |= saveResourcesToPath(result.textures, baseDir, texWatcher, 
-					(objData, id) => new JsonTexture(objData, this), (obj) => obj.name, "texture", showGui);
-
 				processObjects |= saveResourcesToPath(result.scenes, baseDir, sceneWatcher, 
 					(objData, i) => objData, (obj) => obj.name, "scene", showGui);
 				processObjects |= saveResourcesToPath(result.terrains, baseDir, terrainWatcher, 
-					(objData, i) => new JsonTerrainData(objData, this), (obj) => obj.name, "terrainData", showGui);
+					(objData, i) => new JsonTerrainData(objData, this), (obj) => obj.name, "terrainData", showGui,
+					(asset) => result.registerAsset(asset)
+				);
 				processObjects |= saveResourcesToPath(result.meshes, baseDir, meshWatcher, 
 					(meshKey, id) => makeJsonMesh(meshKey, id), (obj) => obj.name, "mesh", showGui);
 				processObjects |= saveResourcesToPath(result.materials, baseDir, materialsWatcher, 
@@ -627,13 +595,15 @@ namespace SceneExport{
 						return mat; 
 					}, (obj) => obj.name, "material", showGui);
 
-				/*
 				processObjects |= saveResourcesToPath(result.textures, baseDir, texWatcher, 
-					(objData, id) => new JsonTexture(objData, this), (obj) => obj.name, "texture", showGui);
-					*/
+					(objData, id) => new JsonTexture(objData, this), (obj) => obj.name, "texture", showGui,
+					(asset) => result.registerAsset(asset)
+				);
 
 				processObjects |= saveResourcesToPath(result.cubemaps, baseDir, cubemapWatcher, 
-					(objData, id) => new JsonCubemap(objData, this), (obj) => obj.name, "cubemap", showGui);
+					(objData, id) => new JsonCubemap(objData, this), (obj) => obj.name, "cubemap", showGui,
+					(asset) => result.registerAsset(asset)
+				);
 
 				processObjects |= saveResourcesToPath(result.audioClips, baseDir, audioClipWatcher, 
 					(objData, id) => new JsonAudioClip(objData, this), (obj) => obj.name, "audioClip", showGui);
@@ -724,37 +694,6 @@ namespace SceneExport{
 				processResourceListObject(result.animationClips, animClipWatcher, 
 					(srcData, index) => new JsonAnimationClip(srcData.animClip, srcData.animator, index, this));
 			}
-			/*
-			foreach(var cur in terrains.objectList){
-				result.terrains.Add(new JsonTerrainData(cur, this));
-			}
-			
-			for(int i = 0; i < meshes.objectList.Count; i++){
-				var cur = meshes.objectList[i];
-				result.meshes.Add(new JsonMesh(cur, i, this));
-			}
-
-			foreach(var cur in materials.objectList){
-				result.materials.Add(new JsonMaterial(cur, this));
-			}
-
-			foreach(var cur in textures.objectList){
-				result.textures.Add(new JsonTexture(cur, this));
-			}
-			
-			foreach(var cur in cubemaps.objectList){
-				result.cubemaps.Add(new JsonCubemap(cur, this));
-			}
-			
-			foreach(var cur in audioClips.objectList){
-				result.audioClips.Add(new JsonAudioClip(cur, this));
-			}
-			
-			result.animatorControllers = animatorControllers.objectList
-				.Select((arg, idx) => new JsonAnimatorController(arg.controller, arg.animator, idx, this)).ToList();
-			result.animationClips = animationClips.objectList
-				.Select((arg1, idx) => new JsonAnimationClip(arg1.animClip, arg1.animator, idx, this)).ToList();
-			*/
 				
 			result.resources = new List<string>(resources);
 			result.resources.Sort();
