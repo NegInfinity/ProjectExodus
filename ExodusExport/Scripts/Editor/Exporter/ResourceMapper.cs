@@ -4,11 +4,22 @@ using System.Collections.Generic;
 using System.Linq;
 
 namespace SceneExport{
+	/*
 	[System.Serializable]
 	public class MeshUsageFlags{
 		public bool triMeshCollision = false;
 		public bool convexMeshCollision = false;
 	}
+	*/
+
+	/*
+	It seems that at some point it will be necessary to create, perhaps a separate "registry" for skeletal and static meshes.
+
+	The reason for that is at some point a skeletal mesh might need to be tweaked based on its node transform, 
+	while no such thing is necesary for a static mesh.
+
+	However, this is something that won't be done now, as I spent enough time refactoring already. Way too much time, to be exact.
+	*/
 
 	[System.Serializable]
 	public class MeshDefaultSkeletonData{
@@ -37,19 +48,14 @@ namespace SceneExport{
 		
 		public ObjectMapper<AnimatorControllerKey> animatorControllers = new ObjectMapper<AnimatorControllerKey>();
 
-		/*
-			Well, do to differences in handling unity's adn unreal skeletal meshes, we can no longer use naked mesh to uniquely id
-			mesh being used.
-			
-			So we're going to pair it with prefab root and.... I guess skeleton root as well.
-			This won't be needed for non-skinned meshes, of course.
-		*/
 		public SkeletonRegistry skelRegistry = new SkeletonRegistry();
 
-		public ObjectMapper<MeshStorageKey> meshes = new ObjectMapper<MeshStorageKey>();
-		public Dictionary<ResId, MeshUsageFlags> meshUsage = new Dictionary<ResId, MeshUsageFlags>();
+		MeshRegistry meshRegistry = new MeshRegistry();
+		UniqueAssetNameGenerator uniqueAssetNameGen = new UniqueAssetNameGenerator();
 
-		Dictionary<Mesh, List<Material>> meshMaterials = new Dictionary<Mesh, List<Material>>();
+		//public ObjectMapper<MeshStorageKey> meshes = new ObjectMapper<MeshStorageKey>();
+		//Dictionary<Mesh, List<Material>> meshMaterials = new Dictionary<Mesh, List<Material>>();
+		//public Dictionary<ResId, MeshUsageFlags> meshUsage = new Dictionary<ResId, MeshUsageFlags>();
 		
 		public HashSet<string> resources = new HashSet<string>();
 		
@@ -57,12 +63,9 @@ namespace SceneExport{
 		
 		public ObjectMapper<GameObject> prefabs = new ObjectMapper<GameObject>();
 		Dictionary<GameObject, GameObjectMapper> prefabObjects = new Dictionary<GameObject, GameObjectMapper>();
-		
+
 		public List<Material> findMeshMaterials(Mesh mesh){
-			List<Material> result = null;
-			if (meshMaterials.TryGetValue(mesh, out result))
-				return result;
-			return null;
+			return meshRegistry.findMeshMaterials(mesh);
 		}
 		
 		public GameObjectMapper getPrefabObjectMapper(GameObject rootPrefab){
@@ -118,6 +121,14 @@ namespace SceneExport{
 			return new MeshIdData(srcObj, this);
 		}
 
+		public ResId getMeshId(Mesh obj, MeshUsageFlags useFlags){
+			return meshRegistry.getMeshId(obj, useFlags);
+		}
+
+		public bool isValidMeshId(ResId id){
+			return meshRegistry.isValidMeshId(id);
+		}
+		/*
 		public ResId getMeshId(Mesh obj){
 			var key = new MeshStorageKey(obj);
 			return meshes.getId(key, true);
@@ -126,7 +137,9 @@ namespace SceneExport{
 		public bool isValidMeshId(ResId id){
 			return meshes.isValidId(id);
 		}
+		*/
 
+		/*
 		public void flagMeshId(ResId meshId, bool flagConvexMesh, bool flagTriMesh){
 			if (!meshes.isValidId(meshId))
 				throw new System.ArgumentException(string.Format("invalid mesh id {0}", meshId));
@@ -139,6 +152,7 @@ namespace SceneExport{
 		public MeshUsageFlags GetMeshUsageFlags(ResId meshId){
 			return meshUsage.getValOrDefault(meshId);
 		}
+		*/
 
 		public ResId findAnimationClipId(AnimationClip animClip, Animator animator){
 			return animationClips.getId(new AnimationClipKey(animClip, animator), false);
@@ -148,9 +162,12 @@ namespace SceneExport{
 			return animationClips.getId(new AnimationClipKey(animClip, animator), true);
 		}
 		
-		public ResId findMeshId(Mesh obj){
+		public ResId findMeshId(Mesh obj, MeshUsageFlags useFlags){
+			return meshRegistry.findMeshId(obj, useFlags);
+			/*
 			var key = new MeshStorageKey(obj);
 			return meshes.getId(key, false);
+			*/
 		}
 		
 		public ResId getMaterialId(Material obj){
@@ -161,7 +178,7 @@ namespace SceneExport{
 			return materials.getId(obj, false);
 		}
 
-		public void registerResource(string path){
+		public void registerAssetPath(string path){
 			resources.Add(path);
 		}
 		
@@ -190,6 +207,7 @@ namespace SceneExport{
 			}
 		}
 
+		/*
 		ResId getOrRegMeshId(MeshStorageKey meshKey, GameObject obj, Mesh mesh){
 			if (!mesh){
 				return ResId.invalid;
@@ -204,6 +222,7 @@ namespace SceneExport{
 			}
 			return result;
 		}
+		*/
 		
 		public MeshStorageKey buildMeshKey(SkinnedMeshRenderer meshRend, bool includeSkeleton){
 			var mesh = meshRend.sharedMesh;
@@ -222,7 +241,10 @@ namespace SceneExport{
 			 if (includeSkeleton){
 			 	skeletonRoot = Utility.getSrcPrefabAssetObject(JsonSkeletonBuilder.findSkeletonRoot(meshRend), false);
 			 }
-			 return new MeshStorageKey(mesh, prefabRoot, skeletonRoot);
+			 return new MeshStorageKey(mesh, 
+			 	MeshUsageFlags.None, //We're simply rendering this.
+			 	prefabRoot, skeletonRoot
+			);
 		}
 		
 		
@@ -234,15 +256,36 @@ namespace SceneExport{
 			var meshKey = buildMeshKey(meshRend, true);
 			skelRegistry.tryRegisterMeshSkeleton(meshKey, meshRend, skeletonRoot);
 			
-			return getOrRegMeshId(meshKey, meshRend.gameObject, mesh);
+			return meshRegistry.getOrRegMeshId(meshKey, meshRend.gameObject, mesh);
 		}
 		
+		MeshUsageFlags getUsageFromComponents(Mesh mesh, MeshFilter meshFilter){
+			if (!meshFilter || !mesh)
+				throw new System.ArgumentNullException();
+			var meshColliders = meshFilter.gameObject.GetComponents<MeshCollider>();
+			foreach(var cur in meshColliders){
+				if (!cur)
+					continue;
+				if (!cur.sharedMesh)
+					continue;
+				if (cur.sharedMesh != mesh)
+					continue;
+				return ExportUtility.getMeshUsageFlags(cur);
+			}
+			return MeshUsageFlags.None;
+		}
+
 		public ResId getOrRegMeshId(MeshFilter meshFilter){
 			var mesh = meshFilter.sharedMesh;
 			if (!mesh)
 				return ResId.invalid;//ExportUtility.invalidId;
+
+			var meshUsage = MeshUsageFlags.None;
+
 				
-			return getOrRegMeshId(new MeshStorageKey(mesh), meshFilter.gameObject, mesh);
+			return meshRegistry.getOrRegMeshId(
+				new MeshStorageKey(mesh, meshUsage), 
+				meshFilter.gameObject, mesh);
 		}
 		
 		public ResId getPrefabObjectId(GameObject obj, bool createMissing){
@@ -558,7 +601,7 @@ namespace SceneExport{
 			///var sceneWatcher = scenes.createWatcher.... Nope!
 			var sceneWatcher = scenes.createWatcher();
 			var terrainWatcher = terrains.createWatcher();
-			var meshWatcher = meshes.createWatcher();
+			var meshWatcher = meshRegistry.createWatcher();//meshes.createWatcher();
 			var materialsWatcher = materials.createWatcher();
 			var texWatcher = textures.createWatcher();
 			var cubemapWatcher = cubemaps.createWatcher();
@@ -692,7 +735,7 @@ namespace SceneExport{
 			var result = new JsonResourceList();
 
 			var terrainWatcher = terrains.createWatcher();
-			var meshWatcher = meshes.createWatcher();
+			var meshWatcher = meshRegistry.createWatcher();//meshes.createWatcher();
 			var materialWatcher = materials.createWatcher();
 			var texWatcher = textures.createWatcher();
 			var cubemapWatcher = cubemaps.createWatcher();
@@ -729,6 +772,10 @@ namespace SceneExport{
 			result.resources.Sort();
 			
 			return result;
+		}
+
+		public string createUniqueAssetName(string folderPath, string name, string suffix = ""){
+			return uniqueAssetNameGen.createUniqueAssetName(folderPath, name, suffix);
 		}
 	}
 }

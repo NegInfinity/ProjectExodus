@@ -11,7 +11,12 @@ namespace SceneExport{
 		public static readonly int bonesPerVertex = 4;//only 4 of them in unity.
 	
 		public ResId id = ResId.invalid;
+		public MeshUsageFlags usageFlags = MeshUsageFlags.None;
+		//Those two flags cannot be both set at once.
+		public bool convexCollider = false;//If set, the mesh is used as convex collider... meaning plane-based collision in unreal.
+		public bool triangleCollider = false;/*If set, the mesh is used as a triangle collider, meaning "complex query for simple collision" in unreal.*/
 		public string name;
+		public string uniqueName;
 		public string path;
 		public List<ResId> materials = new List<ResId>();
 		public bool readable = false;
@@ -68,17 +73,6 @@ namespace SceneExport{
 		public List<SubMesh> subMeshes = new List<SubMesh>();
 		public int subMeshCount = 0;
 
-		/*
-		static void processArray<T>(T[] arg, System.Func<T, T> callback){
-			if (callback == null)
-				throw new System.ArgumentNullException("callback");
-			if (arg == null)
-				return;
-			for(int i = 0; i < arg.Length; i++)
-				arg[i] = callback(arg[i]);
-		}
-		*/
-		
 		static void processFloats3(float[] args, System.Func<Vector3, Vector3> callback){
 			if (callback == null)
 				throw new System.ArgumentNullException("callback");
@@ -291,9 +285,15 @@ namespace SceneExport{
 				throw new System.ArgumentNullException();
 			id = other.id;
 			name = other.name;
+			uniqueName = other.uniqueName;
+			usageFlags = other.usageFlags;
+			convexCollider = other.convexCollider;
+			triangleCollider = other.triangleCollider;
+
 			path = other.path;
 			materials = other.materials.ToList();
 			readable = other.readable;
+
 			vertexCount = other.vertexCount;
 			
 			colors = other.colors.copyArray();
@@ -334,7 +334,10 @@ namespace SceneExport{
 			writer.beginRawObject();
 			writer.writeKeyVal("name", name);
 			writer.writeKeyVal("id", id);
+			writer.writeKeyVal("uniqueName", uniqueName);
 			writer.writeKeyVal("path", path);
+			writer.writeKeyVal("convexCollider", convexCollider);
+			writer.writeKeyVal("triangleCollider", triangleCollider);
 			writer.writeKeyVal("materials", materials);
 			writer.writeKeyVal("readable", readable);
 			writer.writeKeyVal("vertexCount", vertexCount);
@@ -375,27 +378,30 @@ namespace SceneExport{
 			writer.endObject();			
 		}
 
-		//public JsonMesh(MeshStorageKey meshKey, int id_, ResourceMapper exp){
-		public JsonMesh(MeshStorageKey meshKey, ResId id_, ResourceMapper exp){
-			id = id_;//exp.findMeshId(mesh);//exp.meshes.findId(mesh);
+		public JsonMesh(MeshStorageKey meshKey, ResId id_, ResourceMapper resMap){
+			id = id_;
+			usageFlags = meshKey.usageFlags;
+			convexCollider = meshKey.usageFlags.HasFlag(MeshUsageFlags.ConvexCollider);
+			triangleCollider = meshKey.usageFlags.HasFlag(MeshUsageFlags.TriangleCollider);
+
 			var mesh = meshKey.mesh;
 			name = mesh.name;
-			//Debug.LogFormat("Processing mesh {0}", name);
 			var filePath = AssetDatabase.GetAssetPath(mesh);
-			exp.registerResource(filePath);
+			resMap.registerAssetPath(filePath);
 			path = filePath;
+			uniqueName = resMap.createUniqueAssetName(filePath, name, meshKey.getMeshAssetSuffix());
 
-			var foundMaterials = exp.findMeshMaterials(mesh);
+			var foundMaterials = resMap.findMeshMaterials(mesh);
 			if (foundMaterials != null){
 				foreach(var cur in foundMaterials){
-					materials.Add(exp.getMaterialId(cur));
+					materials.Add(resMap.getMaterialId(cur));
 				}
 			}
 
 			#if !UNITY_EDITOR
 			readable = mesh.isReadable;
 			if (!readable){
-				Debug.LogErrorFormat(string.Format("Mesh {0} is not marked as readable. Canot proceed", name);
+				Debug.LogErrorFormat(string.Format("Mesh {0} is not marked as readable. Cannot proceed", name);
 				return;
 			}
 			#endif
@@ -428,12 +434,12 @@ namespace SceneExport{
 			
 			boneWeights.Clear();
 			boneIndexes.Clear();
-			defaultSkeletonId = exp.skelRegistry.getDefaultSkeletonId(meshKey);
-			defaultBoneNames = exp.skelRegistry.getDefaultBoneNames(meshKey);
+			defaultSkeletonId = resMap.skelRegistry.getDefaultSkeletonId(meshKey);
+			defaultBoneNames = resMap.skelRegistry.getDefaultBoneNames(meshKey);
 			
-			defaultMeshNodeName = exp.skelRegistry.getDefaultMeshNodeName(meshKey);
-			defaultMeshNodePath = exp.skelRegistry.getDefaultMeshNodePath(meshKey);
-			defaultMeshNodeMatrix = exp.skelRegistry.getDefaultMeshNodeMatrix(meshKey);
+			defaultMeshNodeName = resMap.skelRegistry.getDefaultMeshNodeName(meshKey);
+			defaultMeshNodePath = resMap.skelRegistry.getDefaultMeshNodePath(meshKey);
+			defaultMeshNodeMatrix = resMap.skelRegistry.getDefaultMeshNodeMatrix(meshKey);
 			
 			var srcWeights = mesh.boneWeights;
 			if ((srcWeights != null) && (srcWeights.Length > 0)){

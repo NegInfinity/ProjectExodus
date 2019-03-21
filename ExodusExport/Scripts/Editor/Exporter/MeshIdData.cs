@@ -3,6 +3,9 @@ using UnityEditor;
 using System.Collections.Generic;
 
 namespace SceneExport{
+	/*
+	This seems to be used for storing references to prefabbed meshes.	
+	*/
 	[System.Serializable]
 	public class MeshIdData{
 		public ResId meshId = ResId.invalid;
@@ -14,7 +17,7 @@ namespace SceneExport{
 				return;
 			var filter = srcObj.GetComponent<MeshFilter>();
 			if (filter && filter.sharedMesh){
-				meshId = resMap.getMeshId(filter.sharedMesh);
+				meshId = resMap.getMeshId(filter.sharedMesh, MeshUsageFlags.None);
 			}
 			var renderer = srcObj.GetComponent<Renderer>();
 			if (renderer){

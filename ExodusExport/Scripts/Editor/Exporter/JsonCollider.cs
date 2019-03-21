@@ -82,12 +82,16 @@ namespace SceneExport{
             }
             if (meshCol){
                 colliderType = colliderTypeMesh;
-                meshId = resMap.getMeshId(meshCol.sharedMesh);
+                meshId = resMap.getMeshId(meshCol.sharedMesh, 
+					meshCol.convex ? MeshUsageFlags.ConvexCollider: MeshUsageFlags.TriangleCollider
+				);
 
 				bool isConvex = meshCol.convex;
 
+				/*
 				if (resMap.isValidMeshId(meshId))
 					resMap.flagMeshId(meshId, isConvex, !isConvex);//by default there will be no flags on a mesh...
+				*/
             }
         }
     }

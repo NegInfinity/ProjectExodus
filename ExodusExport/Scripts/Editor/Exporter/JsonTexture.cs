@@ -59,7 +59,7 @@ namespace SceneExport{
 			name = tex.name;
 			id = resMap.findTextureId(tex);//exp.textures.findId(tex);
 			var assetPath = AssetDatabase.GetAssetPath(tex);
-			resMap.registerResource(assetPath);
+			resMap.registerAssetPath(assetPath);
 			path = assetPath;
 			filterMode = tex.filterMode.ToString();
 			width = tex.width;

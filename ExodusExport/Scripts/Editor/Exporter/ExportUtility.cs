@@ -7,6 +7,14 @@ using UnityEditor.SceneManagement;
 
 namespace SceneExport{
 	public static class ExportUtility{
+		public static MeshUsageFlags getMeshUsageFlags(MeshCollider collider){
+			if (!collider)
+				return MeshUsageFlags.None;
+			if (collider.convex)
+				return MeshUsageFlags.ConvexCollider;
+			return MeshUsageFlags.TriangleCollider;
+		}
+
 		public static bool hasSupportedComponents(GameObject obj){
 			if (!obj)
 				throw new System.ArgumentNullException("obj");
