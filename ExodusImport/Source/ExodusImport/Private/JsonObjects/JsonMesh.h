@@ -48,7 +48,6 @@ public:
 class JsonMesh{
 public:
 	ResId id;
-	//int id = -1;
 	FString name;
 	FString uniqueName;
 	bool convexCollider = false;

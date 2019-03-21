@@ -14,6 +14,11 @@ void JsonSubMesh::load(JsonObjPtr data){
 void JsonMesh::load(JsonObjPtr data){
 	JSON_GET_VAR(data, id);
 	JSON_GET_VAR(data, name);
+	JSON_GET_VAR(data, uniqueName);
+
+	JSON_GET_VAR(data, convexCollider);
+	JSON_GET_VAR(data, triangleCollider);
+
 	JSON_GET_VAR(data, path);
 	JSON_GET_VAR(data, materials);
 	JSON_GET_VAR(data, readable);
