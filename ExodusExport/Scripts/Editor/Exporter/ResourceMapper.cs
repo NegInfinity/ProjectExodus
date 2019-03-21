@@ -343,10 +343,12 @@ namespace SceneExport{
 			return result;
 		}		
 		
-		public delegate ReturnType IndexedObjectConverter<SrcType, ReturnType> (SrcType src, int index);
+		public delegate ReturnType IndexedObjectConverter<SrcType, ReturnType> (SrcType src, int index, ResId id);
+		public delegate ReturnType ObjectConverter<SrcType, ReturnType> (SrcType src);
 		
+
 		static string saveResourceToPath<DstType, SrcType>(string baseDir, 
-				SrcType srcObj, int objIndex, int objCount,
+				SrcType srcObj, int objIndex, ResId objId, int objCount,
 				IndexedObjectConverter<SrcType, DstType> converter,
 				System.Func<DstType, string> nameFunc,
 				string baseName, bool showGui,
@@ -357,7 +359,7 @@ namespace SceneExport{
 						string.Format("Saving file #{0} of resource type {1}", objIndex + 1, baseName), 
 						"Writing json data", objIndex, objCount);
 				}
-				var dstObj = converter(srcObj, objIndex);	
+				var dstObj = converter(srcObj, objIndex, objId);	
 				string fileName;
 				if (dstProcessor != null)
 					dstProcessor(dstObj);
@@ -391,7 +393,7 @@ namespace SceneExport{
 					foreach(var curData in objects.getNewObjectsData()){
 						outObjectPaths.Add(
 							saveResourceToPath(
-								baseDir, curData.data, curData.index, 
+								baseDir, curData.data, curData.index, curData.id,
 								objects.numObjects, 
 								converter, nameFunc, baseName, showGui,
 								dstProcessor
@@ -408,6 +410,25 @@ namespace SceneExport{
 					ExportUtility.hideProgressBar();
 				}
 			}
+		}
+
+		static bool saveResourcesToPath<DstType, SrcType, StorageType>(
+				List<string> outObjectPaths,
+				string baseDir, 
+				ResourceStorageWatcher<StorageType, SrcType> objects,
+				ObjectConverter<SrcType, DstType> converter,
+				System.Func<DstType, string> nameFunc, string baseName, bool showGui,
+				System.Action<DstType> dstProcessor = null) 
+				where DstType: IFastJsonValue{
+
+			if (converter == null)
+				throw new System.ArgumentNullException("converter");
+
+			return saveResourcesToPath(
+				outObjectPaths, baseDir, objects,
+				(obj, idx, id) => converter(obj), 
+				nameFunc, baseName, showGui, dstProcessor
+			);
 		}
 
 		static bool isSkeletalMesh(Mesh mesh){
@@ -494,7 +515,7 @@ namespace SceneExport{
 			return newMesh;
 		}
 		
-		JsonMesh makeJsonMesh(MeshStorageKey meshKey, int id){
+		JsonMesh makeJsonMesh(MeshStorageKey meshKey, ResId id){
 			var result = new JsonMesh(meshKey, id, this);
 			if (!meshKey.skeletonRoot || !meshKey.prefab)
 				return result;
@@ -577,15 +598,15 @@ namespace SceneExport{
 				processObjects = false;
 
 				processObjects |= saveResourcesToPath(result.scenes, baseDir, sceneWatcher, 
-					(objData, i) => objData, (obj) => obj.name, "scene", showGui);
+					(objData) => objData, (obj) => obj.name, "scene", showGui);
 				processObjects |= saveResourcesToPath(result.terrains, baseDir, terrainWatcher, 
-					(objData, i) => new JsonTerrainData(objData, this), (obj) => obj.name, "terrainData", showGui,
+					(objData) => new JsonTerrainData(objData, this), (obj) => obj.name, "terrainData", showGui,
 					(asset) => result.registerAsset(asset)
 				);
 				processObjects |= saveResourcesToPath(result.meshes, baseDir, meshWatcher, 
-					(meshKey, id) => makeJsonMesh(meshKey, id), (obj) => obj.name, "mesh", showGui);
+					(meshKey, idx, id) => makeJsonMesh(meshKey, id), (obj) => obj.name, "mesh", showGui);
 				processObjects |= saveResourcesToPath(result.materials, baseDir, materialsWatcher, 
-					(objData, i) => {
+					(objData) => {
 						var mat = new JsonMaterial(objData, this);
 						if (!mat.supportedShader){
 							logger.logWarningFormat("Possibly unsupported shader \"{0}\" in material \"{1}\"(#{2}, path \"{3}\"). " + 
@@ -596,37 +617,37 @@ namespace SceneExport{
 					}, (obj) => obj.name, "material", showGui);
 
 				processObjects |= saveResourcesToPath(result.textures, baseDir, texWatcher, 
-					(objData, id) => new JsonTexture(objData, this), (obj) => obj.name, "texture", showGui,
+					(objData) => new JsonTexture(objData, this), (obj) => obj.name, "texture", showGui,
 					(asset) => result.registerAsset(asset)
 				);
 
 				processObjects |= saveResourcesToPath(result.cubemaps, baseDir, cubemapWatcher, 
-					(objData, id) => new JsonCubemap(objData, this), (obj) => obj.name, "cubemap", showGui,
+					(objData) => new JsonCubemap(objData, this), (obj) => obj.name, "cubemap", showGui,
 					(asset) => result.registerAsset(asset)
 				);
 
 				processObjects |= saveResourcesToPath(result.audioClips, baseDir, audioClipWatcher, 
-					(objData, id) => new JsonAudioClip(objData, this), (obj) => obj.name, "audioClip", showGui);
+					(objData) => new JsonAudioClip(objData, this), (obj) => obj.name, "audioClip", showGui);
 
 				//skeletons are already sorted by id
 				processObjects |= saveResourcesToPath(result.skeletons, baseDir, 
 					skeletonWatcher, 
-					(objData, id) => objData, (obj) => obj.name, "skeleton", showGui);			
+					(objData) => objData, (obj) => obj.name, "skeleton", showGui);			
 				
 				processObjects |= saveResourcesToPath(
 					result.prefabs, baseDir, prefabWatcher, 
-					(objData, id) => new JsonPrefabData(objData, this), 
+					(objData) => new JsonPrefabData(objData, this), 
 					(obj) => obj.name, 
 					"prefab", showGui);
 				
 				processObjects |= saveResourcesToPath(result.animatorControllers, 
 				 	baseDir, animControllerWatcher,
-					(objData, id) => new JsonAnimatorController(objData.controller, objData.animator, id, this), 
+					(objData, idx, id) => new JsonAnimatorController(objData.controller, objData.animator, id, this), 
 						(obj) => obj.name, "animatorController", showGui);
 				
 				processObjects |= saveResourcesToPath(result.animationClips, 
 					baseDir, animClipWatcher,
-					(objData, id) => new JsonAnimationClip(objData.animClip, objData.animator, id, this), 
+					(objData, idx, id) => new JsonAnimationClip(objData.animClip, objData.animator, id, this), 
 					(obj) => obj.name, "animationClip", showGui);
 			}
 
@@ -639,7 +660,7 @@ namespace SceneExport{
 		static bool processResourceListObject<Storage, SrcType, DstType>(
 			List<DstType> dstObjectList, 
 			ResourceStorageWatcher<Storage, SrcType> watcher,
-			System.Func<SrcType, int, DstType> converter){
+			System.Func<SrcType, int, ResId, DstType> converter){
 			var result = watcher.hasNewObjects;
 			
 			if (dstObjectList == null)
@@ -650,12 +671,21 @@ namespace SceneExport{
 				throw new System.ArgumentNullException("converter");
 
 			foreach(var cur in watcher.getNewObjectsData()){
-				var dst = converter(cur.data, cur.index);
+				var dst = converter(cur.data, cur.index, cur.id);
 				dstObjectList.Add(dst);
 			}
 			watcher.updateNumObjects();
 
 			return result;
+		}
+
+		static bool processResourceListObject<Storage, SrcType, DstType>(
+			List<DstType> dstObjectList, 
+			ResourceStorageWatcher<Storage, SrcType> watcher,
+			System.Func<SrcType, DstType> converter){
+			if (converter == null)
+				throw new System.ArgumentNullException("converter");
+			return processResourceListObject(dstObjectList, watcher, (obj, idx, id) => converter(obj));
 		}
 
 		public JsonResourceList makeResourceList(){
@@ -677,22 +707,22 @@ namespace SceneExport{
 				processObjects = false;
 
 				processResourceListObject(result.terrains, terrainWatcher, 
-					(srcData, index) => new JsonTerrainData(srcData, this));
+					(srcData) => new JsonTerrainData(srcData, this));
 				//Eh... there's still an integer id there...
 				processResourceListObject(result.meshes, meshWatcher, 
-					(srcData, index) => new JsonMesh(srcData, index, this));
+					(srcData, index, id) => new JsonMesh(srcData, id, this));
 				processResourceListObject(result.materials, materialWatcher, 
-					(srcData, index) => new JsonMaterial(srcData, this));
+					(srcData) => new JsonMaterial(srcData, this));
 				processResourceListObject(result.textures, texWatcher, 
-					(srcData, index) => new JsonTexture(srcData, this));
+					(srcData) => new JsonTexture(srcData, this));
 				processResourceListObject(result.cubemaps, cubemapWatcher, 
-					(srcData, index) => new JsonCubemap(srcData, this));
+					(srcData) => new JsonCubemap(srcData, this));
 				processResourceListObject(result.audioClips, audioClipWatcher, 
-					(srcData, index) => new JsonAudioClip(srcData, this));
+					(srcData) => new JsonAudioClip(srcData, this));
 				processResourceListObject(result.animatorControllers, animControllerWatcher, 
-					(srcData, index) => new JsonAnimatorController(srcData.controller, srcData.animator, index, this));
+					(srcData, index, id) => new JsonAnimatorController(srcData.controller, srcData.animator, id, this));
 				processResourceListObject(result.animationClips, animClipWatcher, 
-					(srcData, index) => new JsonAnimationClip(srcData.animClip, srcData.animator, index, this));
+					(srcData, index, id) => new JsonAnimationClip(srcData.animClip, srcData.animator, id, this));
 			}
 				
 			result.resources = new List<string>(resources);

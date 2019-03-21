@@ -16,9 +16,11 @@ namespace SceneExport{
 
 		public struct IndexedObjectData{
 			public int index;
+			public ResId id;
 			public Resource data;
-			public IndexedObjectData(int index_, Resource data_){
+			public IndexedObjectData(int index_, ResId id_, Resource data_){
 				index = index_;
+				id = id_;
 				data = data_;
 			}
 		}
@@ -65,8 +67,13 @@ namespace SceneExport{
 		public IEnumerable<IndexedObjectData> getNewObjectsData(){
 			foreach(var index in getNewIndexes()){
 				var obj = getObject(index);
-				yield return new IndexedObjectData(index, obj);
+				var id = idFromIndex(index);
+				yield return new IndexedObjectData(index, id, obj);
 			}
+		}
+
+		ResId idFromIndex(int index){
+			return ResId.fromObjectIndex(index);
 		}
 
 		public IEnumerable<ResId> getNewIds(){

@@ -29,7 +29,8 @@ namespace SceneExport{
 	public class JsonAnimatorController: IFastJsonValue{
 		public string name;
 		public string path;
-		public int id = -1;
+		//public int id = -1;
+		public ResId id = ResId.invalid;
 		public UnityEditor.Animations.AnimatorController controller;
 		
 		public List<JsonAnimatorControllerParameter> parameters = new List<JsonAnimatorControllerParameter>();
@@ -50,7 +51,7 @@ namespace SceneExport{
 		public JsonAnimatorController(){
 		}
 		
-		public JsonAnimatorController(UnityEditor.Animations.AnimatorController controller_, Animator animator, int id_, ResourceMapper resMap){
+		public JsonAnimatorController(UnityEditor.Animations.AnimatorController controller_, Animator animator, ResId id_, ResourceMapper resMap){
 			controller = controller_;
 			if (!controller)
 				throw new System.ArgumentNullException("controller_");

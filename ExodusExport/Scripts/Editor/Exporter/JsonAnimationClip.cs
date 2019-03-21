@@ -7,7 +7,8 @@ namespace SceneExport{
 	[System.Serializable]
 	public class JsonAnimationClip: IFastJsonValue{
 		public string name;
-		public int id = -1;
+		//public int id = -1;
+		public ResId id = ResId.invalid;
 		public AnimationClip clip = null;
 		public Animator animator = null;
 		
@@ -55,7 +56,7 @@ namespace SceneExport{
 		public JsonAnimationClip(){
 		}
 		
-		public JsonAnimationClip(AnimationClip clip_, Animator animator_, int id_, ResourceMapper resMap, AnimationSampler animSampler = null){
+		public JsonAnimationClip(AnimationClip clip_, Animator animator_, ResId id_, ResourceMapper resMap, AnimationSampler animSampler = null){
 			clip = clip_;
 			id = id_;
 			animator = animator_;

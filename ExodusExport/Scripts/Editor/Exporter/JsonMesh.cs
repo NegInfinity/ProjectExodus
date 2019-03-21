@@ -10,7 +10,7 @@ namespace SceneExport{
 		public static readonly int trianglesPerLine = 4;
 		public static readonly int bonesPerVertex = 4;//only 4 of them in unity.
 	
-		public int id = -1;
+		public ResId id = ResId.invalid;
 		public string name;
 		public string path;
 		public List<ResId> materials = new List<ResId>();
@@ -375,7 +375,8 @@ namespace SceneExport{
 			writer.endObject();			
 		}
 
-		public JsonMesh(MeshStorageKey meshKey, int id_, ResourceMapper exp){
+		//public JsonMesh(MeshStorageKey meshKey, int id_, ResourceMapper exp){
+		public JsonMesh(MeshStorageKey meshKey, ResId id_, ResourceMapper exp){
 			id = id_;//exp.findMeshId(mesh);//exp.meshes.findId(mesh);
 			var mesh = meshKey.mesh;
 			name = mesh.name;
