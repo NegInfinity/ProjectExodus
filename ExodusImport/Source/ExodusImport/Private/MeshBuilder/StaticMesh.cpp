@@ -178,11 +178,32 @@ void MeshBuilder::setupStaticMesh(UStaticMesh *mesh, const JsonMesh &jsonMesh, s
 			GenerateBoxAsSimpleCollision(mesh);
 		}
 
-		if (jsonMesh.convexCollider){
-			//mesh->simpl
+		if (bodySetup){
+			/*
+			This is used by imported mesh colliders. 
+			Unity engine allows toggling of collision mesh being/not being convex on the fly, and does not 
+			generate simple collision by default.
+
+			SO if either "convex" or "triangle" flags are set, the importer will adjust collision strategy to mimic unity's.
+
+			Convex will use KDop approach and make the mesh use "simple as complex", while triangular will use 
+			triangular geometry AND mark mesh as "use complex as simple".
+
+			If neither is set, it will use default strategy.
+
+			...
+
+			I wish there was a separation between mesh and collider, though.
+			*/
+			if (jsonMesh.convexCollider){
+				bodySetup->CollisionTraceFlag = CTF_UseSimpleAsComplex;
+			}
+			else if (jsonMesh.triangleCollider){
+				bodySetup->CollisionTraceFlag = CTF_UseComplexAsSimple;
+			}
 		}
-		else if (jsonMesh.triangleCollider){
-			//mesh->coll
+		if (!bodySetup && (jsonMesh.convexCollider || jsonMesh.triangleCollider)){
+			UE_LOG(JsonLog, Warning, TEXT("Could not setup collision flags for mesh %d(\"%s\") - body setup not generated"), (int)jsonMesh.id, *jsonMesh.name);
 		}
 	}
 }

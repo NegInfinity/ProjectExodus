@@ -245,8 +245,7 @@ namespace SceneExport{
 			 	MeshUsageFlags.None, //We're simply rendering this.
 			 	prefabRoot, skeletonRoot
 			);
-		}
-		
+		}		
 		
 		public ResId getOrRegMeshId(SkinnedMeshRenderer meshRend, Transform skeletonRoot){
 			var mesh = meshRend.sharedMesh;
@@ -280,8 +279,7 @@ namespace SceneExport{
 			if (!mesh)
 				return ResId.invalid;//ExportUtility.invalidId;
 
-			var meshUsage = MeshUsageFlags.None;
-
+			var meshUsage = getUsageFromComponents(mesh, meshFilter);//MeshUsageFlags.None;
 				
 			return meshRegistry.getOrRegMeshId(
 				new MeshStorageKey(mesh, meshUsage), 
