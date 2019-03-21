@@ -220,14 +220,14 @@ void JsonImporter::registerEmissiveMaterial(int32 id){
 	emissiveMaterials.Add(id);
 }
 
-FString JsonImporter::getMeshPath(JsonId id) const{
+FString JsonImporter::getMeshPath(ResId id) const{
 	auto result = meshIdMap.Find(id);
 	if (result)
 		return *result;
 	return FString();
 }
 
-UStaticMesh* JsonImporter::loadStaticMeshById(JsonId id) const{
+UStaticMesh* JsonImporter::loadStaticMeshById(ResId id) const{
 	auto path = meshIdMap.Find(id);
 	if (!path)
 		return nullptr;

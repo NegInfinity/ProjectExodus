@@ -24,7 +24,8 @@ public:
 	FMatrix localMatrix = FMatrix::Identity;
 	int32 parentId;
 	FString parentName;
-	int32 meshId;
+	//int32 meshId;
+	ResId meshId;
 
 	bool activeSelf = true;
 	bool activeInHierarchy = true;
@@ -71,7 +72,8 @@ public:
 	but I'm not quite sure in which scenario this would ever be used, and how to transfer it to unreal properly.
 	*/
 	int findMainMeshColliderIndex() const{
-		if (meshId < 0)
+		//if (meshId < 0)
+		if (!meshId.isValid())
 			return -1;//magic number...
 		for (int i = 0; i < colliders.Num(); i++){
 			const auto &cur = colliders[i];
@@ -135,7 +137,8 @@ public:
 	}
 
 	bool hasMesh() const{
-		return meshId >= 0;
+		return meshId.isValid();
+		//return meshId >= 0;
 	}
 
 	bool hasColliders() const{

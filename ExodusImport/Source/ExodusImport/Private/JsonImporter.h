@@ -49,8 +49,8 @@ protected:
 	FString sourceExternDataPath;
 	FString assetCommonPath;
 	FString sourceBaseName;
-	IdNameMap meshIdMap;
-	IdNameMap skinMeshIdMap;
+	ResIdNameMap meshIdMap;
+	ResIdNameMap skinMeshIdMap;
 	IdNameMap texIdMap;
 	IdNameMap cubeIdMap;
 	IdNameMap matMasterIdMap;
@@ -147,10 +147,6 @@ protected:
 	void importTerrainData(JsonObjPtr jsonData, JsonId terrainId, const FString &rootPath);
 	void loadTerrains(const StringArray &terrains);
 
-	/*
-	ULandscapeGrassType* createGrassType(ImportWorkData &workData, const JsonGameObject &jsonGameObj, const JsonTerrainData &terrainData, 
-		int layerIndex, const FString &terrainDataPth);*/
-
 	void registerMaterialInstancePath(int32 id, FString path);
 	void registerMasterMaterialPath(int32 id, FString path);
 
@@ -161,12 +157,6 @@ protected:
 	void loadAnimClipsDebug(const StringArray &animClipPaths);
 
 	static void setObjectHierarchy(const ImportedObject &object, ImportedObject *parentObject, const FString& folderPath, ImportWorkData &workData, const JsonGameObject &gameObj);
-
-	//static void setActorHierarchy(AActor *actor, AActor *parentObject, const FString& folderPath, ImportWorkData &workData, const JsonGameObject &gameObj);
-
-	//UWorld* importScene(const JsonScene &scene, bool createWorld) const;
-
-	//JsonAnimatorController loadAnimatorController(int id) const;
 
 	void processDelayedAnimators(const TArray<JsonGameObject> &objects, ImportWorkData &workData);
 	void processDelayedAnimator(JsonId skelId, JsonId controllerId);
@@ -222,9 +212,9 @@ public:
 
 	UMaterialInterface* loadMaterialInterface(int32 id) const;
 
-	FString getMeshPath(JsonId id) const;
-	UStaticMesh *loadStaticMeshById(JsonId id) const;
-	USkeletalMesh *loadSkeletalMeshById(JsonId id) const;
+	FString getMeshPath(ResId id) const;
+	UStaticMesh *loadStaticMeshById(ResId id) const;
+	USkeletalMesh *loadSkeletalMeshById(ResId id) const;
 
 	void importProject(const FString& path);
 

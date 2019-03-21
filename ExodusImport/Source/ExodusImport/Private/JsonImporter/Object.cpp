@@ -394,10 +394,10 @@ void JsonImporter::importObject(const JsonGameObject &jsonGameObj , int32 objId,
 	}
 }
 
-USkeletalMesh* JsonImporter::loadSkeletalMeshById(JsonId id) const{
+USkeletalMesh* JsonImporter::loadSkeletalMeshById(ResId id) const{
 	auto foundPath = skinMeshIdMap.Find(id);
 	if (!foundPath){
-		UE_LOG(JsonLog, Warning, TEXT("Could not load skin mesh %d"), id);
+		UE_LOG(JsonLog, Warning, TEXT("Could not load skin mesh %d"), id.toIndex());
 		return nullptr;
 	}
 
@@ -411,19 +411,20 @@ USkeletalMesh* JsonImporter::loadSkeletalMeshById(JsonId id) const{
 ImportedObject JsonImporter::processSkinRenderer(ImportWorkData &workData, const JsonGameObject &jsonGameObj, 
 		const JsonSkinRenderer &skinRend, ImportedObject *parentObject, const FString &folderPath){
 
-	UE_LOG(JsonLog, Log, TEXT("Importing skin mesh %d for object %s"), skinRend.meshId, *jsonGameObj.name);
-	if (skinRend.meshId < 0)
+	UE_LOG(JsonLog, Log, TEXT("Importing skin mesh %d for object %s"), skinRend.meshId.toIndex(), *jsonGameObj.name);
+	//if (skinRend.meshId < 0)
+	if (!skinRend.meshId.isValid())
 		return ImportedObject();
 
 	auto foundMeshPath = skinMeshIdMap.Find(skinRend.meshId);
 	if (!foundMeshPath){
-		UE_LOG(JsonLog, Log, TEXT("Could not locate skin mesh %d for object %s"), skinRend.meshId, *jsonGameObj.name);
+		UE_LOG(JsonLog, Log, TEXT("Could not locate skin mesh %d for object %s"), skinRend.meshId.toIndex(), *jsonGameObj.name);
 		return ImportedObject();
 	}
 
 	auto *skelMesh = loadSkeletalMeshById(skinRend.meshId);
 	if (!skelMesh){
-		UE_LOG(JsonLog, Error, TEXT("Coudl not load skinMesh %d on object %d(%s)"), skinRend.meshId, jsonGameObj.id, *jsonGameObj.name);
+		UE_LOG(JsonLog, Error, TEXT("Coudl not load skinMesh %d on object %d(%s)"), skinRend.meshId.toIndex(), jsonGameObj.id, *jsonGameObj.name);
 		return ImportedObject();
 	}
 
@@ -505,8 +506,10 @@ bool JsonImporter::configureStaticMeshComponent(ImportWorkData &workData, UStati
 	If collider is provided, its meshId takes priority.
 	*/
 	bool collisionOnlyMesh = false;
-	JsonId meshId = jsonGameObj.meshId;
-	if (collider && isValidId(collider->meshId) && !configForRender){
+	//JsonId meshId = jsonGameObj.meshId;
+	ResId meshId = jsonGameObj.meshId;
+	//if (collider && isValidId(collider->meshId) && !configForRender){
+	if (collider && collider->meshId.isValid() && !configForRender){
 		meshId = collider->meshId;
 		collisionOnlyMesh = true;
 	}

@@ -13,6 +13,12 @@ void JsonObjects::loadArray(JsonObjPtr data, const JsonValPtrs *&valPtrs, const 
 	}
 }
 
+ResId JsonObjects::getResId(JsonObjPtr data, const char* name){
+	//It turns out that under the hood json reader treats all numbers of doubles.
+	//Double range should be sufficient to retain precision, but...
+	return ResId::fromIndex(data->GetIntegerField(FString(name)));
+}
+
 int32 JsonObjects::getInt(JsonObjPtr data, const char* name){
 	return data->GetIntegerField(FString(name));
 }
@@ -242,6 +248,10 @@ void JsonObjects::getJsonValue(FQuat& outValue, JsonObjPtr data, const char *nam
 
 void JsonObjects::getJsonValue(int& outValue, JsonObjPtr data, const char* name){
 	outValue = getInt(data, name);
+}
+
+void JsonObjects::getJsonValue(ResId& outValue, JsonObjPtr data, const char* name){
+	outValue = ResId::fromIndex(getInt(data, name));
 }
 
 void JsonObjects::getJsonValue(bool& outValue, JsonObjPtr data, const char* name){

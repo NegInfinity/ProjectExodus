@@ -18,28 +18,16 @@ void JsonMesh::load(JsonObjPtr data){
 	JSON_GET_VAR(data, materials);
 	JSON_GET_VAR(data, readable);
 	JSON_GET_VAR(data, vertexCount);
-	//TArray<FLinearColor> colors;
-	//JSON_GET_VAR(data, colors);
 	colors = getByteArray(data, "colors", true);
 	logValue(TEXT("colors: "), colors);
 	
-	//JSON_GET_VAR(data, verts);
 	verts = getFloatArray(data, "verts", false);
 	logValue(TEXT("verts: "), verts);
-	//JSON_GET_VAR(data, normals);
 	normals = getFloatArray(data, "normals", true);
 	logValue(TEXT("normals: "), normals);
 
 	tangents = getFloatArray(data, "tangents", true);
 	logValue(TEXT("tangents: "), tangents);
-	//JSON_GET_VAR(data, uv0);
-	//JSON_GET_VAR(data, uv1);
-	//JSON_GET_VAR(data, uv2);
-	//JSON_GET_VAR(data, uv3);
-	//JSON_GET_VAR(data, uv4);
-	//JSON_GET_VAR(data, uv5);
-	//JSON_GET_VAR(data, uv6);
-	//JSON_GET_VAR(data, uv7);
 	uv0 = getFloatArray(data, "uv0", true);
 	logValue(TEXT("uv0: "), uv0);
 	uv1 = getFloatArray(data, "uv1", true);
@@ -57,10 +45,9 @@ void JsonMesh::load(JsonObjPtr data){
 	uv7 = getFloatArray(data, "uv7", true);
 	logValue(TEXT("uv7: "), uv7);
 
-	//JSON_GET_VAR(data, boneWeights);
 	boneWeights = getFloatArray(data, "boneWeights", true);
 	logValue(TEXT("boneWeights: "), boneWeights);
-	//JSON_GET_VAR(data, boneIndexes);
+
 	boneIndexes = getIntArray(data, "boneIndexes", true);
 	logValue(TEXT("boneIndexes: "), boneIndexes);
 
@@ -78,8 +65,6 @@ void JsonMesh::load(JsonObjPtr data){
 	bool needsSkinWeights = (boneWeights.Num() != 0)||(boneIndexes.Num() != 0);
 	bindPoses = getMatrixArray(data, "bindPoses", !needsSkinWeights);
 	inverseBindPoses = getMatrixArray(data, "inverseBindPoses", !needsSkinWeights);
-	//TArray<FMatrix> bindPoses;
-	//TArray<FMatrix> inverseBindPoses;
 
 	JSON_GET_VAR(data, subMeshCount);
 	getJsonObjArray(data, subMeshes, "subMeshes");
@@ -104,12 +89,14 @@ void JsonBlendShape::load(JsonObjPtr data){
 FString JsonMesh::makeUnrealMeshName() const{
 	auto pathBaseName = FPaths::GetBaseFilename(path);
 	FString result;
+	FString baseName = uniqueName.IsEmpty() ? name: uniqueName;
+
 	if (!pathBaseName.IsEmpty()){
 		//Well, I've managed to create a level with two meshes named "cube". So...
-		result = FString::Printf(TEXT("%s_%s_%d"), *pathBaseName, *name, id);
+		result = FString::Printf(TEXT("%s_%s_%d"), *pathBaseName, *baseName, id.toIndex());
 	}
 	else{
-		result = FString::Printf(TEXT("%s_%d"), *name, id);
+		result = FString::Printf(TEXT("%s_%d"), *baseName, id.toIndex());
 	}
 	return result;
 }

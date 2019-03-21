@@ -14,7 +14,8 @@ public:
 	int direction = 0;//0 == x, 1 == y, 2 == z
 	float radius = 0.0f;//Used for both sphere and capsule caps
 	float height = 0.0f;//for capsules only
-	int meshId = -1;//for meshes only
+	//int meshId = -1;//for meshes only
+	ResId meshId;
 
 	bool  enabled = true;
 	float contactOffset = 0.0f;

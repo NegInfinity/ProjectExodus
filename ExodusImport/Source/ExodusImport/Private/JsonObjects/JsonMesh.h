@@ -24,7 +24,7 @@ public:
 class JsonBlendShape{
 public:
 	FString name;
-	int index=  -1;
+	int index = -1;
 	int numFrames;
 	TArray<JsonBlendShapeFrame> frames;
 
@@ -47,8 +47,12 @@ public:
 
 class JsonMesh{
 public:
-	int id = -1;
+	ResId id;
+	//int id = -1;
 	FString name;
+	FString uniqueName;
+	bool convexCollider = false;
+	bool triangleCollider = false;
 	FString path;
 	IntArray materials;
 	bool readable;

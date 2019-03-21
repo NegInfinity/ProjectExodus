@@ -52,7 +52,7 @@ void SkeletalMeshBuilder::setupReferenceSkeleton(FReferenceSkeleton &refSkeleton
 		if (jsonMesh){
 			auto boneIndex = jsonMesh->defaultBoneNames.IndexOfByKey(srcBone.name);
 			UE_LOG(JsonLog, Log, TEXT("Attempting to find boneIndex for bone \"%s\" on mesh %d(\"%s\")"), 
-				*srcBone.name, jsonMesh->id, *jsonMesh->name);
+				*srcBone.name, jsonMesh->id.toIndex(), *jsonMesh->name);
 			if (boneIndex != INDEX_NONE){
 				auto boneMatrix = jsonMesh->inverseBindPoses[boneIndex];
 				UE_LOG(JsonLog, Log, TEXT("Bone index found: %d"), boneIndex);
@@ -175,7 +175,7 @@ void SkeletalMeshBuildData::buildSkeletalMesh(FSkeletalMeshLODModel &lodModel, c
 		for(const auto& warn: buildWarnNames){
 			msg += FString::Printf(TEXT("%s\n"), *warn.ToString());
 		}
-		UE_LOG(JsonLog, Warning, TEXT("Warning while building skeletal mesh %d(\"%s\"):%s"), jsonMesh.id, *jsonMesh.name, *msg);
+		UE_LOG(JsonLog, Warning, TEXT("Warning while building skeletal mesh %d(\"%s\"):%s"), (int)jsonMesh.id, *jsonMesh.name, *msg);
 	}
 }
 
@@ -185,7 +185,7 @@ void SkeletalMeshBuildData::computeBoundingBox(USkeletalMesh *skelMesh, const Js
 	auto tmpBox = boundBox;
 	auto midPoint = (boundBox.Min + boundBox.Max) * 0.5f;
 	UE_LOG(JsonLog, Log, TEXT("Bounding Box(%d:\"%s\") Min: %f %f %f ; Max: %f %f %f"),
-		jsonMesh.id, *jsonMesh.name,
+		(int)jsonMesh.id, *jsonMesh.name,
 		tmpBox.Min.X, tmpBox.Min.Y, tmpBox.Min.Z, tmpBox.Max.X, tmpBox.Max.Y, tmpBox.Max.Z);
 
 	//This is done in skeletal mesh import in fbx. Apparnetly it doubles boundbox size, except it raises bottom of the box to the leg level.
@@ -330,7 +330,7 @@ void SkeletalMeshBuildData::processPositionsAndWeights(const JsonMesh &jsonMesh,
 	}
 	else{
 		UE_LOG(JsonLog, Log, TEXT("The mesh \"%s\"(%d) has no bones. Remapping it to the original parent \"%s\""),
-			*jsonMesh.name, jsonMesh.id, *jsonMesh.defaultMeshNodeName);
+			*jsonMesh.name, (int)jsonMesh.id, *jsonMesh.defaultMeshNodeName);
 		//well. We're remapping it to the single bone the skeleton has. 
 		int origIndex = 0;//yep. Always a bone 0.
 		auto foundIdx = meshToSkeletonBoneMap.Find(origIndex);
@@ -486,7 +486,7 @@ void SkeletalMeshBuilder::registerPreviewMesh(USkeleton *skel, USkeletalMesh *me
 
 	for(const auto& cur: collection->SkeletalMeshes){
 		if (cur.SkeletalMesh == mesh){
-			UE_LOG(JsonLog, Log, TEXT("Skeletal mesh %d(%s) is already a part of collection"), jsonMesh.id, *jsonMesh.name);
+			UE_LOG(JsonLog, Log, TEXT("Skeletal mesh %d(%s) is already a part of collection"), (int)jsonMesh.id, *jsonMesh.name);
 			return;
 		}
 	}
@@ -534,13 +534,13 @@ void SkeletalMeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonM
 
 	auto skelId = jsonMesh.defaultSkeletonId;
 	if (skelId < 0){
-		UE_LOG(JsonLog, Warning, TEXT("Skeleton not found on skinned mesh \"%s\"(%d)"), *jsonMesh.name, jsonMesh.id);
+		UE_LOG(JsonLog, Warning, TEXT("Skeleton not found on skinned mesh \"%s\"(%d)"), *jsonMesh.name, (int)jsonMesh.id);
 		return;
 	}
 
 	auto jsonSkel = importer->getSkeleton(skelId);
 	if (!jsonSkel){
-		UE_LOG(JsonLog, Warning, TEXT("Json skeleton not found on \"%s\"(%d), skeletonid: %d"), *jsonMesh.name, jsonMesh.id, skelId);
+		UE_LOG(JsonLog, Warning, TEXT("Json skeleton not found on \"%s\"(%d), skeletonid: %d"), *jsonMesh.name, (int)jsonMesh.id, skelId);
 		return;
 	}
 
@@ -578,7 +578,7 @@ void SkeletalMeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonM
 	buildData.processPositionsAndWeights(jsonMesh, meshToSkeletonBoneMap, remapErrors);
 
 	if (remapErrors.Num()){
-		FString combinedMessage = FString::Printf(TEXT("Remap errors found while processing skeletal mesh %d(\"%s\")\n"), jsonMesh.id, *jsonMesh.name);
+		FString combinedMessage = FString::Printf(TEXT("Remap errors found while processing skeletal mesh %d(\"%s\")\n"), jsonMesh.id.toIndex(), *jsonMesh.name);
 		for(const auto& cur: remapErrors){
 			combinedMessage += FString::Printf(TEXT("%s\n"), *cur);
 		}

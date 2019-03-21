@@ -94,6 +94,7 @@ namespace JsonObjects{
 	void loadArray(JsonObjPtr data, const JsonValPtrs *&valPtrs, const FString &name);
 
 	int32 getInt(JsonObjPtr data, const char* name);
+	ResId getResId(JsonObjPtr data, const char* name);
 	bool getBool(JsonObjPtr data, const char* name);
 	float getFloat(JsonObjPtr data, const char* name);
 	FString getString(JsonObjPtr data, const char* name);
@@ -129,6 +130,7 @@ namespace JsonObjects{
 
 
 	void getJsonValue(int& outValue, JsonObjPtr data, const char* name);
+	void getJsonValue(ResId& outValue, JsonObjPtr data, const char* name);
 	void getJsonValue(bool& outValue, JsonObjPtr data, const char* name);
 	void getJsonValue(float &outValue, JsonObjPtr data, const char* name);
 	void getJsonValue(FString &outValue, JsonObjPtr data, const char* name);

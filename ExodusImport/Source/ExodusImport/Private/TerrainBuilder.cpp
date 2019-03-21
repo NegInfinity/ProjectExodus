@@ -227,7 +227,7 @@ void TerrainBuilder::processFoliageTreeActors(ALandscape *landscape){
 	for(const auto& curProtoTree: terrainData.treePrototypes){
 		auto curProtoIdx = prototypeIndex++;
 		UE_LOG(JsonLogTerrain, Log, TEXT("Processing tree prototype %d. meshId %d; prefabId %d; prefabObj %d"),
-			curProtoIdx, curProtoTree.meshId, curProtoTree.prefabId, curProtoTree.prefabObjectId);
+			curProtoIdx, (int)curProtoTree.meshId, curProtoTree.prefabId, curProtoTree.prefabObjectId);
 
 		if (!isValidId(curProtoTree.meshId)){
 			UE_LOG(JsonLogTerrain, Log, TEXT("Prototype %d has no mesh, nothing to do"), curProtoIdx);
@@ -237,7 +237,7 @@ void TerrainBuilder::processFoliageTreeActors(ALandscape *landscape){
 
 		auto treeMesh = importer->loadStaticMeshById(meshId);
 		if (!treeMesh){
-			UE_LOG(JsonLogTerrain, Warning, TEXT("Mesh %d could not be loaded for prototype %d"), meshId, curProtoIdx);
+			UE_LOG(JsonLogTerrain, Warning, TEXT("Mesh %d could not be loaded for prototype %d"), (int)meshId, curProtoIdx);
 		}
 
 		UFoliageType *foliageInfo = nullptr;

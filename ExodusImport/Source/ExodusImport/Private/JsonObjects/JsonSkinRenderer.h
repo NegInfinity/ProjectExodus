@@ -11,7 +11,8 @@ public:
 	IntArray boneIds;
 	MatrixArray boneTransforms;
 
-	int meshId = -1;
+	//int meshId = -1;
+	ResId meshId;
 	IntArray materials;
 
 	void load(JsonObjPtr data);

@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "JsonLog.h"
+#include "JsonObjects/ResId.h"
 
 using FStringArray = TArray<FString>;
 using JsonObjPtr = TSharedPtr<FJsonObject>;
@@ -10,6 +11,7 @@ using JsonReaderRef = TSharedRef<TJsonReader<>>;
 using JsonObjPtrs = TArray<JsonObjPtr>;
 using JsonValPtrs = TArray<JsonValPtr>;
 using IdNameMap = TMap<int, FString>;
+using ResIdNameMap = TMap<ResId, FString>;
 
 using JsonId = int;
 using JsonTextureId = JsonId;

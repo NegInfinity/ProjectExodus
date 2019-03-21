@@ -166,7 +166,7 @@ void MeshBuilder::setupStaticMesh(UStaticMesh *mesh, const JsonMesh &jsonMesh, s
 			errMsg += FString::Printf(TEXT("MeshBuildError: %s"), *(err.ToString()));
 			//UE_LOG(JsonLog, Error, TEXT("MeshBuildError: %s"), *(err.ToString()));
 		}
-		UE_LOG(JsonLog, Warning, TEXT("Build errors while loading mesh %d(\"%s\"):\n%s"), jsonMesh.id, *jsonMesh.name, *errMsg);
+		UE_LOG(JsonLog, Warning, TEXT("Build errors while loading mesh %d(\"%s\"):\n%s"), (int)jsonMesh.id, *jsonMesh.name, *errMsg);
 	}
 	else{
 		TArray<FVector> verts(KDopDir18, 18);
@@ -174,8 +174,15 @@ void MeshBuilder::setupStaticMesh(UStaticMesh *mesh, const JsonMesh &jsonMesh, s
 
 		UBodySetup* bodySetup = mesh->BodySetup;
 		if (bodySetup && bodySetup->AggGeom.GetElementCount()){
-			UE_LOG(JsonLog, Warning, TEXT("Could not generate convex collision for mesh %d(\"%s\"):\nRebuilding as a box."), jsonMesh.id, *jsonMesh.name);
+			UE_LOG(JsonLog, Warning, TEXT("Could not generate convex collision for mesh %d(\"%s\"):\nRebuilding as a box."), (int)jsonMesh.id, *jsonMesh.name);
 			GenerateBoxAsSimpleCollision(mesh);
+		}
+
+		if (jsonMesh.convexCollider){
+			//mesh->simpl
+		}
+		else if (jsonMesh.triangleCollider){
+			//mesh->coll
 		}
 	}
 }

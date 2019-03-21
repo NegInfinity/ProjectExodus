@@ -35,7 +35,7 @@ void JsonGameObject::load(JsonObjPtr jsonData){
 
 	JSON_GET_PARAM2(jsonData, parentName, parentName, getString);
 
-	JSON_GET_PARAM2(jsonData, meshId, mesh, getInt);
+	JSON_GET_PARAM2(jsonData, meshId, mesh, getResId);
 
 	JSON_GET_PARAM(jsonData, activeSelf, getBool);
 	JSON_GET_PARAM(jsonData, activeInHierarchy, getBool);
