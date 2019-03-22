@@ -57,6 +57,10 @@ namespace SceneExport{
 			writeRawValue(val);
 		}
 		
+		public void writeKeyVal(string key, bool val, bool indent){
+			writeKey(key, indent);
+			writeRawValue(val);
+		}
 		public void writeKeyVal(string key, Color val){
 			writeKey(key);
 			writeRawValue(val);

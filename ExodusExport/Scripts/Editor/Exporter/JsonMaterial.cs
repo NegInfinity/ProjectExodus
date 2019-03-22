@@ -13,10 +13,10 @@ namespace SceneExport{
 		
 		public bool supportedShader = true;
 		public int blendMode = 0; /*
-													Opaque, Cutout, Fade, Transparent. 
-													//Risky. Judging by shader source we also need to handle names, for example...
-													Name containing "/Transparent/Cutout/" or "/Transparent/"													
-												*/
+									Opaque, Cutout, Fade, Transparent. 
+									Risky. Judging by shader source we also need to handle names, for example...
+									Name containing "/Transparent/Cutout/" or "/Transparent/"													
+								*/
 		
 		//public string renderType;
 		public ResId mainTexture = ResId.invalid;
@@ -179,13 +179,6 @@ namespace SceneExport{
 			registerLinkedTex(mat, TexParamNames.detailNormal, resMap);	
 		}		
 		
-		/*
-		static int getTexId(Material mat, string texName, ResourceMapper resMap){
-			if (!mat.HasProperty(texName))
-				return -1;
-			return resMap.getTextureId(mat.GetTexture(texName));
-		}
-		*/
 		static ResId getTexId(Material mat, string texName, ResourceMapper resMap){
 			if (!mat.HasProperty(texName))
 				return ResId.invalid;
@@ -290,41 +283,23 @@ namespace SceneExport{
 			detailAlbedoScale = getTextureScale(mat, TexParamNames.detailAlbedo);//mat.GetTextureScale(TexParamNames.detailAlbedo);
 			detailAlbedoOffset = getTextureOffset(mat, TexParamNames.detailAlbedo);//mat.GetTextureOffset(TexParamNames.detailAlbedo);
 			
-			//detailNormalMapScale = getFloat(mat, "_DetailNormalMapScale", 1.0f);
 			detailNormalMapScale = getFloat(mat, ParamNames.detailNormalMapScale, 1.0f);
 
-
-			//alphaCutoff = getFloat(mat, "_Cutoff", 1.0f);
-			//smoothness = getFloat(mat, "_Glossiness", 0.5f);
 			alphaCutoff = getFloat(mat, ParamNames.cutoff, 1.0f);
 			smoothness = getFloat(mat, ParamNames.glossiness, 0.5f);
 			smoothnessScale = getFloat(mat, ParamNames.glossinessScale, 1.0f);
 			specularColor = getColor(mat, ParamNames.specularColor, Color.white);
 			metallic = getFloat(mat, ParamNames.metallic, 0.5f);
-			/*
-			bumpScale = getFloat(mat, "_BumpScale", 1.0f);
-			parallaxScale = getFloat(mat, "_Parallax", 1.0f);
-			occlusionStrength = getFloat(mat, "_OcclusionStrength", 1.0f);
-			*/
 			bumpScale = getFloat(mat, ParamNames.bumpScale, 1.0f);
 			parallaxScale = getFloat(mat, ParamNames.parallax, 1.0f);
 			occlusionStrength = getFloat(mat, ParamNames.occlusionStrength, 1.0f);
 			
 			emissionColor = getColor(mat, ParamNames.emissionColor, Color.black);
-			/*
-			detailMapScale = getFloat(mat, "_DetailNormalMapScale", 1.0f);
-			secondaryUv = getFloat(mat, "_UVSec", 1.0f);
-			*/
 			detailMapScale = getFloat(mat, ParamNames.detailNormalMapScale, 1.0f);
 			secondaryUv = getFloat(mat, ParamNames.secondaryUv, 1.0f);
 			
 			blendMode = Mathf.RoundToInt(getFloat(mat, ParamNames.blendMode, 0.0f));
 			
-			/*
-			smoothnessMapChannel = (int)getFloat(mat, "_SmoothnessTextureChannel", 0.0f);
-			specularHighlights = getFloat(mat, "_SpecularHighlights", 1.0f);
-			glossyReflections = getFloat(mat, "_GlossyReflections", 1.0f);
-			*/
 			smoothnessMapChannel = (int)getFloat(mat, ParamNames.smoothnessMapChannel, 0.0f);
 			specularHighlights = getFloat(mat, ParamNames.specularHighlights, 1.0f);
 			glossyReflections = getFloat(mat, ParamNames.glossyReflections, 1.0f);

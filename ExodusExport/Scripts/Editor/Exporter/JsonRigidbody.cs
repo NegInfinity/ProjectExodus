@@ -9,6 +9,7 @@ namespace SceneExport{
 		public void writeRawJsonValue(FastJsonWriter writer){
 			writer.beginRawObject();
 			//The constant manual value dump is getting annoying. Need to think up a better way to do it.
+			writer.writeKeyVal("instanceId", rig.GetInstanceID());
 
 			writer.writeKeyVal("angularDrag", rig.angularDrag);
 			writer.writeKeyVal("angularVelocity", rig.angularVelocity);

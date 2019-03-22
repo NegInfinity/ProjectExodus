@@ -32,6 +32,7 @@ namespace SceneExport{
 		public List<JsonAnimator> animators = new List<JsonAnimator>();
 		public List<JsonCollider> colliders = new List<JsonCollider>();
 		public List<JsonRigidbody> rigidbodies = new List<JsonRigidbody>();
+		public List<JsonPhysicsJoint> joints = new List<JsonPhysicsJoint>();
 		
 		public JsonTerrain[] terrains = null;
 		
@@ -106,6 +107,7 @@ namespace SceneExport{
 			writer.writeKeyVal("terrains", terrains, true);
 			writer.writeKeyVal("colliders", colliders, true);
 			writer.writeKeyVal("rigidbodies", rigidbodies, true);
+			writer.writeKeyVal("joints", joints, true);
 			
 			writer.endObject();
 		}
@@ -165,6 +167,10 @@ namespace SceneExport{
 
 			rigidbodies = ExportUtility.convertComponentsList<Rigidbody, JsonRigidbody>(
 				obj, (arg) => new JsonRigidbody(arg)
+			);
+
+			joints = ExportUtility.convertComponentsList<Joint, JsonPhysicsJoint>(
+				obj, (arg) => new JsonPhysicsJoint(arg)
 			);
 
 			/*
