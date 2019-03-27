@@ -40,6 +40,7 @@ namespace SceneExport{
 		}
 		
 		bool checkResourceFolder(string baseFilename, out string targetDir, out string projectPath, bool forbidProjectDir){
+			//var subDirName = System.IO.Path.GetFileNameWithoutExtension(baseFilename);
 			targetDir = System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(baseFilename));
 			if (!Application.isEditor){
 				throw new System.ArgumentException("The application is not running in editor mode");
@@ -55,6 +56,8 @@ namespace SceneExport{
 					Debug.LogWarningFormat("You're saving into project directory, files will not be copied");
 				return false;
 			}
+			//targetDir = System.IO.Path.Combine(targetDir, subDirName);
+			//System.IO.Directory.CreateDirectory(targetDir);
 			return true;
 		}
 		
@@ -106,25 +109,28 @@ namespace SceneExport{
 			);;
 		}
 		
-		void saveResources(ExternalAssetList externAssets, string baseFilename, bool showGui, Logger logger = null){
+		void saveAssetFiles(ExternalAssetList externAssets, string baseFilename, bool showGui, Logger logger = null){
 			try{
 				Logger.makeValid(ref logger);
 				logger.logFormat("Save resources entered");
 				string targetDir, projectPath;
 				if (!checkResourceFolder(baseFilename, out targetDir, out projectPath, false))
 					return;
+
+				var baseProjectName = System.IO.Path.GetFileNameWithoutExtension(baseFilename);
+				var targetAssetPath = System.IO.Path.Combine(targetDir, baseProjectName);
 			
 				bool cancelled = false;
 				if (!cancelled){
-					if (!saveTerrains(externAssets.terrains, baseFilename, targetDir, projectPath, showGui, logger))
+					if (!saveTerrains(externAssets.terrains, baseFilename, targetAssetPath, projectPath, showGui, logger))
 						cancelled = true;
 				}
 				if (!cancelled){
-					if (!saveCubemaps(externAssets.cubemaps, baseFilename, targetDir, projectPath, showGui, logger))
+					if (!saveCubemaps(externAssets.cubemaps, baseFilename, targetAssetPath, projectPath, showGui, logger))
 						cancelled = true;
 				}
 				if (!cancelled){
-					if (!saveTextures(externAssets.textures, baseFilename, targetDir, projectPath, showGui, logger))
+					if (!saveTextures(externAssets.textures, baseFilename, targetAssetPath, projectPath, showGui, logger))
 						cancelled = true;
 				}
 			}
@@ -183,7 +189,7 @@ namespace SceneExport{
 			if (!saveResourceFiles)
 				return;
 
-			saveResources(externResourceList.externalAssets, filename, showGui, logger);
+			saveAssetFiles(externResourceList.externalAssets, filename, showGui, logger);
 		}
 		
 		string getProjectName(){

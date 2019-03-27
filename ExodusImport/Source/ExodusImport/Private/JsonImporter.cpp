@@ -207,6 +207,7 @@ void JsonImporter::setupAssetPaths(const FString &jsonFilename){
 	assetRootPath = FPaths::GetPath(jsonFilename);
 	sourceBaseName = FPaths::GetBaseFilename(jsonFilename);
 	sourceExternDataPath = FPaths::Combine(*assetRootPath, *sourceBaseName);
+	assetRootPath = sourceExternDataPath;
 }
 
 void JsonImporter::registerMasterMaterialPath(int32 id, FString path){
