@@ -44,3 +44,5 @@
 
 #endif
 
+#define JSON_GET_OBJ(data, objName) JsonObjects::getJsonObj(data, objName, #objName);
+#define JSON_GET_ARRAY(data, objName) JsonObjects::getJsonObjArray(data, objName, #objName);

@@ -7,6 +7,19 @@ using System.Collections.Generic;
 
 namespace SceneExport{
 	public partial class FastJsonWriter{
+		public void writeRawValue(JointDrive val){
+			beginRawObject();
+			writeKeyVal("positionSpring", val.positionSpring, false);
+			writeKeyVal("positionDamper", val.positionDamper, false);
+			writeKeyVal("maximumForce", val.maximumForce, false);
+			endObject(false);
+		}
+
+		public void writeKeyVal(string key, JointDrive val){
+			writeKey(key);
+			writeRawValue(val);
+		}
+
 		public void writeRawValue(SoftJointLimit val){
 			beginRawObject();
 			writeKeyVal("limit", val.limit, false);
