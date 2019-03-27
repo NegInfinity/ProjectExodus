@@ -26,6 +26,8 @@
 #include "JsonObjects/JsonScene.h"
 #include "JsonObjects/JsonAnimation.h"
 
+#include "JsonObjects/JsonPhysics.h"
+
 namespace JsonObjects{
 	JsonObjPtr loadJsonFromFile(const FString &filename);
 }

@@ -8,6 +8,7 @@
 #include "JsonAnimation.h"
 #include "JsonCollider.h"
 #include "JsonRigidbody.h"
+#include "JsonPhysics.h"
 
 class JsonGameObject{
 public:
@@ -54,6 +55,8 @@ public:
 
 	TArray<JsonCollider> colliders;
 	TArray<JsonRigidbody> rigidbodies;
+
+	TArray<JsonPhysicsJoint> joints;
 
 	int findSuitableRootColliderIndex() const{
 		for(int i = 0; i < colliders.Num(); i++){

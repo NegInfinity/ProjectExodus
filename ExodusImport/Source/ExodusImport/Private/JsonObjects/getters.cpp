@@ -1,5 +1,6 @@
 #include "JsonImportPrivatePCH.h"
 #include "getters.h"
+#include <limits>
 
 void JsonObjects::loadArray(JsonObjPtr data, const JsonValPtrs *&valPtrs, const FString &name, const FString &warnName){
 	if (!data->TryGetArrayField(name, valPtrs)){
@@ -29,6 +30,20 @@ bool JsonObjects::getBool(JsonObjPtr data, const char* name){
 
 float JsonObjects::getFloat(JsonObjPtr data, const char* name){
 	return data->GetNumberField(FString(name));
+}
+
+float JsonObjects::getStrFloat(JsonObjPtr data, const char* name){
+	auto str = getString(data, name).ToLower();
+
+	if (str == "nan")
+		return std::nan("");
+	if ((str == "inf") || (str == "infinity") || (str == "+inf"))
+		return std::numeric_limits<float>::infinity();
+	if ((str == "-inf") || (str == "-infinity"))
+		return -std::numeric_limits<float>::infinity();
+
+	return FCString::Atof(*str);
+	//return data->GetNumberField(FString(name));
 }
 
 FString JsonObjects::getString(JsonObjPtr data, const char* name){

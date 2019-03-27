@@ -97,6 +97,7 @@ namespace JsonObjects{
 	ResId getResId(JsonObjPtr data, const char* name);
 	bool getBool(JsonObjPtr data, const char* name);
 	float getFloat(JsonObjPtr data, const char* name);
+	float getStrFloat(JsonObjPtr data, const char* name);
 	FString getString(JsonObjPtr data, const char* name);
 	JsonObjPtr getObject(JsonObjPtr data, const char* name);
 

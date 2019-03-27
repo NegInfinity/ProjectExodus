@@ -150,16 +150,15 @@ void JsonPhysicsJoint::load(JsonObjPtr data){
 	JSON_GET_OBJ(data, connectedBody);
 	JSON_GET_OBJ(data, connectedBodyObject);
 	JSON_GET_VAR(data, axis);
-	JSON_GET_VAR(data, breakForce);
-	JSON_GET_VAR(data, breakTorque);
+	JSON_GET_PARAM(data, breakForce, getStrFloat);
+	JSON_GET_PARAM(data, breakTorque, getStrFloat);
 
 	JSON_GET_VAR(data, connectedMassScale);
 	JSON_GET_VAR(data, enableCollision);
 	JSON_GET_VAR(data, autoConfigureConnectedAnchor);
 
-	JSON_GET_ARRAY(data, sprintJointData);
-	JSON_GET_ARRAY(data, hingeJointData);
-	JSON_GET_ARRAY(data, configurableJointData);
-	JSON_GET_ARRAY(data, springJointData);
-	JSON_GET_ARRAY(data, characterJointData);
+	getJsonObjArray(data, springJointData, "springJointData", true);
+	getJsonObjArray(data, hingeJointData, "hingeJointData", true);
+	getJsonObjArray(data, configurableJointData, "configurableJointData", true);
+	getJsonObjArray(data, characterJointData, "characterJointData", true);
 }

@@ -173,7 +173,7 @@ void MeshBuilder::setupStaticMesh(UStaticMesh *mesh, const JsonMesh &jsonMesh, s
 		GenerateKDopAsSimpleCollision(mesh, verts);
 
 		UBodySetup* bodySetup = mesh->BodySetup;
-		if (bodySetup && bodySetup->AggGeom.GetElementCount()){
+		if (!bodySetup || (bodySetup && (bodySetup->AggGeom.GetElementCount() == 0))){
 			UE_LOG(JsonLog, Warning, TEXT("Could not generate convex collision for mesh %d(\"%s\"):\nRebuilding as a box."), (int)jsonMesh.id, *jsonMesh.name);
 			GenerateBoxAsSimpleCollision(mesh);
 		}

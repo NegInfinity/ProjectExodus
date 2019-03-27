@@ -70,6 +70,8 @@ void JsonGameObject::load(JsonObjPtr jsonData){
 	getJsonObjArray(jsonData, colliders, "colliders", true);
 	getJsonObjArray(jsonData, rigidbodies, "rigidbodies", true);
 
+	getJsonObjArray(jsonData, joints, "joints", true);
+
 	if (nameClash && (uniqueName.Len() > 0)){
 		UE_LOG(JsonLog, Warning, TEXT("Name clash detected on object %d: %s. Renaming to %s"), 
 			id, *name, *uniqueName);		

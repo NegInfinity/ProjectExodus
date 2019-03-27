@@ -219,7 +219,6 @@ public:
 	bool enableCollision;
 	bool autoConfigureConnectedAnchor;
 
-	TArray<JsonSpringJointData> sprintJointData;
 	TArray<JsonHingeJointData> hingeJointData;
 	TArray<JsonConfigurableJointData> configurableJointData;
 	TArray<JsonSpringJointData> springJointData;
