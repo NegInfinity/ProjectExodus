@@ -21,6 +21,7 @@ namespace SceneExport{
 		public JsonCharacterJointData(CharacterJoint joint_){
 			if (!joint_)
 				throw new System.ArgumentNullException("joint_");
+			joint = joint_;
 		}
 	}
 }

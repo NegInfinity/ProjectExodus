@@ -140,6 +140,20 @@ namespace SceneExport{
 			writeRawJsonValue(writer);
 			return writer.getString();
 		}
+
+		void confirmAndEraseExistingDirectory(string filesDir){
+			if (!System.IO.Directory.Exists(filesDir))
+				return;
+			if (!EditorUtility.DisplayDialog("WARNING! Erase existing directory?",
+				string.Format("Directory \"{0}\" already exists.\nDo you want to erase existing directory?\n"
+				+ "This directory will hold additional data. Erasing it is recommended.\n\n"
+				+"Make SURE that the directory has no sensitive or important data, as all its contents will be removed", 
+				filesDir),
+				"Erase", "Keep"))
+				return;
+
+			System.IO.Directory.Delete(filesDir, true);
+		}
 		
 		public void saveToFile(string filename, bool showGui, bool saveResourceFiles, Logger logger = null){
 			if (showGui){
@@ -154,8 +168,11 @@ namespace SceneExport{
 			
 			string baseName = System.IO.Path.GetFileNameWithoutExtension(filename);
 			string filesDir = System.IO.Path.Combine(targetDir, baseName);// + "_data");
+			if (showGui){
+				confirmAndEraseExistingDirectory(filesDir);
+			}
 			System.IO.Directory.CreateDirectory(filesDir);
-			
+						
 			externResourceList = resourceMapper.saveResourceToFolder(filesDir, showGui, scenes, logger, saveResourceFiles);
 			
 			Utility.saveStringToFile(filename, toJsonString());

@@ -37,9 +37,7 @@ namespace SceneExport{
 			writer.writeKeyVal("swapBodies", joint.swapBodies);
 
 			writer.writeKeyVal("targetAngularVelocity", joint.targetAngularVelocity);
-
-			writer.writeKeyVal("targetAngularVelocity", joint.targetAngularVelocity);
-			writer.writeKeyVal("targetPositioN", joint.targetPosition);
+			writer.writeKeyVal("targetPosition", joint.targetPosition);
 			writer.writeKeyVal("targetRotation", joint.targetRotation);
 			writer.writeKeyVal("targetVelocity", joint.targetVelocity);
 
@@ -57,6 +55,7 @@ namespace SceneExport{
 		public JsonConfigurableJointData(ConfigurableJoint joint_){				
 			if (!joint_)
 				throw new System.ArgumentNullException("joint_");
+			joint = joint_;
 		}
 	}
 }
