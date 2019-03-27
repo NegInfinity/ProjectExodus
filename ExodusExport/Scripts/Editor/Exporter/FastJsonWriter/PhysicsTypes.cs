@@ -8,7 +8,7 @@ using System.Collections.Generic;
 namespace SceneExport{
 	public partial class FastJsonWriter{
 		public void writeRawValue(JointDrive val){
-			beginRawObject();
+			beginRawObject(false);
 			writeKeyVal("positionSpring", val.positionSpring, false);
 			writeKeyVal("positionDamper", val.positionDamper, false);
 			writeKeyVal("maximumForce", val.maximumForce, false);
@@ -21,7 +21,7 @@ namespace SceneExport{
 		}
 
 		public void writeRawValue(SoftJointLimit val){
-			beginRawObject();
+			beginRawObject(false);
 			writeKeyVal("limit", val.limit, false);
 			writeKeyVal("spring", val.bounciness, false);
 			endObject(false);
@@ -33,7 +33,7 @@ namespace SceneExport{
 		}
 
 		public void writeRawValue(SoftJointLimitSpring val){
-			beginRawObject();
+			beginRawObject(false);
 			writeKeyVal("spring", val.spring, false);
 			writeKeyVal("damper", val.damper, false);
 			endObject(false);
@@ -45,7 +45,7 @@ namespace SceneExport{
 		}
 
 		public void writeRawValue(JointMotor val){
-			beginRawObject();
+			beginRawObject(false);
 			writeKeyVal("targetVelocity", val.targetVelocity, false);
 			writeKeyVal("force", val.force, false);
 			writeKeyVal("freeSpin", val.freeSpin, false);
@@ -58,7 +58,7 @@ namespace SceneExport{
 		}
 
 		public void writeRawValue(JointLimits val){
-			beginRawObject();
+			beginRawObject(false);
 			writeKeyVal("min", val.min, false);
 			writeKeyVal("max", val.max, false);
 			writeKeyVal("bounciness", val.bounciness, false);
@@ -73,7 +73,7 @@ namespace SceneExport{
 		}
 
 		public void writeRawValue(JointSpring val){
-			beginRawObject();
+			beginRawObject(false);
 			writeKeyVal("spring", val.spring, false);
 			writeKeyVal("damper", val.damper, false);
 			writeKeyVal("targetPosition", val.targetPosition, false);
