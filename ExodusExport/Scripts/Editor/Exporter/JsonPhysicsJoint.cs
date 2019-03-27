@@ -39,6 +39,7 @@ namespace SceneExport{
 		public static readonly string configurableJointType = "configurable";
 
 		public JsonObjectReference<Rigidbody> connectedBody = new JsonObjectReference<Rigidbody>(null);	
+		public JsonObjectReference<GameObject> connectedBodyObject = new JsonObjectReference<GameObject>(null);	
 
 		public class HingeJointData: IFastJsonValue{
 			public HingeJoint joint;
@@ -126,10 +127,11 @@ namespace SceneExport{
 
 			writer.writeKeyVal("anchor", joint.anchor);
 			writer.writeKeyVal("connectedAnchor", joint.connectedAnchor);
-			writer.writeKeyVal("connectedBody", new JsonObjectReference<Rigidbody>(joint.connectedBody));
+			writer.writeKeyVal("connectedBody", connectedBody);
+			writer.writeKeyVal("connectedBodyObject", connectedBodyObject);
 			writer.writeKeyVal("axis", joint.axis);
-			writer.writeKeyVal("breakForce", joint.breakForce);
-			writer.writeKeyVal("breakTorque", joint.breakTorque);
+			writer.writeKeyVal("breakForce", joint.breakForce.ToString());
+			writer.writeKeyVal("breakTorque", joint.breakTorque.ToString());
 			writer.writeKeyVal("connectedMassScale", joint.connectedMassScale);
 			writer.writeKeyVal("enableCollision", joint.enableCollision);
 			writer.writeKeyVal("autoConfigureConnectedAnchor", joint.autoConfigureConnectedAnchor);
@@ -147,11 +149,17 @@ namespace SceneExport{
 				throw new System.ArgumentNullException("joint_");
 			joint = joint_;
 
+			connectedBody = new JsonObjectReference<Rigidbody>(joint.connectedBody);
+			connectedBodyObject = joint.connectedBody ? 
+				new JsonObjectReference<GameObject>(joint.connectedBody.gameObject)
+				: new JsonObjectReference<GameObject>(null);
+
 			var fixedJoint = joint as FixedJoint;
 			var hingeJoint = joint as HingeJoint;
 			var springJoint = joint as SpringJoint;
 			var characterJoint = joint as CharacterJoint;
-			var configurableJoint = joint as ConfigurableJoint;
+			var configurableJoint = joint as ConfigurableJoint;			
+
 			if (fixedJoint){
 				jointType = fixedJointType;
 			}
