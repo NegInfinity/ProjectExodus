@@ -278,6 +278,9 @@ void JsonImporter::processPhysicsJoint(const JsonGameObject &obj, const Instance
 			physConstraint->SetAngularSwing2Limit(ACM_Locked, 0.0f);
 			physConstraint->SetAngularTwistLimit(ACM_Locked, 0.0f);
 		}
+		else if (curJoint.isHingeJointType()){
+
+		}
 	}
 }
 
