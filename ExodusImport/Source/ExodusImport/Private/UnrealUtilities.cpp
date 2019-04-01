@@ -284,9 +284,10 @@ FColor UnrealUtilities::getIdxColor(const TArray<uint8>& colors, int32 idx){
 }
 
 float UnrealUtilities::unityTorqueToUnreal(float torque){
-	return torque;
+	return torque * 10000.0f;
 }
 
 float UnrealUtilities::unityForceToUnreal(float force){
-	return force * 500.0f;//Why?
+	//return force * 500.0f;//Why?
+	return force * 100.0f;//It seems that forces are also expressed in somehow centimeter-related units.
 }
