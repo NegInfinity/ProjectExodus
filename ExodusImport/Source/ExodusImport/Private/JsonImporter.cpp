@@ -225,7 +225,9 @@ void JsonImporter::processPhysicsJoint(const JsonGameObject &obj, const Instance
 			continue;
 		}
 
-		if (curJoint.isSpringJointType() || curJoint.isHingeJointType() || curJoint.isConfigurableJointType() || curJoint.isConfigurableJointType()){
+		if (curJoint.isSpringJointType() 
+			|| curJoint.isHingeJointType() 
+			|| curJoint.isConfigurableJointType() || curJoint.isConfigurableJointType()){
 			UE_LOG(JsonLog, Warning, TEXT("Unsupported joint type %s at object %d(%s)"),
 				*curJoint.jointType, obj.id, *obj.name);
 			continue;
@@ -279,7 +281,23 @@ void JsonImporter::processPhysicsJoint(const JsonGameObject &obj, const Instance
 			physConstraint->SetAngularTwistLimit(ACM_Locked, 0.0f);
 		}
 		else if (curJoint.isHingeJointType()){
+			physConstraint->SetLinearXLimit(LCM_Locked, 1.0f);
+			physConstraint->SetLinearYLimit(LCM_Locked, 1.0f);
+			physConstraint->SetLinearZLimit(LCM_Locked, 1.0f);
+			physConstraint->SetAngularSwing2Limit(ACM_Locked, 0.0f);
+			physConstraint->SetAngularTwistLimit(ACM_Locked, 0.0f);
+			physConstraint->SetAngularSwing1Limit(ACM_Free, 0.0f);
 
+			FVector jointPos;
+			FVector jointSwing1;
+			FVector jointSwing2;
+
+			physConstraint->SetConstraintReferencePosition(EConstraintFrame::Frame1, jointPos);
+			physConstraint->SetConstraintReferenceOrientation(EConstraintFrame::Frame1, jointSwing1, jointSwing2);
+		}
+		else{
+			UE_LOG(JsonLog, Warning, TEXT("Unhandled joint type %s at object %d(%s)"),
+				*curJoint.jointType, obj.id, *obj.name);
 		}
 	}
 }
