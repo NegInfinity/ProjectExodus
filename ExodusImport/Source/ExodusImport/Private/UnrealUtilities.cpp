@@ -1,6 +1,9 @@
 #include "JsonImportPrivatePCH.h"
 #include "UnrealUtilities.h"
 #include "JsonImporter.h"
+#include "UnrealEd/Public/ObjectTools.h"
+#include "UnrealEd/Public/PackageTools.h"
+#include "AssetRegistry/Public/AssetRegistryModule.h"
 
 using namespace UnrealUtilities;
 
@@ -280,3 +283,10 @@ FColor UnrealUtilities::getIdxColor(const TArray<uint8>& colors, int32 idx){
 	);
 }
 
+float UnrealUtilities::unityTorqueToUnreal(float torque){
+	return torque;
+}
+
+float UnrealUtilities::unityForceToUnreal(float force){
+	return force * 500.0f;//Why?
+}

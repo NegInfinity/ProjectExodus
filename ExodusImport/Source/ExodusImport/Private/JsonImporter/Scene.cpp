@@ -35,6 +35,7 @@
 #include "UnrealUtilities.h"
 #include "JsonObjects.h"
 #include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
+#include "UnrealEd/Public/Editor.h"
 
 #define LOCTEXT_NAMESPACE "FJsonImportModule"
 
@@ -76,7 +77,6 @@ UWorld* JsonImporter::importScene(const JsonScene &scene, bool createWorld){
 	return result;
 }
 
-//UWorld* JsonImporter::importSceneObjectsAsWorld(const TArray<JsonGameObject> &sceneObjects, const FString &sceneName, const FString &scenePath){
 UWorld* JsonImporter::importSceneObjectsAsWorld(const JsonScene &scene, const FString &sceneName, const FString &scenePath){
 	UWorldFactory *factory = NewObject<UWorldFactory>();
 	factory->WorldType = EWorldType::Inactive;

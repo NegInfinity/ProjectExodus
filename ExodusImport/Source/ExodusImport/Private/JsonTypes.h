@@ -14,10 +14,13 @@ using IdNameMap = TMap<int, FString>;
 using ResIdNameMap = TMap<ResId, FString>;
 
 using JsonId = int;
+using InstanceId = int;
 using JsonTextureId = JsonId;
 using JsonMeshId = JsonId;
 using JsonMaterialId = JsonId;
 using JsonObjectId = JsonId;
+
+using InstanceToIdMap = TMap<InstanceId, JsonId>;
 
 using IntArray = TArray<int32>;
 using FloatArray = TArray<float>;

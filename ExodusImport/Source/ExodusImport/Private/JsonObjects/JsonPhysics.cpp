@@ -2,6 +2,7 @@
 #include "JsonPhysics.h"
 #include "macros.h"
 #include "loggers.h"
+#include "UnrealUtilities.h"
 
 void JsonObjectReference::load(JsonObjPtr data){
 	using namespace JsonObjects;
@@ -161,4 +162,28 @@ void JsonPhysicsJoint::load(JsonObjPtr data){
 	getJsonObjArray(data, hingeJointData, "hingeJointData", true);
 	getJsonObjArray(data, configurableJointData, "configurableJointData", true);
 	getJsonObjArray(data, characterJointData, "characterJointData", true);
+}
+
+bool JsonPhysicsJoint::isConnectedToWorld() const{
+	return connectedBodyObject.isNull;
+}
+
+bool JsonPhysicsJoint::isLinearBreakable() const{
+	return breakForce < std::numeric_limits<float>::infinity();
+}
+
+bool JsonPhysicsJoint::isAngularBreakable() const{
+	return breakTorque < std::numeric_limits<float>::infinity();
+}
+
+float JsonPhysicsJoint::getUnrealBreakForce() const{
+	if (!isLinearBreakable())
+		return breakForce;
+	return UnrealUtilities::unityForceToUnreal(breakForce);
+}
+
+float JsonPhysicsJoint::getUnrealBreakTorque() const{
+	if (!isAngularBreakable())
+		return breakTorque;
+	return UnrealUtilities::unityTorqueToUnreal(breakForce);
 }

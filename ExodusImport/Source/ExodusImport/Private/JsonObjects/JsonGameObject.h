@@ -144,6 +144,10 @@ public:
 		//return meshId >= 0;
 	}
 
+	bool hasJoints() const{
+		return joints.Num() > 0;
+	}
+
 	bool hasColliders() const{
 		return colliders.Num() > 0;
 	}

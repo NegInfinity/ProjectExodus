@@ -12,6 +12,10 @@ class JsonImporter;
 class UStaticMesh;
 
 namespace UnrealUtilities{
+	//Used for converting break forces on constraints
+	float unityTorqueToUnreal(float force);
+	//Used for converting break forces on constraints
+	float unityForceToUnreal(float force);
 	FVector unityToUe(const FVector& arg);
 	float unityDistanceToUe(const float arg);
 	FVector unityVecToUe(const FVector& arg);

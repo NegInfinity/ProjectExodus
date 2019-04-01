@@ -33,6 +33,10 @@
 #include "Kismet2/KismetEditorUtilities.h"
 #include "UnrealUtilities.h"
 #include "JsonObjects/JsonTerrainData.h"
+#include "Classes/Animation/Skeleton.h"
+#include "Classes/Animation/AnimSequence.h"
+#include "PhysicsEngine/PhysicsConstraintComponent.h"
+
 
 #define LOCTEXT_NAMESPACE "FJsonImportModule"
 
@@ -169,6 +173,132 @@ void JsonImporter::loadMeshes(const StringArray &meshes){
 	}
 }
 
+void JsonImporter::buildInstanceIdMap(InstanceToIdMap &outMap, const TArray<JsonGameObject>& objects) const{
+	outMap.Empty();
+	for(const auto &cur: objects){
+		auto instId = cur.instanceId;
+		auto objId = cur.id;
+		auto found = outMap.Find(instId);
+		if (found){
+			UE_LOG(JsonLog, Warning, TEXT("Duplicate instance id found: %d; exisitng object id %d, new object id %d (%s)"),
+				instId, *found, objId, *cur.name
+			);
+			outMap.Remove(instId);
+		}
+		outMap.Add(instId, objId);
+	}
+}
+
+const JsonGameObject* JsonImporter::resolveObjectReference(const JsonObjectReference &ref,
+	const InstanceToIdMap instanceMap, const TArray<JsonGameObject>& objects) const{
+	if (ref.isNull)
+		return nullptr;
+	auto found = instanceMap.Find(ref.instanceId);
+	if (!found)
+		return nullptr;
+	if ((*found < 0) || (*found >= objects.Num()))
+		return nullptr;
+	return &objects[*found];
+}
+
+void JsonImporter::processPhysicsJoint(const JsonGameObject &obj, const InstanceToIdMap &instanceMap, 
+	const TArray<JsonGameObject>& objects, ImportWorkData &workData) const{
+	using namespace UnrealUtilities;
+
+	if (!obj.hasJoints())
+		return;
+	auto srcObj = workData.findImportedObject(obj.id);
+	if (!srcObj){
+		UE_LOG(JsonLog, Warning, TEXT("Src object %d not found while processing joints"), obj.id);
+	}
+
+	check(srcObj->hasComponent() || srcObj->hasActor());
+	auto srcRootActor = srcObj->findRootActor();
+	check(srcRootActor);
+	for(int jointIndex = 0; jointIndex < obj.joints.Num(); jointIndex++){
+		const JsonPhysicsJoint &curJoint = obj.joints[jointIndex];
+
+		auto dstJsonObj = resolveObjectReference(curJoint.connectedBodyObject, instanceMap, objects);
+		if (!curJoint.isConnectedToWorld() && !dstJsonObj){
+			UE_LOG(JsonLog, Warning, TEXT("dst object %d not found while processing joints on %d(%d: \"%s\")"),
+				curJoint.connectedBodyObject.instanceId, obj.instanceId, obj.id, *obj.name);
+			continue;
+		}
+
+		if (curJoint.isSpringJointType() || curJoint.isHingeJointType() || curJoint.isConfigurableJointType() || curJoint.isConfigurableJointType()){
+			UE_LOG(JsonLog, Warning, TEXT("Unsupported joint type %s at object %d(%s)"),
+				*curJoint.jointType, obj.id, *obj.name);
+			continue;
+		}
+
+		AActor *dstActor = nullptr;
+		UPrimitiveComponent *dstComponent = nullptr;
+		if (dstJsonObj){
+			auto dstObj = workData.findImportedObject(dstJsonObj->id);
+			if (dstObj){
+				dstActor = dstObj->findRootActor();
+				dstComponent = Cast<UPrimitiveComponent>(dstObj->component);
+			}
+		}
+
+		auto physConstraint = NewObject<UPhysicsConstraintComponent>(srcRootActor);
+		auto anchorPos = curJoint.anchor;
+		auto anchorTransform = obj.getUnrealTransform(anchorPos);
+		physConstraint->SetWorldTransform(anchorTransform);
+		auto physObj = ImportedObject(physConstraint);
+
+		auto jointName = FString::Printf(TEXT("joint_%d_%s"), jointIndex, *curJoint.jointType);
+		physObj.setNameOrLabel(jointName);
+		physObj.attachTo(srcObj);
+		physObj.convertToInstanceComponent();
+		physObj.fixEditorVisibility();
+		//physConstraint->RegisterComponent();
+
+		physConstraint->SetLinearBreakable(curJoint.isLinearBreakable(), unityForceToUnreal(curJoint.breakForce));
+		physConstraint->SetAngularBreakable(curJoint.isAngularBreakable(), unityTorqueToUnreal(curJoint.breakTorque));
+		UE_LOG(JsonLog, Log, TEXT("linear breakable: %d (%f); angular breakable: %d (%f);"),
+			(int)curJoint.isLinearBreakable(), curJoint.breakForce,
+			(int)curJoint.isAngularBreakable(), curJoint.breakTorque);
+
+		auto srcActor = srcObj->findRootActor();
+		auto srcComponent = Cast<UPrimitiveComponent>(srcObj->component);
+
+		physConstraint->ConstraintActor1 = srcActor;
+		if (srcComponent)
+			physConstraint->OverrideComponent1 = srcComponent;
+		physConstraint->ConstraintActor2 = dstActor;
+		if (dstComponent)
+			physConstraint->OverrideComponent2 = dstComponent;
+
+		if (curJoint.isFixedJointType()){
+			physConstraint->SetLinearXLimit(LCM_Locked, 1.0f);
+			physConstraint->SetLinearYLimit(LCM_Locked, 1.0f);
+			physConstraint->SetLinearZLimit(LCM_Locked, 1.0f);
+			physConstraint->SetAngularSwing1Limit(ACM_Locked, 0.0f);
+			physConstraint->SetAngularSwing2Limit(ACM_Locked, 0.0f);
+			physConstraint->SetAngularTwistLimit(ACM_Locked, 0.0f);
+		}
+	}
+}
+
+void JsonImporter::processPhysicsJoints(const TArray<JsonGameObject>& objects, ImportWorkData &workData) const{
+	InstanceToIdMap instanceMap;
+	FScopedSlowTask progress(objects.Num(), LOCTEXT("Processing joints", "Processing joints"));
+	progress.MakeDialog();
+	UE_LOG(JsonLog, Log, TEXT("Processing joints"));
+	for (int i = 0; i < objects.Num(); i++){
+		auto srcObj = objects[i];
+		if (srcObj.hasJoints()){
+			if (instanceMap.Num() == 0){
+				buildInstanceIdMap(instanceMap, objects);
+				check(instanceMap.Num() != 0);//the map can't be empty past this point, at least one entry should be there...
+			}
+			processPhysicsJoint(srcObj, instanceMap, objects, workData);
+		}
+		progress.EnterProgressFrame(1.0f);
+	}
+}
+
 void JsonImporter::loadObjects(const TArray<JsonGameObject> &objects, ImportWorkData &importData){
 	FScopedSlowTask objProgress(objects.Num(), LOCTEXT("Importing objects", "Importing objects"));
 	objProgress.MakeDialog();
@@ -180,6 +310,9 @@ void JsonImporter::loadObjects(const TArray<JsonGameObject> &objects, ImportWork
 		importObject(curObj, objId, importData);
 		objProgress.EnterProgressFrame(1.0f);
 	}
+
+	processPhysicsJoints(objects, importData);
+
 	processDelayedAnimators(objects, importData);
 }
 

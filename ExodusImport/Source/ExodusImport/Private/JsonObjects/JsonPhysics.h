@@ -215,6 +215,12 @@ public:
 	float breakForce;
 	float breakTorque;
 
+	float getUnrealBreakForce() const;
+	float getUnrealBreakTorque() const;
+
+	bool isLinearBreakable() const;
+	bool isAngularBreakable() const;
+
 	float connectedMassScale;
 	bool enableCollision;
 	bool autoConfigureConnectedAnchor;
@@ -224,6 +230,8 @@ public:
 	TArray<JsonSpringJointData> springJointData;
 	TArray<JsonCharacterJointData> characterJointData;
 	//
+
+	bool isConnectedToWorld() const;
 	void load(JsonObjPtr data);
 	JsonPhysicsJoint() = default;
 	JsonPhysicsJoint(JsonObjPtr data){
