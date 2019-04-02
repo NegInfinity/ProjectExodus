@@ -22,6 +22,10 @@ namespace SceneExport{
         static readonly string colliderTypeCapsule = "capsule";
         static readonly string colliderTypeMesh = "mesh";
 
+		public bool isSupportedType(){
+			return !string.IsNullOrEmpty(colliderType);
+		}
+
         public void writeRawJsonValue(FastJsonWriter writer){
 			writer.beginRawObject();
             writer.writeKeyVal("colliderType", colliderType);

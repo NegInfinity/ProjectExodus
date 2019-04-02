@@ -183,6 +183,10 @@ ImportedObject JsonImporter::processMeshAndColliders(ImportWorkData &workData, c
 
 		//auto collider = processCollider(workData, jsonGameObj, rootActor, curCollider);
 		auto collider = processCollider(workData, jsonGameObj, outer, curCollider);
+		if (!collider){
+			UE_LOG(JsonLog, Warning, TEXT("Could not create collider %d on %d(%s)"), i, jsonGameObj.id, *jsonGameObj.name);
+			continue;
+		}
 		auto name = FString::Printf(TEXT("%s_collider#%d(%s)"), *jsonGameObj.ueName, i, *curCollider.colliderType);
 
 		collider->Rename(*name);

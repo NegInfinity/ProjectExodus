@@ -163,7 +163,14 @@ namespace SceneExport{
 			int colliderIndex = 0;
 			colliders = ExportUtility.convertComponentsList<Collider, JsonCollider>(
 				obj, (arg) => new JsonCollider(arg, colliderIndex++, resMap)
-			);
+			).Where(c => c.isSupportedType()).ToList();
+
+			for(int i = colliders.Count - 1; i >= 0; i--){
+				var curCollider = colliders[i];
+				if ((curCollider == null) || !curCollider.isSupportedType()){
+					colliders.RemoveAt(i);
+				}
+			}
 
 			rigidbodies = ExportUtility.convertComponentsList<Rigidbody, JsonRigidbody>(
 				obj, (arg) => new JsonRigidbody(arg)

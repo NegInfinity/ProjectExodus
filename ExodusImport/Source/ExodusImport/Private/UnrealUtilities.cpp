@@ -284,7 +284,7 @@ FColor UnrealUtilities::getIdxColor(const TArray<uint8>& colors, int32 idx){
 }
 
 float UnrealUtilities::unityTorqueToUnreal(float torque){
-	return torque * 10000.0f;
+	return torque * 10000.0f;	
 }
 
 float UnrealUtilities::unityForceToUnreal(float force){
