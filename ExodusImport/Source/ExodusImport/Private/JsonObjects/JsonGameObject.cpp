@@ -106,3 +106,21 @@ FTransform JsonGameObject::getUnrealTransform() const{
 	result.SetFromMatrix(ueWorldMatrix);
 	return result;
 }
+
+FVector JsonGameObject::unityLocalVectorToUnrealWorld(const FVector &arg) const{
+	using namespace UnrealUtilities;
+
+	FVector x, y, z, pos;
+
+	worldMatrix.GetScaledAxes(x, y, z);
+	return unityVecToUe(arg.X * x + arg.Y * y + arg.Z * z);
+}
+
+FVector JsonGameObject::unityLocalPosToUnrealWorld(const FVector &arg) const{
+	using namespace UnrealUtilities;
+
+	FVector x, y, z, pos;
+	worldMatrix.GetScaledAxes(x, y, z);
+	pos = worldMatrix.GetOrigin();
+	return unityPosToUe(arg.X * x + arg.Y * y + arg.Z * z + pos);
+}

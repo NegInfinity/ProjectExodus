@@ -12,6 +12,12 @@ class JsonImporter;
 class UStaticMesh;
 
 namespace UnrealUtilities{
+	void unityMatrixToUnrealBasisVectors(const FMatrix& unityWorld, FVector *outX, FVector *outY, FVector *outZ, FVector *outPos);
+	void unityMatrixToUnrealBasisVectors(const FMatrix& unityWorld, FVector &outX, FVector &outY, FVector &outZ, FVector &outPos);
+
+	FVector makePerpendicular(const FVector& arg);
+	FVector makePerpendicular(const FVector& arg, const FVector& candidate);
+
 	//Used for converting break forces on constraints
 	float unityTorqueToUnreal(float force);
 	//Used for converting break forces on constraints

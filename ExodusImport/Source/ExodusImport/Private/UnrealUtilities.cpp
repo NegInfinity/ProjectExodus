@@ -225,7 +225,6 @@ float UnrealUtilities::unityDistanceToUe(const float arg){
 	return arg * 100.0f;
 }
 
-
 FMatrix UnrealUtilities::unityWorldToUe(const FMatrix &unityWorld, const FVector &localPositionOffset){
 	FVector xAxis, yAxis, zAxis;
 	unityWorld.GetScaledAxes(xAxis, yAxis, zAxis);
@@ -233,10 +232,11 @@ FMatrix UnrealUtilities::unityWorldToUe(const FMatrix &unityWorld, const FVector
 
 	pos += xAxis * localPositionOffset.X + yAxis * localPositionOffset.Y + zAxis * localPositionOffset.Z;
 
-	pos = unityToUe(pos)*100.0f;
-	xAxis = unityToUe(xAxis);
-	yAxis = unityToUe(yAxis);
-	zAxis = unityToUe(zAxis);
+	pos = unityPosToUe(pos);//unityToUe(pos)*100.0f;
+	//unityPosToUe(pos);
+	xAxis = unityVecToUe(xAxis);
+	yAxis = unityVecToUe(yAxis);
+	zAxis = unityVecToUe(zAxis);
 
 	FMatrix ueMatrix = FMatrix::Identity;//Well, wow. I expected matrix to have a local constructor.
 	ueMatrix.SetAxes(&zAxis, &xAxis, &yAxis, &pos);
@@ -247,10 +247,10 @@ FMatrix UnrealUtilities::unityWorldToUe(const FMatrix &unityWorld){
 	FVector xAxis, yAxis, zAxis;
 	unityWorld.GetScaledAxes(xAxis, yAxis, zAxis);
 	FVector pos = unityWorld.GetOrigin();
-	pos = unityToUe(pos)*100.0f;
-	xAxis = unityToUe(xAxis);
-	yAxis = unityToUe(yAxis);
-	zAxis = unityToUe(zAxis);
+	pos = unityPosToUe(pos);//unityToUe(pos)*100.0f;
+	xAxis = unityVecToUe(xAxis);
+	yAxis = unityVecToUe(yAxis);
+	zAxis = unityVecToUe(zAxis);
 	FMatrix ueMatrix = FMatrix::Identity;//Well, wow. I expected matrix to have a local constructor.
 	ueMatrix.SetAxes(&zAxis, &xAxis, &yAxis, &pos);
 	return ueMatrix;
@@ -290,4 +290,51 @@ float UnrealUtilities::unityTorqueToUnreal(float torque){
 float UnrealUtilities::unityForceToUnreal(float force){
 	//return force * 500.0f;//Why?
 	return force * 100.0f;//It seems that forces are also expressed in somehow centimeter-related units.
+}
+
+void UnrealUtilities::unityMatrixToUnrealBasisVectors(const FMatrix& unityWorld, FVector *outX, FVector *outY, FVector *outZ, FVector *outPos){
+	FVector xAxis, yAxis, zAxis;
+	unityWorld.GetScaledAxes(xAxis, yAxis, zAxis);
+	if (outPos)
+		*outPos = unityPosToUe(unityWorld.GetOrigin());
+	if (outX)
+		*outX = unityVecToUe(xAxis);
+	if (outY)
+		*outY = unityVecToUe(yAxis);
+	if (outZ)
+		*outZ = unityVecToUe(zAxis);
+}
+
+void UnrealUtilities::unityMatrixToUnrealBasisVectors(const FMatrix& unityWorld, FVector &outX, FVector &outY, FVector &outZ, FVector &outPos){
+	FVector xAxis, yAxis, zAxis;
+	unityWorld.GetScaledAxes(xAxis, yAxis, zAxis);
+	outPos = unityPosToUe(unityWorld.GetOrigin());
+	outX = unityVecToUe(xAxis);
+	outY = unityVecToUe(yAxis);
+	outZ = unityVecToUe(zAxis);
+}
+
+FVector UnrealUtilities::makePerpendicular(const FVector& arg){
+	if (arg.IsNearlyZero())
+		return FVector(1.0f, 0.0f, 0.0f);
+
+	FVector result = FVector::VectorPlaneProject(FVector(1.0f, 0.0f, 0.0f), arg);
+	if (result.IsNearlyZero()){
+		result = FVector::VectorPlaneProject(FVector(0.0f, 1.0f, 0.0f), arg);
+		if (result.IsNearlyZero()){
+			result = FVector::VectorPlaneProject(FVector(0.0f, 0.0f, 1.0f), arg);
+		}
+	}
+
+	result.Normalize();
+
+	return result;
+}
+
+FVector UnrealUtilities::makePerpendicular(const FVector& arg, const FVector& candidate){
+	auto result = FVector::VectorPlaneProject(candidate, arg);
+	if (result.IsNearlyZero())
+		return makePerpendicular(arg);
+	result.Normalize();
+	return result;
 }

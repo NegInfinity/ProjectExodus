@@ -7,6 +7,8 @@ public class ExodusImport : ModuleRules
 	public ExodusImport(ReadOnlyTargetRules Target): base(Target)
 	{
         PrivatePCHHeaderFile = "Private/JsonImportPrivatePCH.h";
+        PCHUsage = PCHUsageMode.UseSharedPCHs;
+        bEnforceIWYU = true;
 
         PublicIncludePaths.AddRange(
 			new string[] {
