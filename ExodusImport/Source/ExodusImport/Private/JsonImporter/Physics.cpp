@@ -77,6 +77,8 @@ void JsonImporter::processPhysicsJoint(const JsonGameObject &obj, const Instance
 		if (dstComponent)
 			physConstraint->OverrideComponent2 = dstComponent;
 
+		physConstraint->SetDisableCollision(!curJoint.enableCollision);
+
 		if (curJoint.isFixedJointType()){
 			physConstraint->SetLinearXLimit(LCM_Locked, 1.0f);
 			physConstraint->SetLinearYLimit(LCM_Locked, 1.0f);
