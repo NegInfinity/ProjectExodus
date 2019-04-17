@@ -55,11 +55,13 @@ FTransform &jointTransform, const JsonPhysicsJoint &joint, const JsonGameObject 
 	auto hingeX = FVector::CrossProduct(hingeY, hingeZ);
 	hingeX.Normalize();
 
+	float midAngle = 0.0f;//Affected by limits, "middle" of rotational block.
+
 	const auto& hingeData = joint.hingeJointData[0];
 	if (hingeData.useLimits){
 		float angleRange = hingeData.limits.max - hingeData.limits.min;
 		float symmetricAngleLimit = angleRange * 0.5f;
-		float midAngle = (hingeData.limits.max + hingeData.limits.min) * 0.5f;
+		midAngle = (hingeData.limits.max + hingeData.limits.min) * 0.5f;
 		physConstraint->SetAngularSwing1Limit(ACM_Limited, symmetricAngleLimit);
 
 		if (!FMath::IsNearlyZero(midAngle)){
@@ -74,6 +76,10 @@ FTransform &jointTransform, const JsonPhysicsJoint &joint, const JsonGameObject 
 
 	jointTransform.SetFromMatrix(hingeMatrix);
 
+	if (hingeData.useMotor && hingeData.useSpring){
+		UE_LOG(JsonLog, Warning, TEXT("Both spring and motor are enabled on object %d(%s), jointIndex %d. Only spring will be active"), obj.id, *obj.name, jointIndex);
+	}
+
 	if (hingeData.useMotor){
 		physConstraint->SetAngularDriveMode(EAngularDriveMode::TwistAndSwing);
 		physConstraint->SetAngularVelocityDrive(true, false);
@@ -85,11 +91,17 @@ FTransform &jointTransform, const JsonPhysicsJoint &joint, const JsonGameObject 
 		//Second parameter refers to strength.
 		//Last one - to max force.
 		//hingeData.motor.force;
-		physConstraint->SetAngularDriveParams(0.0f, unityForceToUnreal(hingeData.motor.force), 0.0f);
+		physConstraint->SetAngularDriveParams(0.0f, unityAngularMotorForceToUnreal(hingeData.motor.force), 0.0f);
 		//hingeData.motor.freeSpin; //? There doesn't seem to be an equivalent
 	}
 
 	if (hingeData.useSpring){
+		physConstraint->SetAngularDriveMode(EAngularDriveMode::TwistAndSwing);
+		physConstraint->SetAngularOrientationDrive(true, false);
+
+		auto orientRotator = FRotator(0.0f, hingeData.spring.targetPosition - midAngle, 0.0f);
+		physConstraint->SetAngularOrientationTarget(orientRotator);
+		physConstraint->SetAngularDriveParams(unityAngularSpringForceToUnreal(hingeData.spring.spring), 0.0f, 0.0f);
 	}
 	//physConstraint->SetWorldTransform(hingeTransform);
 }

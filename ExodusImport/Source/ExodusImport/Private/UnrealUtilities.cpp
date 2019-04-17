@@ -287,6 +287,14 @@ float UnrealUtilities::unityTorqueToUnreal(float torque){
 	return torque * 10000.0f;	
 }
 
+float UnrealUtilities::unityAngularMotorForceToUnreal(float force){
+	return force * 100.0f;///
+}
+
+float UnrealUtilities::unityAngularSpringForceToUnreal(float force){
+	return force * 10.0f;//Why? *100.0f does not seem to produce correct results....
+}
+
 float UnrealUtilities::unityForceToUnreal(float force){
 	//return force * 500.0f;//Why?
 	return force * 100.0f;//It seems that forces are also expressed in somehow centimeter-related units.
