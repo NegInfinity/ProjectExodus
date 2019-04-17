@@ -7,6 +7,7 @@
 
 #define LOCTEXT_NAMESPACE "FExodusImportModule"
 
+#if 0
 void JsonImporter::processPhysicsJoint(const JsonGameObject &obj, const InstanceToIdMap &instanceMap,
 	const TArray<JsonGameObject>& objects, ImportWorkData &workData) const{
 	using namespace UnrealUtilities;
@@ -88,44 +89,89 @@ void JsonImporter::processPhysicsJoint(const JsonGameObject &obj, const Instance
 			physConstraint->SetAngularTwistLimit(ACM_Locked, 0.0f);
 		}
 		else if (curJoint.isHingeJointType()){
+			//We're using Swing1 axis for hinges. WHich is Z-axis
 			physConstraint->SetLinearXLimit(LCM_Locked, 1.0f);
 			physConstraint->SetLinearYLimit(LCM_Locked, 1.0f);
 			physConstraint->SetLinearZLimit(LCM_Locked, 1.0f);
+			physConstraint->SetAngularSwing1Limit(ACM_Free, 0.0f);
 			physConstraint->SetAngularSwing2Limit(ACM_Locked, 0.0f);
 			physConstraint->SetAngularTwistLimit(ACM_Locked, 0.0f);
-			physConstraint->SetAngularSwing1Limit(ACM_Free, 0.0f);
 
 			if (curJoint.hingeJointData.Num() == 0){
 				UE_LOG(JsonLog, Warning, TEXT("Hinge joint data not found on joint %d, obj %d (%s)"), jointIndex, obj.id, *obj.name);
 			}
 			else{
-				//UE_LOG(JsonLog, Warning, TEXT("%f %f %f"), curJoint.anchor.X, curJoint.anchor.Y, curJoint.anchor.Z);
 				FVector jointPos = obj.unityLocalPosToUnrealWorld(curJoint.anchor);
-				//UE_LOG(JsonLog, Warning, TEXT("%f %f %f"), jointPos.X, jointPos.Y, jointPos.Z);
-
 				FVector jointAxis = obj.unityLocalVectorToUnrealWorld(curJoint.axis);//This is actually z axis, meaning up. X-->forward Y-->right, Z --> up
-				UE_LOG(JsonLog, Log, TEXT("Joint axis: %f %f %f; unrealAxis: %f %f %f"),
-					curJoint.axis.X, curJoint.axis.Y, curJoint.axis.Z,
-					jointAxis.X, jointAxis.Y, jointAxis.Z);
-				FVector jointSwing1;
-				FVector jointSwing2;
-
 				FTransform hingeTransform;
+
+				auto objectUp = obj.unityLocalVectorToUnrealWorld(getUnityUpVector());//unity's up vector
 
 				auto hingePos = jointPos;
 				auto hingeZ = jointAxis;
-				auto hingeX = makePerpendicular(hingeZ);
-				auto hingeY = FVector::CrossProduct(hingeX, hingeZ);
-				hingeY.Normalize();
+				auto hingeY = makePerpendicular(hingeZ, objectUp);
+				//auto hingeX = makePerpendicular(hingeZ);
+				//auto hingeY = FVector::CrossProduct(hingeX, hingeZ);
+				//hingeY.Normalize();
+				auto hingeX = FVector::CrossProduct(hingeY, hingeZ);
+				hingeX.Normalize();
+
+				const auto& hingeData = curJoint.hingeJointData[0];
+				if (hingeData.useLimits){
+					float angleRange = hingeData.limits.max - hingeData.limits.min;
+					float symmetricAngleLimit = angleRange * 0.5f;
+					float midAngle = (hingeData.limits.max + hingeData.limits.max) * 0.5f;
+					physConstraint->SetAngularSwing1Limit(ACM_Limited, symmetricAngleLimit);
+
+					//This doens't work, as even if we rotate the joint, it spawns rotated at the MIDDLE of the range. 
+					//Looking for angular rotation offset
+					/*
+					if (!FMath::IsNearlyZero(midAngle)){
+						float rotationAngle = midAngle;// -hingeData.limits.min;
+						//float fSin, fCos;
+						float angleRad = FMath::DegreesToRadians(rotationAngle);
+
+						float fSin = sinf(angleRad);
+						float fCos = cosf(angleRad);
+
+						//FMath::SinCos(&fSin, &fCos, FMath::DegreesToRadians(rotationAngle)); approximation...
+
+						auto hingeX1 = hingeX * fCos + hingeY * fSin;
+						auto hingeY1 = hingeY * fCos - hingeX * fSin;
+						hingeX1.Normalize();
+						hingeY1.Normalize();
+
+						hingeX = hingeX1;
+						hingeY = hingeY1;
+					}
+					*/
+				}
 
 				FMatrix hingeMatrix = FMatrix::Identity;//Goddamit, again. Partially initialized matrix.
 				hingeMatrix.SetAxes(&hingeX, &hingeY, &hingeZ, &hingePos);
 
 				jointTransform.SetFromMatrix(hingeMatrix);
 
-				const auto& hingeData = curJoint.hingeJointData[0];
+				if (hingeData.useMotor){
+					physConstraint->SetAngularDriveMode(EAngularDriveMode::TwistAndSwing);
+					physConstraint->SetAngularVelocityDrive(true, false);
 
-				physConstraint->SetWorldTransform(hingeTransform);
+					//Looks like angular rotration needs to be inverted
+					//hingeData.motor.force;
+					auto angularVelTarget = FVector(0.0f, 0.0f, -unityAngularVelocityToUe(hingeData.motor.targetVelocity));
+					physConstraint->SetAngularVelocityTarget(angularVelTarget);
+					//Second parameter refers to strength.
+					//Last one - to max force.
+					//hingeData.motor.force;
+					physConstraint->SetAngularDriveParams(0.0f, unityForceToUnreal(hingeData.motor.force), 0.0f);
+					//hingeData.motor.freeSpin; //? There doesn't seem to be an equivalent
+				}
+
+				if (hingeData.useSpring){
+				}
+
+
+				//physConstraint->SetWorldTransform(hingeTransform);
 			}
 		}
 		else{
@@ -158,3 +204,4 @@ void JsonImporter::processPhysicsJoints(const TArray<JsonGameObject>& objects, I
 	}
 }
 
+#endif

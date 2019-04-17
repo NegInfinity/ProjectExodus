@@ -36,6 +36,8 @@
 #include "Classes/Animation/Skeleton.h"
 #include "Classes/Animation/AnimSequence.h"
 
+#include "builders/JointBuilder.h"
+
 #define LOCTEXT_NAMESPACE "FExodusImportModule"
 
 using namespace JsonObjects;
@@ -171,34 +173,6 @@ void JsonImporter::loadMeshes(const StringArray &meshes){
 	}
 }
 
-void JsonImporter::buildInstanceIdMap(InstanceToIdMap &outMap, const TArray<JsonGameObject>& objects) const{
-	outMap.Empty();
-	for(const auto &cur: objects){
-		auto instId = cur.instanceId;
-		auto objId = cur.id;
-		auto found = outMap.Find(instId);
-		if (found){
-			UE_LOG(JsonLog, Warning, TEXT("Duplicate instance id found: %d; exisitng object id %d, new object id %d (%s)"),
-				instId, *found, objId, *cur.name
-			);
-			outMap.Remove(instId);
-		}
-		outMap.Add(instId, objId);
-	}
-}
-
-const JsonGameObject* JsonImporter::resolveObjectReference(const JsonObjectReference &ref,
-	const InstanceToIdMap instanceMap, const TArray<JsonGameObject>& objects) const{
-	if (ref.isNull)
-		return nullptr;
-	auto found = instanceMap.Find(ref.instanceId);
-	if (!found)
-		return nullptr;
-	if ((*found < 0) || (*found >= objects.Num()))
-		return nullptr;
-	return &objects[*found];
-}
-
 void JsonImporter::loadObjects(const TArray<JsonGameObject> &objects, ImportWorkData &importData){
 	FScopedSlowTask objProgress(objects.Num(), LOCTEXT("Importing objects", "Importing objects"));
 	objProgress.MakeDialog();
@@ -211,7 +185,8 @@ void JsonImporter::loadObjects(const TArray<JsonGameObject> &objects, ImportWork
 		objProgress.EnterProgressFrame(1.0f);
 	}
 
-	processPhysicsJoints(objects, importData);
+	JointBuilder jointBuilder;
+	jointBuilder.processPhysicsJoints(objects, importData);
 	processDelayedAnimators(objects, importData);
 }
 

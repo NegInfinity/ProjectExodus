@@ -12,11 +12,24 @@ class JsonImporter;
 class UStaticMesh;
 
 namespace UnrealUtilities{
+	FVector getUnityUpVector();
+	FVector getUnityRightVector();
+	FVector getUnityForwardVector();
+
 	void unityMatrixToUnrealBasisVectors(const FMatrix& unityWorld, FVector *outX, FVector *outY, FVector *outZ, FVector *outPos);
 	void unityMatrixToUnrealBasisVectors(const FMatrix& unityWorld, FVector &outX, FVector &outY, FVector &outZ, FVector &outPos);
 
+	//Creates a vector perpendicular to the argument, uses Projection onto plane
 	FVector makePerpendicular(const FVector& arg);
+	//Creates a vector perpendicular to the argument, uses Projection onto plane
 	FVector makePerpendicular(const FVector& arg, const FVector& candidate);
+	//Creates a vector perpendicular to the argument, uses cross products
+	FVector makeCrossPerpendicular(const FVector& arg);
+	//Creates a vector perpendicular to the argument, uses cross products. The candidate is used as first argument of the cross product.
+	FVector makeCrossPerpendicular(const FVector& arg, const FVector& crossCandidate);
+
+	float unityAngularVelocityToUe(float unityAngularVelocity);
+	FVector unityAngularVelocityToUe(const FVector &unityAngularVelocity);
 
 	//Used for converting break forces on constraints
 	float unityTorqueToUnreal(float force);

@@ -23,12 +23,7 @@ public:
 		return component;
 	}
 
-	AActor *findRootActor() const{
-		if (component){
-			return component->GetAttachmentRootActor();
-		}
-		return actor;
-	}
+	AActor *findRootActor() const;
 
 	bool isValid() const{
 		return actor || component;

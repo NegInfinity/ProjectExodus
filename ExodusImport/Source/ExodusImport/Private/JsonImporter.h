@@ -79,15 +79,12 @@ protected:
 	IdSet emissiveMaterials;
 	MaterialBuilder materialBuilder;
 
-	//using ImportedObjectCallback = std::function<void(const ImportedObject &obj)>;
-
 	static void registerImportedObject(ImportedObjectArray *outArray, const ImportedObject &arg);
 
 	void setupPointLightComponent(UPointLightComponent *pointLight, const JsonLight &jsonLight);
 	void setupSpotLightComponent(USpotLightComponent *spotLight, const JsonLight &jsonLight);
 	void setupDirLightComponent(ULightComponent *dirLight, const JsonLight &jsonLight);
 
-	//UWorld* importSceneObjectsAsWorld(const TArray<JsonGameObject> &sceneObjects, const FString &sceneName, const FString &scenePath);
 	UWorld* importSceneObjectsAsWorld(const JsonScene &scene, const FString &sceneNameOverride, const FString &scenePathOverride);
 
 	static ImportedObject createBlankActor(ImportWorkData &workData, const JsonGameObject &gameObj);
@@ -101,7 +98,6 @@ protected:
 	void convertToInstanceComponent(USceneComponent *comp) const;
 
 	UPrimitiveComponent* processCollider(ImportWorkData &workData, const JsonGameObject &gameObj, UObject *ownerPtr, const JsonCollider &collider);
-	//void processColliders(ImportWorkData &workData, const JsonGameObject &gameObj, UObject *ownerPtr, TArray<UPrimitiveComponent*> &createdObjects);
 
 	/*
 	Alright....
@@ -158,11 +154,10 @@ protected:
 
 	static void setObjectHierarchy(const ImportedObject &object, ImportedObject *parentObject, const FString& folderPath, ImportWorkData &workData, const JsonGameObject &gameObj);
 
-	const JsonGameObject* resolveObjectReference(const JsonObjectReference &ref, const InstanceToIdMap instanceMap, const TArray<JsonGameObject>& objects) const;
-
-	void buildInstanceIdMap(InstanceToIdMap &outMap, const TArray<JsonGameObject>& objects) const;
-	void processPhysicsJoint(const JsonGameObject &obj, const InstanceToIdMap &instanceMap, const TArray<JsonGameObject>& objects, ImportWorkData &workData) const;
-	void processPhysicsJoints(const TArray<JsonGameObject>& objects, ImportWorkData &workData) const;
+	//const JsonGameObject* resolveObjectReference(const JsonObjectReference &ref, const InstanceToIdMap instanceMap, const TArray<JsonGameObject>& objects) const;
+	//void buildInstanceIdMap(InstanceToIdMap &outMap, const TArray<JsonGameObject>& objects) const;
+	//void processPhysicsJoint(const JsonGameObject &obj, const InstanceToIdMap &instanceMap, const TArray<JsonGameObject>& objects, ImportWorkData &workData) const;
+	//void processPhysicsJoints(const TArray<JsonGameObject>& objects, ImportWorkData &workData) const;
 	void processDelayedAnimators(const TArray<JsonGameObject> &objects, ImportWorkData &workData);
 	void processDelayedAnimator(JsonId skelId, JsonId controllerId);
 

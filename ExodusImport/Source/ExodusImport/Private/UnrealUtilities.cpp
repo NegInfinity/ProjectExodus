@@ -338,3 +338,52 @@ FVector UnrealUtilities::makePerpendicular(const FVector& arg, const FVector& ca
 	result.Normalize();
 	return result;
 }
+
+float UnrealUtilities::unityAngularVelocityToUe(float unityAngularVelocity){
+	return unityAngularVelocity / 360.0f;
+}
+
+FVector UnrealUtilities::unityAngularVelocityToUe(const FVector &unityAngularVelocity){
+	return FVector(
+		unityAngularVelocityToUe(unityAngularVelocity.X),
+		unityAngularVelocityToUe(unityAngularVelocity.Y),
+		unityAngularVelocityToUe(unityAngularVelocity.Z)
+	);
+}
+
+FVector UnrealUtilities::makeCrossPerpendicular(const FVector& arg){
+	if (arg.IsNearlyZero())
+		return FVector(1.0f, 0.0f, 0.0f);
+
+	FVector result = FVector::CrossProduct(FVector(1.0f, 0.0f, 0.0f), arg);
+	if (result.IsNearlyZero()){
+		result = FVector::CrossProduct(FVector(0.0f, 1.0f, 0.0f), arg);
+		if (result.IsNearlyZero()){
+			result = FVector::CrossProduct(FVector(0.0f, 0.0f, 1.0f), arg);
+		}
+	}
+
+	result.Normalize();
+
+	return result;
+}
+
+FVector UnrealUtilities::makeCrossPerpendicular(const FVector& arg, const FVector& crossCandidate){
+	auto result = FVector::CrossProduct(crossCandidate, arg);
+	if (result.IsNearlyZero())
+		return makeCrossPerpendicular(arg);
+	result.Normalize();
+	return result;
+}
+
+FVector UnrealUtilities::getUnityUpVector(){
+	return FVector(0.0f, 1.0f, 0.0f);
+}
+
+FVector UnrealUtilities::getUnityRightVector(){
+	return FVector(1.0f, 0.0f, 0.0f);
+}
+
+FVector UnrealUtilities::getUnityForwardVector(){
+	return FVector(0.0f, 0.0f, 1.0f);
+}

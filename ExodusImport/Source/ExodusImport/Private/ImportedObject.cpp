@@ -112,3 +112,11 @@ void ImportedObject::convertToInstanceComponent() const{
 	component->bEditableWhenInherited = true;
 	component->RegisterComponent();
 }
+
+AActor* ImportedObject::findRootActor() const{
+	if (component){
+		return component->GetAttachmentRootActor();
+	}
+	return actor;
+}
+
