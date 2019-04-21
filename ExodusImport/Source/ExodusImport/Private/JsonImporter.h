@@ -154,10 +154,6 @@ protected:
 
 	static void setObjectHierarchy(const ImportedObject &object, ImportedObject *parentObject, const FString& folderPath, ImportWorkData &workData, const JsonGameObject &gameObj);
 
-	//const JsonGameObject* resolveObjectReference(const JsonObjectReference &ref, const InstanceToIdMap instanceMap, const TArray<JsonGameObject>& objects) const;
-	//void buildInstanceIdMap(InstanceToIdMap &outMap, const TArray<JsonGameObject>& objects) const;
-	//void processPhysicsJoint(const JsonGameObject &obj, const InstanceToIdMap &instanceMap, const TArray<JsonGameObject>& objects, ImportWorkData &workData) const;
-	//void processPhysicsJoints(const TArray<JsonGameObject>& objects, ImportWorkData &workData) const;
 	void processDelayedAnimators(const TArray<JsonGameObject> &objects, ImportWorkData &workData);
 	void processDelayedAnimator(JsonId skelId, JsonId controllerId);
 

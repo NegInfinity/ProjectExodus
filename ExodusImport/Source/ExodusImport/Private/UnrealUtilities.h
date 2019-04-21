@@ -32,12 +32,15 @@ namespace UnrealUtilities{
 	FVector unityAngularVelocityToUe(const FVector &unityAngularVelocity);
 
 	//Used for converting break forces on constraints
-	float unityTorqueToUnreal(float force);
-	//Used for converting break forces on constraints
-	float unityForceToUnreal(float force);
+	float unityBreakTorqueToUnreal(float force);
 
+	//Used for converting break forces on constraints
+	float unityBreakForceToUnreal(float force);
+
+	/*
 	float unityAngularMotorForceToUnreal(float force);
 	float unityAngularSpringForceToUnreal(float force);
+	*/
 
 	FVector unityToUe(const FVector& arg);
 	float unityDistanceToUe(const float arg);

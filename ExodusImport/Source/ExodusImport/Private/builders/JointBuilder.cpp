@@ -10,7 +10,125 @@
 
 const bool JointBuilder::isSupportedJoint(const JsonPhysicsJoint &joint) const{
 	return joint.isFixedJointType()
-		|| joint.isHingeJointType();
+		|| joint.isHingeJointType()
+		|| joint.isSpringJointType()
+		|| joint.isCharacterJointType();
+}
+
+void JointBuilder::setupSpringJointConstraint(UPhysicsConstraintComponent *physConstraint, int jointIndex, FTransform &jointTransform, 
+const JsonPhysicsJoint &joint, const JsonGameObject &jointObject) const{
+	using namespace UnrealUtilities;
+	check(physConstraint);
+	physConstraint->SetLinearXLimit(LCM_Free, 1.0f);
+	physConstraint->SetLinearYLimit(LCM_Free, 1.0f);
+	physConstraint->SetLinearZLimit(LCM_Free, 1.0f);
+	physConstraint->SetAngularSwing1Limit(ACM_Free, 0.0f);
+	physConstraint->SetAngularSwing2Limit(ACM_Free, 0.0f);
+	physConstraint->SetAngularTwistLimit(ACM_Free, 0.0f);
+
+	if (joint.springJointData.Num() == 0){
+		UE_LOG(JsonLog, Warning, TEXT("Spring joint data not found on joint %d, obj %d (%s)"), jointIndex, jointObject.id, *jointObject.name);
+		return;
+	}
+	const auto& springData = joint.springJointData[0];
+
+	physConstraint->SetLinearPositionDrive(true, true, true);
+	physConstraint->SetLinearPositionTarget(FVector::ZeroVector);
+	physConstraint->SetLinearDriveParams(unityLinearSpringForceToUnreal(springData.spring), 0.0f, 0.0f);
+
+	if ((springData.minDistance > 0.0f) || (springData.maxDistance > 0.0f)){
+		UE_LOG(JsonLog, Warning, TEXT("Spring limits found on joint %d, obj %d (%s). Min distance %f, max distance %f. Spring limits are not supported"), jointIndex, jointObject.id, *jointObject.name,
+			springData.minDistance, springData.maxDistance);
+	}
+}
+
+void JointBuilder::setupCharacterJointConstraint(UPhysicsConstraintComponent *physConstraint, int jointIndex, FTransform &jointTransform,
+	const JsonPhysicsJoint &joint, const JsonGameObject &jointObject) const{
+
+	using namespace UnrealUtilities;
+	check(physConstraint);
+	/*
+		Swing1 is XY plane rotation
+		Swing2 is XZ plane.
+		Twist is YZ.
+
+		So, Z is swing1
+		Y is swing2
+		X is twist
+	*/
+
+	physConstraint->SetLinearXLimit(LCM_Locked, 1.0f);
+	physConstraint->SetLinearYLimit(LCM_Locked, 1.0f);
+	physConstraint->SetLinearZLimit(LCM_Locked, 1.0f);
+	physConstraint->SetAngularSwing1Limit(ACM_Free, 0.0f);
+	physConstraint->SetAngularSwing2Limit(ACM_Free, 0.0f);
+	physConstraint->SetAngularTwistLimit(ACM_Free, 0.0f);
+
+	if (joint.characterJointData.Num() == 0){
+		UE_LOG(JsonLog, Warning, TEXT("Character joint data not found on joint %d, obj %d (%s)"), jointIndex, jointObject.id, *jointObject.name);
+		return;
+	}
+	const auto& charData = joint.characterJointData[0];
+
+	UE_LOG(JsonLog, Warning, TEXT("Joint axes axis: (%f; %f; %f), swing axis: (%f; %f; %f)"),
+		joint.axis.X, joint.axis.Y, joint.axis.Z, charData.swingAxis.X, charData.swingAxis.Y, charData.swingAxis.Z);
+
+	auto twistAxis = jointObject.unityLocalVectorToUnrealWorld(joint.axis);//z axis
+	twistAxis.Normalize();
+	auto swingAxis = jointObject.unityLocalVectorToUnrealWorld(charData.swingAxis);//...x axis? No, y axis, with x pointing forward
+	swingAxis.Normalize();
+
+	auto jointPos = jointObject.unityLocalPosToUnrealWorld(joint.anchor);
+
+	auto dot = FVector::DotProduct(twistAxis, swingAxis);
+	if (!FMath::IsNearlyZero(dot)){
+		UE_LOG(JsonLog, Warning, TEXT("Joint axes not perpendicular on character %d, obj %d (%s). Swing axis: (%f; %f; %f), twist Axis: (%f; %f; %f), dot: %f"), 
+			jointIndex, jointObject.id, *jointObject.name, swingAxis.X, swingAxis.Y, swingAxis.Z, twistAxis.X, twistAxis.Y, twistAxis.Z, dot);
+	}
+
+	auto jointX = twistAxis;
+	auto jointZ = makePerpendicular(jointX, swingAxis);
+	auto jointY = FVector::CrossProduct(jointX, jointZ);
+	jointY.Normalize();
+
+	FMatrix hingeMatrix = FMatrix::Identity;//Goddamit, again. Partially initialized matrix.
+	hingeMatrix.SetAxes(&jointX, &jointY, &jointZ, &jointPos);
+
+	jointTransform.SetFromMatrix(hingeMatrix);
+
+	//swing 1
+	if (FMath::IsNearlyZero(charData.swing1Limit.limit)){
+		physConstraint->SetAngularSwing1Limit(ACM_Locked, 0.0f);
+	}
+	else{
+		physConstraint->SetAngularSwing1Limit(ACM_Limited, charData.swing1Limit.limit);
+	}
+
+	//swing 2
+	if (FMath::IsNearlyZero(charData.swing2Limit.limit)){
+		physConstraint->SetAngularSwing2Limit(ACM_Locked, 0.0f);
+	}
+	else{
+		physConstraint->SetAngularSwing2Limit(ACM_Limited, charData.swing2Limit.limit);
+	}
+
+	//twist
+	float twistRange = charData.highTwistLimit.limit - charData.lowTwistLimit.limit;
+	float twistMidAngle = (charData.highTwistLimit.limit + charData.lowTwistLimit.limit)* 0.5f;
+	UE_LOG(JsonLog, Log, TEXT("high twist limit: %f, low twist limit: %f, Twist range: %f; twist mid angle : %f"), 
+		charData.highTwistLimit.limit, charData.lowTwistLimit.limit, twistRange, twistMidAngle);
+
+	if (FMath::IsNearlyZero(twistRange)){
+		physConstraint->SetAngularTwistLimit(ACM_Locked, 0.0f);
+	}
+	else{
+		physConstraint->SetAngularTwistLimit(ACM_Limited, twistRange*0.5f);
+	}
+
+	if (!FMath::IsNearlyZero(twistMidAngle)){
+		auto constraintOffsetRotator = FRotator(0.0f, 0.0f, -twistMidAngle);
+		physConstraint->ConstraintInstance.AngularRotationOffset += constraintOffsetRotator;
+	}
 }
 
 void JointBuilder::setupFixedJointConstraint(UPhysicsConstraintComponent *physConstraint, const JsonPhysicsJoint &joint) const{
@@ -26,6 +144,7 @@ void JointBuilder::setupFixedJointConstraint(UPhysicsConstraintComponent *physCo
 void JointBuilder::setupHingeJointConstraint(UPhysicsConstraintComponent *physConstraint, int jointIndex,
 FTransform &jointTransform, const JsonPhysicsJoint &joint, const JsonGameObject &obj) const{
 	using namespace UnrealUtilities;
+	check(physConstraint);
 
 	//We're using Swing1 axis for hinges. WHich is Z-axis
 	physConstraint->SetLinearXLimit(LCM_Locked, 1.0f);
@@ -178,6 +297,12 @@ void JointBuilder::processPhysicsJoint(const JsonGameObject &obj, const Instance
 		}
 		else if (curJoint.isHingeJointType()){
 			setupHingeJointConstraint(physConstraint, jointIndex, jointTransform, curJoint, obj);
+		}
+		else if (curJoint.isSpringJointType()){
+			setupSpringJointConstraint(physConstraint, jointIndex, jointTransform, curJoint, obj);
+		}
+		else if (curJoint.isCharacterJointType()){
+			setupCharacterJointConstraint(physConstraint, jointIndex, jointTransform, curJoint, obj);
 		}
 		else{
 			UE_LOG(JsonLog, Warning, TEXT("Unhandled joint type %s at object %d(%s)"),

@@ -127,8 +127,10 @@ public:
 class JsonCharacterJointData{
 public:
 	bool enableProjection;
-	float highTwistLimit;
-	float lowTwistLimit;
+	//float highTwistLimit;
+	//float lowTwistLimit;
+	JsonSoftJointLimit highTwistLimit;
+	JsonSoftJointLimit lowTwistLimit;
 	float projectionAngle;
 	float projectionDistance;
 	JsonSoftJointLimit swing1Limit;
@@ -215,8 +217,8 @@ public:
 	float breakForce;
 	float breakTorque;
 
-	float getUnrealBreakForce() const;
-	float getUnrealBreakTorque() const;
+	//float getUnrealBreakForce() const;
+	//float getUnrealBreakTorque() const;
 
 	bool isLinearBreakable() const;
 	bool isAngularBreakable() const;

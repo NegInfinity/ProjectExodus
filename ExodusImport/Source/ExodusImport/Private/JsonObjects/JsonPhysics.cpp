@@ -80,8 +80,10 @@ void JsonCharacterJointData::load(JsonObjPtr data){
 	using namespace JsonObjects;
 
 	JSON_GET_VAR(data, enableProjection);
-	JSON_GET_VAR(data, highTwistLimit);
-	JSON_GET_VAR(data, lowTwistLimit);
+	//JSON_GET_VAR(data, highTwistLimit);
+	//JSON_GET_VAR(data, lowTwistLimit);
+	JSON_GET_OBJ(data, highTwistLimit);
+	JSON_GET_OBJ(data, lowTwistLimit);
 	JSON_GET_VAR(data, projectionAngle);
 	JSON_GET_VAR(data, projectionDistance);
 
@@ -174,16 +176,4 @@ bool JsonPhysicsJoint::isLinearBreakable() const{
 
 bool JsonPhysicsJoint::isAngularBreakable() const{
 	return breakTorque < std::numeric_limits<float>::infinity();
-}
-
-float JsonPhysicsJoint::getUnrealBreakForce() const{
-	if (!isLinearBreakable())
-		return breakForce;
-	return UnrealUtilities::unityForceToUnreal(breakForce);
-}
-
-float JsonPhysicsJoint::getUnrealBreakTorque() const{
-	if (!isAngularBreakable())
-		return breakTorque;
-	return UnrealUtilities::unityTorqueToUnreal(breakForce);
 }
