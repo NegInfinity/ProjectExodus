@@ -16,11 +16,11 @@ public:
 	USceneComponent *component = nullptr;
 
 	bool hasActor() const{
-		return actor;
+		return actor != nullptr;//goddamn msvc warning...
 	}
 
 	bool hasComponent() const{
-		return component;
+		return component != nullptr;
 	}
 
 	AActor *findRootActor() const;

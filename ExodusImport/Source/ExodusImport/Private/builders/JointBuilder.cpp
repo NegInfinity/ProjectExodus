@@ -12,8 +12,100 @@ const bool JointBuilder::isSupportedJoint(const JsonPhysicsJoint &joint) const{
 	return joint.isFixedJointType()
 		|| joint.isHingeJointType()
 		|| joint.isSpringJointType()
-		|| joint.isCharacterJointType();
+		|| joint.isCharacterJointType()
+		|| joint.isConfigurableJointType()
+	;
 }
+
+void JointBuilder::setupConfigurableJointConstraint(UPhysicsConstraintComponent *physConstraint, int jointIndex, FTransform &jointTransform,
+const JsonPhysicsJoint &joint, const JsonGameObject &jointObject) const{
+	using namespace UnrealUtilities;
+	check(physConstraint);
+
+	physConstraint->SetLinearXLimit(LCM_Locked, 1.0f);
+	physConstraint->SetLinearYLimit(LCM_Locked, 1.0f);
+	physConstraint->SetLinearZLimit(LCM_Locked, 1.0f);
+	physConstraint->SetAngularSwing1Limit(ACM_Locked, 0.0f);
+	physConstraint->SetAngularSwing2Limit(ACM_Locked, 0.0f);
+	physConstraint->SetAngularTwistLimit(ACM_Locked, 0.0f);
+
+	if (joint.configurableJointData.Num() == 0){
+		UE_LOG(JsonLog, Warning, TEXT("Spring joint data not found on joint %d, obj %d (%s)"), jointIndex, jointObject.id, *jointObject.name);
+		return;
+	}
+	const auto& confData = joint.configurableJointData[0];
+	/*
+		Swing1 is XY plane rotation
+		Swing2 is XZ plane.
+		Twist is YZ.
+
+		Z is swing1
+		Y is swing2
+		X is twist
+		Those are unreal coordinates/axes
+
+		Now.... in unreal components, 
+		X is forward, Y right, Z is up.
+
+		In unity X is right, Z is forward, Y is up.
+	*/
+
+	auto unityAngularX = getAngularMotionChecked(confData.angularXMotion, "angularXMotion", jointIndex, jointObject);
+	auto unityAngularY = getAngularMotionChecked(confData.angularYMotion, "angularYMotion", jointIndex, jointObject);
+	auto unityAngularZ = getAngularMotionChecked(confData.angularZMotion, "angularZMotion", jointIndex, jointObject);
+	auto unityLinearX = getLinearMotionChecked(confData.xMotion, "xMotion", jointIndex, jointObject);
+	auto unityLinearY = getLinearMotionChecked(confData.yMotion, "yMotion", jointIndex, jointObject);
+	auto unityLinearZ = getLinearMotionChecked(confData.zMotion, "zMotion", jointIndex, jointObject);
+
+	auto unityPrimaryAxis = jointObject.unityLocalVectorToUnrealWorld(joint.axis);
+	auto unitySecondaryAxis = jointObject.unityLocalVectorToUnrealWorld(confData.secondaryAxis);
+
+	unityPrimaryAxis.Normalize();
+	unitySecondaryAxis.Normalize();
+
+	auto dot = FVector::DotProduct(unityPrimaryAxis, unitySecondaryAxis);
+	if (!FMath::IsNearlyZero(dot)){
+		UE_LOG(JsonLog, Warning, TEXT("Joint axes not perpendicular, errorneous behavior possible. Primary axis: %f %f %f, secondary axis: %f %f %f, dotPRoduc: %f"),
+			unityPrimaryAxis.X, unityPrimaryAxis.Y, unityPrimaryAxis.Z, unitySecondaryAxis.X, unitySecondaryAxis.Y, unitySecondaryAxis.Z, dot);
+	}
+	unitySecondaryAxis = makePerpendicular(unityPrimaryAxis, unitySecondaryAxis);
+
+	auto jointPos = jointObject.unityLocalPosToUnrealWorld(joint.anchor);
+
+	auto jointX = unityPrimaryAxis;
+	auto jointZ = makePerpendicular(jointX, unitySecondaryAxis);
+	auto jointY = FVector::CrossProduct(jointX, jointZ);
+	jointY.Normalize();
+
+	FMatrix jointMatrix= FMatrix::Identity;
+	jointMatrix.SetAxes(&jointX, &jointY, &jointZ, &jointPos);
+
+	jointTransform.SetFromMatrix(jointMatrix);
+
+	auto mainAxisLimit = angleRangeFromLimits(confData.lowAngularXLimit.limit, confData.highAngularXLimit.limit);
+	//Unreal xAxis is Twist.
+	physConstraint->SetAngularTwistLimit(unityAngularX, mainAxisLimit.range*0.5f);
+
+	physConstraint->SetAngularSwing1Limit(unityAngularY, confData.angularYLimit.limit);
+
+	physConstraint->SetAngularSwing2Limit(unityAngularZ, confData.angularZLimit.limit);
+
+	//physConstraint->SetAngularSwing1Limit(unityAngularY, confData.angularYLimit.limit);
+
+	//unreal y axis (xz plane)
+	//physConstraint->SetAngularSwing2Limit(unityAngularX, mainAxisLimit.range * 0.5f);
+
+	//unreal x axis (yz plane)
+	//physConstraint->SetAngularTwistLimit(unityAngularZ, confData.angularYLimit.limit);
+
+	//TODO: As of 2018.3, anglar drive on configurable joints is broken for me in inspector.
+
+	//What the hell? Just one limit for all 3 axes? On unity side.	
+	physConstraint->SetLinearXLimit(unityLinearX, unityDistanceToUe(confData.linearLimit.limit));
+	physConstraint->SetLinearYLimit(unityLinearZ, unityDistanceToUe(confData.linearLimit.limit));
+	physConstraint->SetLinearZLimit(unityLinearY, unityDistanceToUe(confData.linearLimit.limit));
+}
+
 
 void JointBuilder::setupSpringJointConstraint(UPhysicsConstraintComponent *physConstraint, int jointIndex, FTransform &jointTransform, 
 const JsonPhysicsJoint &joint, const JsonGameObject &jointObject) const{
@@ -304,6 +396,9 @@ void JointBuilder::processPhysicsJoint(const JsonGameObject &obj, const Instance
 		else if (curJoint.isCharacterJointType()){
 			setupCharacterJointConstraint(physConstraint, jointIndex, jointTransform, curJoint, obj);
 		}
+		else if (curJoint.isConfigurableJointType()){
+			setupConfigurableJointConstraint(physConstraint, jointIndex, jointTransform, curJoint, obj);
+		}
 		else{
 			UE_LOG(JsonLog, Warning, TEXT("Unhandled joint type %s at object %d(%s)"),
 				*curJoint.jointType, obj.id, *obj.name);
@@ -353,4 +448,80 @@ const JsonGameObject* JointBuilder::resolveObjectReference(const JsonObjectRefer
 	if ((*found < 0) || (*found >= objects.Num()))
 		return nullptr;
 	return &objects[*found];
+}
+
+bool JointBuilder::getConstraintMotion(EAngularConstraintMotion &angMotion, const FString &arg){
+	angMotion = ACM_Locked;
+	if (arg == "Free"){
+		angMotion = ACM_Free;
+	}
+	else if (arg == "Limited"){
+		angMotion = ACM_Limited;
+	}
+	else if (arg == "Locked"){
+		angMotion = ACM_Locked;
+	}
+	else
+		return false;
+	return true;
+}
+
+bool JointBuilder::getConstraintMotion(ELinearConstraintMotion &linearMotion, const FString &arg){
+	linearMotion = LCM_Locked;
+	if (arg == "Free"){
+		linearMotion = LCM_Free;
+	}
+	else if (arg == "Limited"){
+		linearMotion = LCM_Limited;
+	}
+	else if (arg == "Locked"){
+		linearMotion = LCM_Locked;
+	}
+	else
+		return false;
+	return true;
+}
+
+EAngularConstraintMotion JointBuilder::getAngularMotionChecked(const FString &arg, const FString &motionName, int jointIndex, const JsonGameObject &jsonObj){
+	EAngularConstraintMotion result = ACM_Locked;
+	if (!getConstraintMotion(result, arg))
+		UE_LOG(JsonLog, Warning, TEXT("Invalid angular motion \"%s\": \"%s\" on jsonObj %d(\"%s\"), joint index: %d"), 
+			*motionName, *arg, jsonObj.id, *jsonObj.name, jointIndex);
+	return result;
+}
+
+ELinearConstraintMotion JointBuilder::getLinearMotionChecked(const FString &arg, const FString &motionName, int jointIndex, const JsonGameObject &jsonObj){
+	ELinearConstraintMotion result = LCM_Locked;
+	if (!getConstraintMotion(result, arg))
+		UE_LOG(JsonLog, Warning, TEXT("Invalid linear motion \"%s\": \"%s\" on jsonObj %d(\"%s\"), joint index: %d"), 
+			*motionName, *arg, jsonObj.id, *jsonObj.name, jointIndex);
+
+	return result;
+}
+
+void JointBuilder::AngularAdjustment::setMinMax(float min, float max){
+	range = max - min;
+	offset = (max + min) * 0.5f;
+}
+
+void JointBuilder::AngularAdjustment::setMin(float newMin){
+	setMinMax(newMin, getMax());
+}
+
+void JointBuilder::AngularAdjustment::setMax(float newMax){
+	setMinMax(getMin(), newMax);
+}
+
+float JointBuilder::AngularAdjustment::getMin() const{
+	return offset - range * 0.5f;
+}
+
+float JointBuilder::AngularAdjustment::getMax() const{
+	return offset + range * 0.5f;
+}
+
+JointBuilder::AngularAdjustment JointBuilder::angleRangeFromLimits(float min, float max){
+	AngularAdjustment result;
+	result.setMinMax(min, max);
+	return result;
 }

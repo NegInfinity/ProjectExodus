@@ -7,6 +7,25 @@ class UPhysicsConstraintComponent;
 
 class JointBuilder{
 protected:
+	struct AngularAdjustment{
+		float range = 0.0f;
+		float offset = 0.0f;
+
+		void setMinMax(float min, float max);
+		void setMin(float newMin);
+		void setMax(float newMax);
+		float getMin() const;
+		float getMax() const;
+	};
+
+	static AngularAdjustment angleRangeFromLimits(float min, float max);
+
+	static bool getConstraintMotion(EAngularConstraintMotion &angMotion, const FString &arg);
+	static bool getConstraintMotion(ELinearConstraintMotion &linearMotion, const FString &arg);
+
+	static EAngularConstraintMotion getAngularMotionChecked(const FString &arg, const FString &motionName, int jointIndex, const JsonGameObject &jsonObj);
+	static ELinearConstraintMotion getLinearMotionChecked(const FString &arg, const FString &motionName, int jointIndex, const JsonGameObject &jsonObj);
+
 	const JsonGameObject* resolveObjectReference(const JsonObjectReference &ref, const InstanceIdMap &instanceMap, const TArray<JsonGameObject>& objects) const;
 	void processPhysicsJoint(const JsonGameObject &obj, const InstanceIdMap &instanceMap,
 		const TArray<JsonGameObject>& objects, ImportWorkData &workData) const;
@@ -20,6 +39,9 @@ protected:
 	void setupSpringJointConstraint(UPhysicsConstraintComponent *physComponent, int jointIndex, FTransform &jointTransform, 
 		const JsonPhysicsJoint &joint, const JsonGameObject &jointObject) const;
 	void setupCharacterJointConstraint(UPhysicsConstraintComponent *physComponent, int jointIndex, FTransform &jointTransform,
+		const JsonPhysicsJoint &joint, const JsonGameObject &jointObject) const;
+
+	void setupConfigurableJointConstraint(UPhysicsConstraintComponent *physComponent, int jointIndex, FTransform &jointTransform,
 		const JsonPhysicsJoint &joint, const JsonGameObject &jointObject) const;
 
 	static float unityLinearSpringForceToUnreal(float force){

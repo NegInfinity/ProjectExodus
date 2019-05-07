@@ -95,7 +95,7 @@ public:
 	}
 
 	bool hasMainMeshCollider() const{
-		return getMainMeshCollider();
+		return getMainMeshCollider() != nullptr;
 	}
 
 	const JsonCollider* getColliderByIndex(int index) const{

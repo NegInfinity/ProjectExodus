@@ -151,6 +151,7 @@ public:
 	JsonJointDrive angularXDrive;
 	JsonSoftJointLimitSpring angularXLimitSpring;
 	FString angularXMotion;
+	//"Locked", "Free", "Limited". Just like in Unreal. 
 
 	JsonSoftJointLimit angularYLimit;
 	FString angularYMotion;
@@ -186,6 +187,7 @@ public:
 
 	JsonJointDrive xDrive;
 	FString xMotion;
+	//"Locked", "Free"... "Limited"?
 
 	JsonJointDrive yDrive;
 	FString yMotion;

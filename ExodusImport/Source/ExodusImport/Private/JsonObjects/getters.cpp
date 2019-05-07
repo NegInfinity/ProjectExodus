@@ -1,6 +1,7 @@
 #include "JsonImportPrivatePCH.h"
 #include "getters.h"
 #include <limits>
+#include <cmath>
 
 void JsonObjects::loadArray(JsonObjPtr data, const JsonValPtrs *&valPtrs, const FString &name, const FString &warnName){
 	if (!data->TryGetArrayField(name, valPtrs)){
