@@ -64,7 +64,7 @@ public:
 	void registerDelayedAnimController(JsonId skelId, JsonId controllerId);
 
 	ImportWorkData(UWorld *world_, bool editorMode_, const JsonScene *scene_)
-	:world(world_), editorMode(editorMode_), scene(scene_){
+	:scene(scene_), world(world_), editorMode(editorMode_){
 	}
 
 	void clear(){

@@ -17,7 +17,7 @@ using namespace UnrealUtilities;
 
 TerrainBuilder::TerrainBuilder(ImportWorkData &workData_, JsonImporter *importer_, const JsonGameObject &gameObj_, 
 	const JsonTerrain &jsonTerrain_, const JsonTerrainData &terrainData_)
-:workData(workData_), importer(importer_), jsonGameObj(gameObj_), jsonTerrain(jsonTerrain_), terrainData(terrainData_){
+:importer(importer_), workData(workData_), jsonGameObj(gameObj_), jsonTerrain(jsonTerrain_), terrainData(terrainData_){
 }
 
 UStaticMesh* TerrainBuilder::createClonedMesh(const JsonMesh &jsonMesh, const FString &baseName, const FString &terrainDataPath, 

@@ -75,7 +75,8 @@ void AnimationBuilder::buildAnimation(UAnimSequence *animSeq, USkeleton *skel, c
 		animSeq->AddNewRawTrack(*matCurve.objectName, &rawAnimTrack);
 	}
 
-	animSeq->NumFrames = numFrames;
+	animSeq->SetRawNumberOfFrame(numFrames);
+	//animSeq->NumFrames = numFrames;
 	//aww, hell. No "fps" here...
 	float frameRate = srcClip.frameRate ? srcClip.frameRate : 30.0f;
 	animSeq->SequenceLength = (float)numFrames / frameRate;
