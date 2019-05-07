@@ -51,6 +51,13 @@ The exported data constists of one "master" file in json format and a folder wit
 
 On unreal side simply find "Import" button in the tool bar, and select the \*.json file you exported with it. 
 
+In situation where you exported current scene only, the scene will be exported into current unreal scene and merged with it.
+However, if your scene contains terrain, it will be imported as a scene file, which will be located at /Import/<UnityProjectName>/<SceneName>.
+When this happens, you'll see a warning, and request to wait till shader compilation is done. Wait till shaders finish compiling, then head to the location of the scene file and open it.
+
+In situation where you exported multiple scenes, the exporter/importer will try to store them within paths similar to those used in unity. Meaning the imported scene content should be under /Import/<UnityPorjectName>/
+and then in whatever unity folder path you used.
+
 ## What's supported and limitations
 
 The plugin will rebuild current scene or scenes, will convert static meshes, and will *attempt* to convert terrain, landscapes, and skeletal meshes to unreal format. The plugin will also attempt to recreate materials.
@@ -72,3 +79,12 @@ Currently following limitations are in place:
 * Additional limitations may apply.
 
 Additionally, the file format used for transferring the project is subject to change and should not be used for long term data storage or backup. 
+
+## Additional contact information:
+
+Bugs can be reported via github project page.
+Additionally I can be reached through email address: neginfinty000<at>gmail.com
+
+## Contacts
+
+The preferred method for submitting bugs is github. However, I can also be reached via an email address:
