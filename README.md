@@ -1,5 +1,9 @@
 # ProjectExodus
 
+## Currently supported versions:
+
+Currently supported versions are **2018.3** for Unity, and **4.21.2** for Unreal 4. This file will be updated to indicate whne supported versions change.
+
 ## Description
 
 "ProjectExodus" is a conversion tool intended to convert individual scenes and whole projects from Unity to Unreal engine. The conversion focus solely on assets, ignoring all the game logic (C#) and limitations apply. 
