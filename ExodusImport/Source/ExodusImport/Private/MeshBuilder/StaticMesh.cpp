@@ -18,6 +18,10 @@ void MeshBuilder::setupStaticMesh(UStaticMesh *mesh, const JsonMesh &jsonMesh, s
 
 	FStaticMeshSourceModel &srcModel = mesh->SourceModels[lod];
 
+#if (ENGINE_MAJOR_VERSION >= 4) && (ENGINE_MINOR_VERSION >= 22)
+	srcModel.StaticMeshOwner = mesh;
+#endif
+
 	mesh->LightingGuid = FGuid::NewGuid();
 	mesh->LightMapResolution = 64;
 	mesh->LightMapCoordinateIndex = 1;

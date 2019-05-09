@@ -116,14 +116,14 @@ const FVector JsonMesh::getNormal(int index) const{
 	return getIdxVector3(normals, index);
 }
 
-FVector JsonBlendShapeFrame::getDeltaVert(int index) const{
-	return getIdxVector3(deltaVerts, index);
+FVector JsonBlendShapeFrame::getDeltaVert(int vertIdx) const{
+	return getIdxVector3(deltaVerts, vertIdx);
 }
 
-FVector JsonBlendShapeFrame::getDeltaTangent(int index) const{
-	return getIdxVector3(deltaTangents, index);
+FVector JsonBlendShapeFrame::getDeltaTangent(int vertIdx) const{
+	return getIdxVector3(deltaTangents, vertIdx);
 }
 
-FVector JsonBlendShapeFrame::getDeltaNormal(int index) const{
-	return getIdxVector3(deltaNormals, index);
+FVector JsonBlendShapeFrame::getDeltaNormal(int vertIdx) const{
+	return getIdxVector3(deltaNormals, vertIdx);
 }

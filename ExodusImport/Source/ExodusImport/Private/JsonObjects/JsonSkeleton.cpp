@@ -12,9 +12,9 @@ void JsonSkeleton::load(JsonObjPtr data){
 	getJsonObjArray(data, bones, "bones");
 }
 
-int JsonSkeleton::findBoneIndex(const FString &name) const{
+int JsonSkeleton::findBoneIndex(const FString &boneName) const{
 	for(int i = 0; i < bones.Num(); i++){
-		if (bones[i].name == name)
+		if (bones[i].name == boneName)
 			return i;
 	}
 	return -1;

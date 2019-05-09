@@ -1,6 +1,7 @@
 #include "JsonImportPrivatePCH.h"
 #include "SkeletalMeshBuilder.h"
 #include "MeshBuilder.h"
+#include "MeshBuilderUtils.h"
 #include "UnrealUtilities.h"
 #include "Runtime/Engine/Public/Rendering/SkeletalMeshModel.h"
 #include "Developer/MeshUtilities/Public/MeshUtilities.h"
@@ -50,12 +51,12 @@ void SkeletalMeshBuilder::setupReferenceSkeleton(FReferenceSkeleton &refSkeleton
 		unityWorldMat = srcBone.world;
 
 		if (jsonMesh){
-			auto boneIndex = jsonMesh->defaultBoneNames.IndexOfByKey(srcBone.name);
-			UE_LOG(JsonLog, Log, TEXT("Attempting to find boneIndex for bone \"%s\" on mesh %d(\"%s\")"), 
+			auto foundBoneIndex = jsonMesh->defaultBoneNames.IndexOfByKey(srcBone.name);
+			UE_LOG(JsonLog, Log, TEXT("Attempting to find foundBoneIndex for bone \"%s\" on mesh %d(\"%s\")"), 
 				*srcBone.name, jsonMesh->id.toIndex(), *jsonMesh->name);
-			if (boneIndex != INDEX_NONE){
-				auto boneMatrix = jsonMesh->inverseBindPoses[boneIndex];
-				UE_LOG(JsonLog, Log, TEXT("Bone index found: %d"), boneIndex);
+			if (foundBoneIndex != INDEX_NONE){
+				auto boneMatrix = jsonMesh->inverseBindPoses[foundBoneIndex];
+				UE_LOG(JsonLog, Log, TEXT("Bone index found: %d"), foundBoneIndex);
 				logValue(TEXT("Matrix: "), boneMatrix);
 				unityWorldMat = boneMatrix;
 			}

@@ -2,6 +2,8 @@
 #include "SkinMeshTest.h"
 #include "MeshBuilder.h"
 #include "UnrealUtilities.h"
+#include "MeshUtilities.h"
+#include "AssetRegistryModule.h"
 #include "Runtime/Engine/Public/Rendering/SkeletalMeshModel.h"
 #include "Runtime/Engine/Classes/Materials/Material.h"
 #include "Runtime/Engine/Classes/Animation/Skeleton.h"

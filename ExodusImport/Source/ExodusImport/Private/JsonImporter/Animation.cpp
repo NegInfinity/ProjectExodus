@@ -40,11 +40,11 @@ void JsonImporter::loadAnimatorsDebug(const StringArray &animatorPaths){
 	}
 }
 
-void JsonImporter::loadAnimClipsDebug(const StringArray &animClipPaths){
+void JsonImporter::loadAnimClipsDebug(const StringArray &animClipPathNames){
 	//const auto &animClipPaths = externResources.animationClips;
-	UE_LOG(JsonLog, Log, TEXT("Debug loading animators. %d animators total"), animClipPaths.Num());
-	for(int i = 0; i < animClipPaths.Num(); i++){
-		auto curPath = animClipPaths[i];
+	UE_LOG(JsonLog, Log, TEXT("Debug loading animators. %d animators total"), animClipPathNames.Num());
+	for(int i = 0; i < animClipPathNames.Num(); i++){
+		auto curPath = animClipPathNames[i];
 		UE_LOG(JsonLog, Log, TEXT("Loading animation clip %d (path: %s)"), i, *curPath);
 		//JsonObjPtr loadExternResourceFromFile(const FString &filename) const;
 		auto dataPtr = loadExternResourceFromFile(curPath);

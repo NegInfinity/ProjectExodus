@@ -16,7 +16,7 @@ class TerrainBuilder{
 protected:
 	JsonImporter *importer = nullptr;
 	ImportWorkData &workData;
-	FString terrainDataPath;
+	//FString terrainDataPath;
 public:
 	TArray<ULandscapeGrassType*> grassTypes;
 	const JsonGameObject &jsonGameObj;
@@ -32,9 +32,11 @@ public:
 	JsonImporter* getImporter() const{
 			return importer;
 	}
+	/*
 	const FString& getTerrainDataPath() const{
 		return terrainDataPath;
 	}
+	*/
 	//TerrainBuilder& operator=(const TerrainBuileder& other) = delete;
 protected:
 	UStaticMesh* createClonedMesh(const JsonMesh &jsonMesh, const FString &baseName, const FString &terrainDataPath, 
