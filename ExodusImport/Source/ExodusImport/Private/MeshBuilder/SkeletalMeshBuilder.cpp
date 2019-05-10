@@ -7,6 +7,7 @@
 #include "Developer/MeshUtilities/Public/MeshUtilities.h"
 #include "JsonImporter.h"
 #include "JsonObjects/loggers.h"
+#include "AssetRegistryModule.h"
 
 #include "Runtime/Engine/Classes/Animation/MorphTarget.h"
 #include "Runtime/Engine/Classes/Animation/Skeleton.h"

@@ -276,6 +276,33 @@ namespace SceneExport{
 			}
 		}
 		*/
+		
+		/*
+		Nope! Still cuases Z_DATA_ERROR on unreal end
+		static byte[] compressBytesZlib(byte[] src){
+			var adler = computeAdler32(src);
+			using(var outMem = new System.IO.MemoryStream())
+			using(var inMem = new System.IO.MemoryStream(src)){
+				outMem.WriteByte(0x78);
+				outMem.WriteByte(0x9c);
+				using(var headerlessMem = new System.IO.MemoryStream()){
+					using(var outStream = new System.IO.Compression.DeflateStream(
+						headerlessMem, System.IO.Compression.CompressionMode.Compress)){
+						copyStream(outStream, inMem);
+					}
+					var headerlessBytes = headerlessMem.ToArray();
+					outMem.Write(headerlessBytes, 0, headerlessBytes.Length);
+				}
+				outMem.WriteByte((byte)(adler & 0xff));
+				outMem.WriteByte((byte)((adler >> 8) & 0xff));
+				outMem.WriteByte((byte)((adler >> 16) & 0xff));
+				outMem.WriteByte((byte)((adler >> 24) & 0xff));
+
+				return outMem.ToArray();
+			}
+		}
+		*/
+
 		static byte[] compressBytesGzip(byte[] src){
 			using(var outMem = new System.IO.MemoryStream())
 			using(var inMem = new System.IO.MemoryStream(src)){
@@ -286,23 +313,39 @@ namespace SceneExport{
 				return outMem.ToArray();
 			}
 		}
-		
-		static uint updateAdler32(byte[] buffer, int first, int count, uint prevAdler){
-			const uint baseVal = 65521;
-			uint s1 = prevAdler & 0xffff;
-			uint s2 = (prevAdler >> 16) & 0xffff;
-			for(int i = 0; i < count; i++){
-				var curByte = buffer[first + i];
-				s1 = (s1 + curByte) % baseVal;
-				s2 = (s2 + s1) % baseVal;
+
+		public struct Adler32{
+			public ushort s1;
+			public ushort s2;
+
+			public uint finalChecksum{
+				get{
+					return ((uint)s2 << 16) | (uint)s1;
+				}
 			}
-			return (s2 << 16) | s1;
+
+			public void addByte(byte b){
+				s1 = (ushort)((s1 + b) % 65521);
+				s2 = (ushort)((s1 + s2) % 65521);
+			}
+
+			public void addBytes(byte[] data){
+				foreach(var b in data){
+					addByte(b);
+				}
+			}
+
+			public void reset(){
+				s1 = 1;
+				s2 = 0;
+			}
 		}
 		
 		static uint computeAdler32(byte[] buffer){
-			uint result = 1;
-			result = updateAdler32(buffer, 0, buffer.Length, result);
-			return result;
+			var adler = new Adler32();
+			adler.reset();
+			adler.addBytes(buffer);
+			return adler.finalChecksum;
 		}
 		
 		public static void saveRawCubemap(System.IO.Stream outStream, JsonCubemap jsonCube, Logger logger = null){
@@ -361,6 +404,7 @@ namespace SceneExport{
 			}
 			var dataSize = mem.Length;
 			compressed = compressBytesGzip(mem);
+			//compressed = compressBytesZlib(mem);
 			
 			using(var writer = new System.IO.BinaryWriter(
 				System.IO.File.Open(filename, System.IO.FileMode.Create))){
@@ -368,69 +412,13 @@ namespace SceneExport{
 				writer.Write(compressed, 0, compressed.Length);
 			}
 		}
-		
-		#if false
-		public static void saveRawCubemap(JsonCubemap jsonCube, string filename, Logger logger = null){
-			Logger.makeValid(ref logger);
-			var cubeSize = jsonCube.texParams.width;
-			//bool rgb = jsonCube.
-			
-			var hdr = jsonCube.isHdr;
-			//compression?
-			//byte[] memData = null;
-			//using(var outData = new System.IO.MemoryStream())
-			using(var writer = new System.IO.BinaryWriter(
-				//outData
-				System.IO.File.Open(filename, System.IO.FileMode.Create)
-				)){
-				
-				var faces = new List<CubemapFace>(){
-					CubemapFace.PositiveZ,
-					CubemapFace.NegativeZ,
-					CubemapFace.PositiveX,
-					CubemapFace.NegativeX,
-					CubemapFace.PositiveY,
-					CubemapFace.NegativeY
-				};
-				
-				var rotations = new List<SquareTransformDesc>(){
-					new SquareTransformDesc(new Vector2Int(1, 0), new Vector2Int(0, 0), new Vector2Int(1, 1)),
-					new SquareTransformDesc(new Vector2Int(0, 1), new Vector2Int(1, 1), new Vector2Int(0, 0)),
-					new SquareTransformDesc(new Vector2Int(1, 1), new Vector2Int(1, 0), new Vector2Int(0, 1)),
-					new SquareTransformDesc(new Vector2Int(0, 0), new Vector2Int(0, 1), new Vector2Int(1, 0)),
-					new SquareTransformDesc(new Vector2Int(1, 0), new Vector2Int(0, 0), new Vector2Int(1, 1)),
-					new SquareTransformDesc(new Vector2Int(1, 0), new Vector2Int(0, 0), new Vector2Int(1, 1))
-				};
-				
-				for(int i = 0; i < faces.Count; i++){
-					var curFace = faces[i];
-					var curRotation = rotations[i];
-					if (hdr){
-						var data = getCubemapFace(curFace, jsonCube);						
-						data = transformSquareArray(data, cubeSize, curRotation);
-						writeColorArray(writer, data);
-					}
-					else{
-						var data = getCubemapFace32(curFace, jsonCube);
-						data = transformSquareArray(data, cubeSize, curRotation);
-						writeColorArray(writer, data);
-					}
-				}
-				
-				//memData = outData.ToArray();
-			}
-			
-			/*
-			var memDataSize = memData.Length;
-			var compressedData = compressBytesZlib(memData);
-			
-			using(var writer = new System.IO.BinaryWriter(System.IO.File.Open(filename, System.IO.FileMode.Create))){
-				writer.Write(memDataSize);
-				writer.Write(compressedData, 0, compressedData.Length);
-			}
-			*/
+
+		public static void saveRawCubemap(JsonCubemap jsonCube, string filename, bool compress, Logger logger = null){
+			if (!compress)
+				saveRawCubemap(jsonCube, filename, logger);
+			else
+				saveRawCompressedCubemap(jsonCube, filename, logger);
 		}
-		#endif
 		
 		public static void saveHorizontalStripCubemap(JsonCubemap jsonCube, string targetPath){
 			var cubeSize = jsonCube.texParams.width;
@@ -496,8 +484,14 @@ namespace SceneExport{
 			
 			if (!string.IsNullOrEmpty(jsonCube.rawPath)){
 				var targetRaw = System.IO.Path.Combine(targetDir, jsonCube.rawPath);
-				saveRawCompressedCubemap(jsonCube, targetRaw);
-				//saveRawCubemap(jsonCube, targetRaw);
+				/*
+				Compression disabled, due to compression format issues.
+				Basically, DeflateStream in C#/Unity produces format that cannot be decompressed by ZLib on unreal side.
+				Meanwhile, Due to deprecation of FUncompressMemory API, GZip decompression simply doesn't work, and there's a "plug"
+
+				Sigh.
+				 */
+				saveRawCubemap(jsonCube, targetRaw, false);
 			}
 			/*
 			jsonCube.cubemap.GetPixels(CubemapFace.

@@ -162,34 +162,38 @@ namespace SceneExport{
 		}
 		
 		public void saveToFile(string filename, bool showGui, bool saveResourceFiles, Logger logger = null){
-			if (showGui){
-				ExportUtility.showProgressBar(
-					string.Format("Saving file {0}", System.IO.Path.GetFileName(filename)), 
-					"Writing json data", 0, 1);
-			}
-			string targetDir;
-			string projectPath;
+			try{
+				if (showGui){
+					ExportUtility.showProgressBar(
+						string.Format("Saving file {0}", System.IO.Path.GetFileName(filename)), 
+						"Writing json data", 0, 1);
+				}
+				string targetDir;
+				string projectPath;
 			
-			checkResourceFolder(filename, out targetDir, out projectPath, true);
+				checkResourceFolder(filename, out targetDir, out projectPath, true);
 			
-			string baseName = System.IO.Path.GetFileNameWithoutExtension(filename);
-			string filesDir = System.IO.Path.Combine(targetDir, baseName);// + "_data");
-			if (showGui){
-				confirmAndEraseExistingDirectory(filesDir);
-			}
-			System.IO.Directory.CreateDirectory(filesDir);
+				string baseName = System.IO.Path.GetFileNameWithoutExtension(filename);
+				string filesDir = System.IO.Path.Combine(targetDir, baseName);// + "_data");
+				if (showGui){
+					confirmAndEraseExistingDirectory(filesDir);
+				}
+				System.IO.Directory.CreateDirectory(filesDir);
 						
-			externResourceList = resourceMapper.saveResourceToFolder(filesDir, showGui, scenes, logger, saveResourceFiles);
+				externResourceList = resourceMapper.saveResourceToFolder(filesDir, showGui, scenes, logger, saveResourceFiles);
 			
-			Utility.saveStringToFile(filename, toJsonString());
-			
-			if (showGui){
-				ExportUtility.hideProgressBar();
-			}
-			if (!saveResourceFiles)
-				return;
+				Utility.saveStringToFile(filename, toJsonString());
 
-			saveAssetFiles(externResourceList.externalAssets, filename, showGui, logger);
+				if (!saveResourceFiles)
+					return;
+					
+				saveAssetFiles(externResourceList.externalAssets, filename, showGui, logger);
+			}
+			finally{//Otherwise progress bar can get stuck, blocking entirety of editor
+				if (showGui){
+					ExportUtility.hideProgressBar();
+				}
+			}
 		}
 		
 		string getProjectName(){

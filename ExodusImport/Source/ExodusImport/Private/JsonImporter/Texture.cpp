@@ -63,6 +63,7 @@ struct DstPixel16F{
 	FFloat16 b, g, r, a;
 };
 
+#if 0
 //Well, this doesn't work so I give up.
 static bool loadCompressedBinary(ByteArray &outData, const FString &filename){
 	ByteArray tmpData;
@@ -91,14 +92,22 @@ static bool loadCompressedBinary(ByteArray &outData, const FString &filename){
 	);
 #endif
 	//Alright, this is really ugly. We're basically relying on hidden functionality in order to read GZipStream here, and it is only used for cubemap textures
+	/*
 	return FCompression::UncompressMemory(
 		COMPRESS_ZLIB,
 		dstPtr, dstSize, srcPtr, srcSize, false,
 		DEFAULT_ZLIB_BIT_WINDOW | 32 //This is black magic needed to make FCompression treat the stream as gzip stream.
 	);
+	*/
+	return FCompression::UncompressMemory(
+		COMPRESS_ZLIB,
+		dstPtr, dstSize, srcPtr, srcSize, false,
+		DEFAULT_ZLIB_BIT_WINDOW //This is black magic needed to make FCompression treat the stream as gzip stream.
+	);
 
 	//return true;
 }
+#endif
 
 void JsonImporter::importCubemap(JsonObjPtr data, const FString &rootPath){
 	JsonCubemap jsonCube(data);
@@ -124,16 +133,17 @@ void JsonImporter::importCubemap(JsonObjPtr data, const FString &rootPath){
 	ByteArray binaryData; 
 	//well, unreal can't load 2d images for cubemaps. So, raw data is the way to go
 	auto fullRawPath = FPaths::Combine(*assetRootPath, *jsonCube.rawPath);
+#if 0
 	if (!loadCompressedBinary(binaryData, fullRawPath)){
 		UE_LOG(JsonLog, Error, TEXT("Could not load compressed data from \"%s\""), *fullRawPath);
 		return;
 	}
-	/*
+#else
 	if (!FFileHelper::LoadFileToArray(binaryData, *fullRawPath)){
 		UE_LOG(JsonLog, Error, TEXT("Could not load data from \"%s\""), *fullRawPath);
 		return;
 	}
-	*/
+#endif
 
 	auto texFab = makeFactoryRootPtr<UTextureFactory>();
 	texFab->SuppressImportOverwriteDialog();
