@@ -91,9 +91,15 @@ void SkeletalMeshBuilder::setupReferenceSkeleton(FReferenceSkeleton &refSkeleton
 
 void SkeletalMeshBuildData::processWedgeData(const JsonMesh &jsonMesh){
 	const auto numTexCoords = jsonMesh.getNumTexCoords();
+
+	check(hasNormals == (jsonMesh.normals.Num() != 0));
+	check(hasTangents == (jsonMesh.tangents.Num() != 0));
+	check(hasColors == (jsonMesh.colors.Num() != 0));
+	/*
 	auto hasNormals = jsonMesh.normals.Num() != 0;
 	auto hasTangents = jsonMesh.tangents.Num() != 0;
 	auto hasColors = jsonMesh.colors.Num() != 0;
+	*/
 
 	for(int subMeshIndex = 0; subMeshIndex < jsonMesh.subMeshes.Num(); subMeshIndex++){
 		const auto &curSubMesh = jsonMesh.subMeshes[subMeshIndex];
@@ -513,7 +519,12 @@ void SkeletalMeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonM
 	check(importModel->LODModels.Num() == 0);
 	importModel->LODModels.Empty();
 
+#if (ENGINE_MAJOR_VERSION >= 4) && (ENGINE_MINOR_VERSION >= 22)
+	//It is not directly specified anywhere, but TIndirectArray will properly delete its elements.
+	importModel->LODModels.Add(new FSkeletalMeshLODModel());
+#else
 	new(importModel->LODModels)FSkeletalMeshLODModel();//????
+#endif
 	//I suppose it does same thing as calling new and then Add()
 	auto &lodModel = importModel->LODModels[0];
 

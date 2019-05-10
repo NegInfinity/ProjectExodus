@@ -63,8 +63,9 @@ const JsonGameObject* JsonGameObjectRegistry::resolveObjectReference(const JsonO
 	return &objects[*found];
 }
 
-void JsonGameObjectRegistry::buildFrom(const JsonGameObjectArray &objects){
+void JsonGameObjectRegistry::buildFrom(const JsonGameObjectArray &srcObjects){
 	clear();
-	for (const auto& cur : objects)
+	for (const auto& cur: srcObjects){
 		addObject(cur);
+	}
 }

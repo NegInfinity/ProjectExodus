@@ -223,6 +223,7 @@ namespace SceneExport{
 		
 		public static class ParamNames{
 			public static readonly string metallic = "_Metallic";
+			public static readonly string mainColor = "_Color";
 			public static readonly string specularColor = "_SpecColor";
 			public static readonly string emissionColor = "_EmissionColor";
 			
@@ -257,7 +258,7 @@ namespace SceneExport{
 			mainTexture = resMap.getTextureId(mat.mainTexture);
 			mainTextureOffset = mat.mainTextureOffset;
 			mainTextureScale = mat.mainTextureScale;
-			color = mat.color;
+			color = getColor(mat, ParamNames.mainColor, Color.white);//mat.color;
 
 			useNormalMap = mat.IsKeywordEnabled(Keywords.normalMap);//"_NORMALMAP");
 			useAlphaTest = mat.IsKeywordEnabled(Keywords.alphaTestOn);//"_ALPHATEST_ON");

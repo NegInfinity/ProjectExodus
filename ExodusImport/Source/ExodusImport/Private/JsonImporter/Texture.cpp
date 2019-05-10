@@ -2,32 +2,13 @@
 
 #include "JsonImporter.h"
 
-#include "Engine/PointLight.h"
-#include "Engine/SpotLight.h"
-#include "Engine/DirectionalLight.h"
-#include "Engine/Classes/Components/PointLightComponent.h"
-#include "Engine/Classes/Components/SpotLightComponent.h"
-#include "Engine/Classes/Components/DirectionalLightComponent.h"
-#include "Engine/StaticMeshActor.h"
 #include "Engine/TextureCube.h"
-#include "Engine/Classes/Components/StaticMeshComponent.h"
-#include "LevelEditorViewport.h"
 #include "Factories/TextureFactory.h"
-#include "Factories/MaterialFactoryNew.h"
 
-#include "Materials/Material.h"
-#include "Materials/MaterialExpressionTextureSample.h"
-#include "Materials/MaterialExpressionSubtract.h"
-#include "Materials/MaterialExpressionMultiply.h"
-#include "Materials/MaterialExpressionAdd.h"
-#include "Materials/MaterialExpressionTextureCoordinate.h"
-#include "Materials/MaterialExpressionVectorParameter.h"
-#include "Materials/MaterialExpressionConstant.h"
-	
-#include "RawMesh.h"
 #include "UnrealUtilities.h"
 
 #include "DesktopPlatformModule.h"
+#include "AssetRegistryModule.h"
 #include "JsonObjects.h"
 
 using namespace UnrealUtilities;
@@ -98,8 +79,22 @@ static bool loadCompressedBinary(ByteArray &outData, const FString &filename){
 	const auto srcPtr = dataPtr + headerSize;
 	auto dstPtr = outData.GetData();
 
-	return FCompression::UncompressMemory(COMPRESS_ZLIB, dstPtr, dstSize, srcPtr, srcSize, false, 
+#if 0
+	return FCompression::UncompressMemory(
+#if (ENGINE_MAJOR_VERSION >= 4) && (ENGINE_MINOR_VERSION >= 22)
+		NAME_Zlib,
+#else
+		COMPRESS_ZLIB,
+#endif
+		dstPtr, dstSize, srcPtr, srcSize, false, 
 		DEFAULT_ZLIB_BIT_WINDOW|32 //This is black magic needed to make FCompression treat the stream as gzip stream.
+	);
+#endif
+	//Alright, this is really ugly. We're basically relying on hidden functionality in order to read GZipStream here, and it is only used for cubemap textures
+	return FCompression::UncompressMemory(
+		COMPRESS_ZLIB,
+		dstPtr, dstSize, srcPtr, srcSize, false,
+		DEFAULT_ZLIB_BIT_WINDOW | 32 //This is black magic needed to make FCompression treat the stream as gzip stream.
 	);
 
 	//return true;

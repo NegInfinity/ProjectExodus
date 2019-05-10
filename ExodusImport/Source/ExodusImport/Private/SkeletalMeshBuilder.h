@@ -5,6 +5,7 @@
 
 #include "Runtime/Engine/Classes/Engine/SkeletalMesh.h"
 #include "Runtime/Engine/Public/Rendering/SkeletalMeshModel.h"
+#include "JsonObjects/JsonMesh.h"
 
 class UStaticMesh;
 class USkeletalMesh;

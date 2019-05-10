@@ -9,161 +9,9 @@
 #include "Runtime/Engine/Classes/Animation/Skeleton.h"
 #include "Runtime/Engine/Classes/Animation/MorphTarget.h"
 
+#include "Runtime/Launch/Resources/Version.h"
+
 using namespace UnrealUtilities;
-
-#if 0
-static void fillTestSkinMeshDirect(USkeletalMesh* skelMesh){
-	UE_LOG(JsonLog, Warning, TEXT("Starting skin mesh test"));
-	auto importModel = skelMesh->GetImportedModel();
-	check(importModel->LODModels.Num() == 0);
-	importModel->LODModels.Empty();
-
-	new(importModel->LODModels)FSkeletalMeshLODModel();//????
-	auto &lodModel = importModel->LODModels[0];
-
-	new(lodModel.Sections) FSkelMeshSection();
-	auto &lodSection = lodModel.Sections[0];
-	
-	auto &lodInfo = skelMesh->AddLODInfo();
-	lodInfo.ScreenSize = 0.3f;
-	lodInfo.LODHysteresis = 0.2f;
-
-	lodInfo.LODMaterialMap.Add(0);
-
-	//UMaterial* defaultMat = nullptr;//UMaterial::GetDefaultMaterial(MD_Surface);
-	UMaterial* defaultMat = UMaterial::GetDefaultMaterial(MD_Surface);
-
-	skelMesh->Materials.Add(defaultMat);
-
-	auto& refSkeleton = skelMesh->RefSkeleton;
-	refSkeleton.Empty();
-
-	skelMesh->bUseFullPrecisionUVs = true;
-	skelMesh->bHasVertexColors = false;
-	skelMesh->bHasBeenSimplified = false;
-
-	FString boneName1 = TEXT("bone1");
-	FString boneName2 = TEXT("bone2");
-	FString boneName3 = TEXT("bone3");
-
-	FTransform boneTransform1, boneTransform2, boneTransform3;
-	boneTransform1.SetFromMatrix(FMatrix::Identity);
-	boneTransform1.SetLocation(FVector(0.0f, 0.0f, 0.0f));
-
-	boneTransform2.SetFromMatrix(FMatrix::Identity);
-	boneTransform2.SetLocation(FVector(0.0f, 100.0f, 100.0f));
-
-	boneTransform3.SetFromMatrix(FMatrix::Identity);
-	///So, locations are local.
-	//boneTransform3.SetLocation(FVector(0.0f, -100.0f, 100.0f));
-	boneTransform3.SetLocation(FVector(0.0f, -200.0f, 0.0f));
-
-	lodModel.RequiredBones.Add(0);
-	lodModel.RequiredBones.Add(1);
-	lodModel.RequiredBones.Add(2);
-	lodModel.ActiveBoneIndices.Add(0);
-	lodModel.ActiveBoneIndices.Add(1);
-	lodModel.ActiveBoneIndices.Add(2);
-	lodSection.BoneMap.Add(0);
-	lodSection.BoneMap.Add(1);
-	lodSection.BoneMap.Add(2);
-
-	{
-		FReferenceSkeletonModifier refSkelModifier(refSkeleton, nullptr);
-		auto boneInfo1 = FMeshBoneInfo(FName(*boneName1), boneName1, INDEX_NONE);
-		auto boneInfo2 = FMeshBoneInfo(FName(*boneName2), boneName2, 0);
-		auto boneInfo3 = FMeshBoneInfo(FName(*boneName3), boneName3, 1);
-
-		refSkelModifier.Add(boneInfo1, boneTransform1);
-		refSkelModifier.Add(boneInfo2, boneTransform2);
-		refSkelModifier.Add(boneInfo3, boneTransform3);
-	}
-
-	lodSection.BaseIndex = 0;
-	lodSection.BaseVertexIndex = 0;
-	lodSection.NumVertices = 4;
-	lodSection.MaxBoneInfluences = 4;
-
-	lodSection.SoftVertices.SetNumUninitialized(lodSection.NumVertices);
-
-	TArray<FVector> meshPoints;
-	TArray<FVector2D> uvs;
-	meshPoints.Add(FVector(0.0f, -100.0f, 100.0f));
-	uvs.Add(FVector2D(0.0f, 1.0f));
-	meshPoints.Add(FVector(0.0f, 100.0f, 100.0f));
-	uvs.Add(FVector2D(1.0f, 1.0f));
-	meshPoints.Add(FVector(0.0f, -100.0f, -100.0f));
-	uvs.Add(FVector2D(0.0f, 0.0f));
-	meshPoints.Add(FVector(0.0f, 100.0f, -100.0f));
-	uvs.Add(FVector2D(1.0f, 0.0f));
-	FVector norm(-1.0f, 0.0f, 0.0f);
-	FVector tanU(0.0f, 1.0f, 0.0f);
-	FVector tanV(0.0f, 0.0f, 1.0f);
-
-	FBox boundBox;
-	boundBox.Init();
-
-	auto &softVerts = lodSection.SoftVertices;
-	for(int i = 0; i < lodSection.NumVertices; i++){
-		auto &dstVert = softVerts[i];
-		dstVert.Position = meshPoints[i];
-		boundBox += dstVert.Position;
-		dstVert.TangentX = tanU;
-		dstVert.TangentY = tanV;
-		dstVert.TangentZ = norm;
-		dstVert.UVs[0]  = uvs[i];
-	}
-
-	for (int vertIndex = 0; vertIndex < softVerts.Num(); vertIndex++){
-		for(int inflIndex = 0; inflIndex < MAX_TOTAL_INFLUENCES; inflIndex++){
-			lodSection.SoftVertices[vertIndex].InfluenceBones[inflIndex] = 0;
-			lodSection.SoftVertices[vertIndex].InfluenceWeights[inflIndex] = 0;
-		}
-		lodSection.SoftVertices[vertIndex].InfluenceWeights[0] = 255;/*Wait a minute? It is not floats? Oookay?*/
-	}
-	
-	lodSection.SoftVertices[0].InfluenceBones[0] = 2;
-	lodSection.SoftVertices[1].InfluenceBones[0] = 1;
-	lodSection.SoftVertices[2].InfluenceBones[0] = 0;
-	lodSection.SoftVertices[3].InfluenceBones[0] = 0;
-
-	lodModel.NumVertices = lodSection.SoftVertices.Num();
-	lodModel.NumTexCoords = 1;
-
-	lodModel.IndexBuffer.Add(0);
-	lodModel.IndexBuffer.Add(2);
-	lodModel.IndexBuffer.Add(1);
-	lodModel.IndexBuffer.Add(2);
-	lodModel.IndexBuffer.Add(3);
-	lodModel.IndexBuffer.Add(1);
-
-	lodModel.IndexBuffer.Add(0);
-	lodModel.IndexBuffer.Add(1);
-	lodModel.IndexBuffer.Add(2);
-	lodModel.IndexBuffer.Add(2);
-	lodModel.IndexBuffer.Add(1);
-	lodModel.IndexBuffer.Add(3);
-
-	lodSection.NumTriangles = lodModel.IndexBuffer.Num()/3;
-
-	FBoxSphereBounds bounds(boundBox);
-	//bounds = bounds.ExpandBy
-	skelMesh->SetImportedBounds(bounds);
-
-	skelMesh->PostEditChange();
-
-	auto skeleton = NewObject<USkeleton>(skelMesh->GetOuter());
-	skeleton->SetFlags(RF_Public|RF_Standalone);
-	skeleton->MergeAllBonesToBoneTree(skelMesh);
-	skeleton->MarkPackageDirty();
-	//FassetDatabase
-
-	skelMesh->Skeleton = skeleton;
-
-	skelMesh->MarkPackageDirty();
-	skelMesh->PostLoad();
-}
-#endif
 
 static void fillTestSkinMeshWithMeshTools(USkeletalMesh* skelMesh){
 	FlushRenderingCommands();
@@ -173,7 +21,12 @@ static void fillTestSkinMeshWithMeshTools(USkeletalMesh* skelMesh){
 	check(importModel->LODModels.Num() == 0);
 	importModel->LODModels.Empty();
 
+#if (ENGINE_MAJOR_VERSION >= 4) && (ENGINE_MINOR_VERSION >= 22)
+	//It is not directly specified anywhere, but TIndirectArray will properly delete its elements.
+	importModel->LODModels.Add(new FSkeletalMeshLODModel());
+#else
 	new(importModel->LODModels)FSkeletalMeshLODModel();//????
+#endif
 	auto &lodModel = importModel->LODModels[0];
 	auto numTexCoords = 1;
 	lodModel.NumTexCoords = numTexCoords;
