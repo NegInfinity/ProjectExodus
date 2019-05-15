@@ -38,7 +38,9 @@
 
 #include "builders/JointBuilder.h"
 
-#define LOCTEXT_NAMESPACE "FExodusImportModule"
+#include "LocTextNamespace.h"
+
+#define LOCTEXT_NAMESPACE LOCTEXT_NAMESPACE_NAME
 
 using namespace JsonObjects;
 using namespace UnrealUtilities;

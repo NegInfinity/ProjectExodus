@@ -8,6 +8,8 @@
 #include "JsonObjects/JsonSkeleton.h"
 #include "JsonObjects.h"
 #include "ImportWorkData.h"
+#include "ObjectTools.h"
+#include "Editor/UnrealEd/Public/PackageTools.h"
 
 class UMaterialExpression;
 class UMaterialExpressionParameter;
@@ -274,7 +276,7 @@ public:
 		else
 			packageName = FPaths::Combine(*packageRoot, *objName);
 
-		packageName = PackageTools::SanitizePackageName(packageName);
+		packageName = UPackageTools::SanitizePackageName(packageName);
 		UE_LOG(JsonLog, Log, TEXT("Sanitized package name : %s"), *packageName);
 
 		if (outPackageName){

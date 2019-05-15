@@ -5,8 +5,9 @@
 #include "UnrealUtilities.h"
 #include "JsonObjects.h"
 #include "PhysicsEngine/PhysicsConstraintComponent.h"
+#include "LocTextNamespace.h"
 
-#define LOCTEXT_NAMESPACE "FExodusImportModule"
+#define LOCTEXT_NAMESPACE LOCTEXT_NAMESPACE_NAME
 
 const bool JointBuilder::isSupportedJoint(const JsonPhysicsJoint &joint) const{
 	return joint.isFixedJointType()

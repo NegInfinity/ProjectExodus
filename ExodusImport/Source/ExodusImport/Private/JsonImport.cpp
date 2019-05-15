@@ -48,7 +48,9 @@
 #include "Tests/SkinMeshTest.h"
 #include "Tests/PluginDebugTest.h"
 
-#define LOCTEXT_NAMESPACE "FJsonImportModule"
+#include "LocTextNamespace.h"
+
+#define LOCTEXT_NAMESPACE LOCTEXT_NAMESPACE_NAME
 
 static const FName JsonImportTabName("JsonImport");
 

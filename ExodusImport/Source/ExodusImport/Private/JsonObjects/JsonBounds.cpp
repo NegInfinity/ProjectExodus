@@ -3,6 +3,7 @@
 #include "macros.h"
 
 void JsonBounds::load(JsonObjPtr jsonData){
+	using namespace JsonObjects;
 	JSON_GET_PARAM(jsonData, center, getVector);
 	JSON_GET_PARAM(jsonData, size, getVector);
 }

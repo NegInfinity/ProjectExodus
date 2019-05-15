@@ -1,21 +1,22 @@
 #pragma once
 
 #include "getters.h"
+#include "loggers.h"
 
-#define JSON_GET_AUTO_PARAM2_LOG(obj, varName, paramName, op) auto varName = op(obj, #paramName); logValue(#paramName, varName);
-#define JSON_GET_AUTO_PARAM_LOG(obj, name, op) auto name = op(obj, #name); logValue(#name, name);
+#define JSON_GET_AUTO_PARAM2_LOG(obj, varName, paramName, op) auto varName = op(obj, #paramName); JsonObjects::logValue(#paramName, varName);
+#define JSON_GET_AUTO_PARAM_LOG(obj, name, op) auto name = op(obj, #name); JsonObjects::logValue(#name, name);
 
 #define JSON_GET_AUTO_PARAM2_NOLOG(obj, varName, paramName, op) auto varName = op(obj, #paramName);
 #define JSON_GET_AUTO_PARAM_NOLOG(obj, name, op) auto name = op(obj, #name);
 
-#define JSON_GET_PARAM2_LOG(obj, varName, paramName, op) varName = op(obj, #paramName); logValue(#paramName, varName);
-#define JSON_GET_PARAM_LOG(obj, name, op) name = op(obj, #name); logValue(#name, name);
+#define JSON_GET_PARAM2_LOG(obj, varName, paramName, op) varName = op(obj, #paramName); JsonObjects::logValue(#paramName, varName);
+#define JSON_GET_PARAM_LOG(obj, name, op) name = op(obj, #name); JsonObjects::logValue(#name, name);
 
 #define JSON_GET_PARAM2_NOLOG(obj, varName, paramName, op) varName = op(obj, #paramName);
 #define JSON_GET_PARAM_NOLOG(obj, name, op) name = op(obj, #name);
 
-#define JSON_GET_VAR_LOG(obj, name) JsonObjects::getJsonValue(name, obj, #name); logValue(#name, name);
-#define JSON_GET_VAR2_LOG(obj, name, paramName) JsonObjects::getJsonValue(name, obj, #paramName); logValue(#paramName, name);
+#define JSON_GET_VAR_LOG(obj, name) JsonObjects::getJsonValue(name, obj, #name); JsonObjects::logValue(#name, name);
+#define JSON_GET_VAR2_LOG(obj, name, paramName) JsonObjects::getJsonValue(name, obj, #paramName); JsonObjects::logValue(#paramName, name);
 
 #define JSON_GET_VAR_NOLOG(obj, name) JsonObjects::getJsonValue(name, obj, #name);
 #define JSON_GET_VAR2_NOLOG(obj, name, paramName) JsonObjects::getJsonValue(name, obj, #paramName);

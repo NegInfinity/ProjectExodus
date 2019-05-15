@@ -1,6 +1,7 @@
 #pragma once
 
 #include "JsonTypes.h"
+#include "JsonObjects/JsonBounds.h"
 
 class JsonTransform{
 public:

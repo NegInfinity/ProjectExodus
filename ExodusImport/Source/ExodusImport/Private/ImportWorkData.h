@@ -15,14 +15,6 @@ using AnimControllerIdKey = TPair<JsonId, JsonId>;
 using AnimClipPathMap = TMap<AnimClipIdKey, FString>;
 using AnimControllerPathMap = TMap<AnimControllerIdKey, FString>;
 
-AnimClipIdKey makeAnimClipKey(JsonId skeletonId, JsonId clipId){
-	return AnimClipIdKey(skeletonId, clipId);
-}
-
-AnimClipIdKey makeAnimControlKey(JsonId skeletonId, JsonId controllerId){
-	return AnimControllerIdKey(skeletonId, controllerId);
-}
-
 class USceneComponent;
 
 /*

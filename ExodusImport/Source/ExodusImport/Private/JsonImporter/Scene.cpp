@@ -36,8 +36,9 @@
 #include "JsonObjects.h"
 #include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
 #include "UnrealEd/Public/Editor.h"
+#include "LocTextNamespace.h"
 
-#define LOCTEXT_NAMESPACE "FJsonImportModule"
+#define LOCTEXT_NAMESPACE LOCTEXT_NAMESPACE_NAME
 
 using namespace UnrealUtilities;
 using namespace JsonObjects;

@@ -7,6 +7,7 @@ JsonTerrain::JsonTerrain(JsonObjPtr data){
 }
 
 void JsonTerrain::load(JsonObjPtr data){
+	using namespace JsonObjects;
 	JSON_GET_PARAM(data, castShadows, getBool);
 	JSON_GET_PARAM(data, detailObjectDensity, getFloat);
 	JSON_GET_PARAM(data, detailObjectDistance, getFloat);

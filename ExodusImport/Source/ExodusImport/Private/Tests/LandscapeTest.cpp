@@ -1,6 +1,7 @@
 #include "JsonImportPrivatePCH.h"
 #include "LandscapeTest.h"
 #include "JsonLog.h"
+#include "AssetRegistry/Public/AssetRegistryModule.h"
 /*
 This demonstrates landscape crash I've experienced. The problematic part is this:
 

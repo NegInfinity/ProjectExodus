@@ -1,11 +1,15 @@
 #include "JsonImportPrivatePCH.h"
 #include "MeshBuilder.h"
 #include "UnrealUtilities.h"
+#include "MeshBuilderUtils.h"
 
 #include "Editor/UnrealEd/Private/GeomFitUtils.h"
 #include "Classes/PhysicsEngine/BodySetup.h"
 
 void MeshBuilder::setupStaticMesh(UStaticMesh *mesh, const JsonMesh &jsonMesh, std::function<void(TArray<FStaticMaterial> &meshMaterial)> materialSetup){
+	using namespace UnrealUtilities;
+	using namespace MeshBuilderUtils;
+
 	check(mesh);
 	UE_LOG(JsonLog, Log, TEXT("Static mesh num lods: %d"), mesh->SourceModels.Num());
 

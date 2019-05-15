@@ -1,9 +1,16 @@
 #include "JsonImportPrivatePCH.h"
 #include "MaterialBuilder.h"
 #include "MaterialTools.h"
+#include "TerrainBuilder.h"
+#include "JsonImporter.h"
+#include "AssetRegistryModule.h"
+#include "UnrealUtilities.h"
+#include "Classes/Factories/MaterialFactoryNew.h"
 
 UMaterialExpression* createTerrainLayerCoords(UMaterial *material, const JsonTerrain &terr, const JsonTerrainData &terrData
 	, const FVector2D& splatSize, const FVector2D& splatOffset, const FIntPoint &terrainVertSize,  const TCHAR* text = 0){
+	using namespace MaterialTools;
+
 	auto landCoord = createExpression<UMaterialExpressionLandscapeLayerCoords>(material, text);
 
 	landCoord->MappingScale = 1.0f;//1 per one vert unit
@@ -55,6 +62,7 @@ UMaterialExpression* createTerrainLayerCoords(UMaterial *material, const JsonTer
 UMaterialExpression* createLayerBlending(UMaterial* material, bool needSeparateBlend, const JsonTerrainData &terrData
 	, std::function<UMaterialExpression*(UMaterial* material, int index, const JsonSplatPrototype &splat)> channelFunc
 	, const TCHAR* blendName = 0){
+	using namespace MaterialTools;
 	if (!channelFunc){
 		UE_LOG(JsonLogTerrain, Error, TEXT("Null channel func while generating material for terrain \"%s\", cannot proceed"), *terrData.name);
 		return nullptr;
@@ -88,6 +96,7 @@ UMaterialExpression* createLayerBlending(UMaterial* material, bool needSeparateB
 }
 
 UMaterialExpression* createDetailControl(UMaterial* material, const TerrainBuilder *terrainBuilder){
+	using namespace MaterialTools;
 	//if (terrData.
 	check(terrainBuilder);
 	const auto& terrData = terrainBuilder->terrainData;
@@ -134,6 +143,7 @@ UMaterialExpression* createDetailControl(UMaterial* material, const TerrainBuild
 void MaterialBuilder::buildTerrainMaterial(UMaterial* material, 
 		const TerrainBuilder *terrainBuilder,
 		const FIntPoint &terrainVertSize, const FString &terrainDataPath){
+	using namespace MaterialTools;
 
 	checkf(terrainBuilder, TEXT("Terrain builder cannot be null"));
 
@@ -272,6 +282,7 @@ void MaterialBuilder::buildTerrainMaterial(UMaterial* material,
 
 UMaterial* MaterialBuilder::createTerrainMaterial(const TerrainBuilder *terrainBuilder, 
 		const FIntPoint &terrainVertSize, const FString &terrainDataPath){
+	using namespace UnrealUtilities;
 
 	checkf(terrainBuilder, TEXT("Terrain builder cannot be null"));
 

@@ -1,5 +1,5 @@
 #pragma once
-#include "JsonObjects.h"
+#include "JsonTypes.h"
 
 class JsonConfig{
 public:

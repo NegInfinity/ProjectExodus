@@ -2,6 +2,7 @@
 #include "MaterialBuilder.h"
 
 #include "MaterialTools.h"
+#include "JsonImporter.h"
 #include "JsonObjects/utilities.h"
 #include "UnrealUtilities.h"
 

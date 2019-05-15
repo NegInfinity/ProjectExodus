@@ -2,6 +2,10 @@
 #include "MaterialExpressionBuilder.h"
 #include "MaterialBuilder.h"
 #include "Factories/MaterialInstanceConstantFactoryNew.h"
+#include "Factories/MaterialFactoryNew.h"
+
+#include "TerrainBuilder.h"
+#include "JsonImporter.h"
 
 #include "UnrealUtilities.h"
 #include "MaterialTools.h"

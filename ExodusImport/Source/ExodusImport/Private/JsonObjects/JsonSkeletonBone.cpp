@@ -1,10 +1,11 @@
 #include "JsonImportPrivatePCH.h"
+#include "JsonSkeletonBone.h"
 #include "JsonScene.h"
 #include "macros.h"
 
-using namespace JsonObjects;
-
 void JsonSkeletonBone::load(JsonObjPtr data){
+	using namespace JsonObjects;
+
 	JSON_GET_VAR(data, name);
 	JSON_GET_VAR(data, id);
 	JSON_GET_VAR(data, parentId);

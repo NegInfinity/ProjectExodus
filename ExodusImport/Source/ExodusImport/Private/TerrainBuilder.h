@@ -11,6 +11,7 @@ class ALandscape;
 class ULandscapeGrassType;
 class ULandscapeLayerInfoObject;
 class UStaticMesh;
+class UMaterialInstanceConstant;
 
 class TerrainBuilder{
 protected:

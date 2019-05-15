@@ -2,7 +2,7 @@
 #include "JsonObjects.h"
 #include "JsonLog.h"
 
-#define LOCTEXT_NAMESPACE "FJsonImportModule"
+#define LOCTEXT_NAMESPACE LOCTEXT_NAMESPACE_NAME
 
 using namespace JsonObjects;
 

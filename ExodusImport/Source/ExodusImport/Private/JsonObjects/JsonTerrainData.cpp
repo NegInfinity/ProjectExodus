@@ -2,16 +2,17 @@
 #include "JsonTerrainData.h"
 #include "macros.h"
 #include "utilities.h"
+#include "UnrealUtilities.h"
 
 //#define JSON_ENABLE_VALUE_LOGGING
-
-using namespace JsonObjects;
 
 JsonTerrainData::JsonTerrainData(JsonObjPtr data){
 	load(data);
 }
 
 void JsonTerrainData::load(JsonObjPtr data){
+	using namespace JsonObjects;
+
 	JSON_GET_VAR(data, name);
 	JSON_GET_VAR(data, path);
 	JSON_GET_VAR(data, exportPath);
@@ -74,6 +75,7 @@ FString JsonTerrainData::getGrassTypeName(int layerIndex) const{
 }
 
 FVector JsonTerrainData::getNormalizedPosAsWorld(const FVector& normalizedUnityCoord, const FVector &origin) const{
+	using namespace UnrealUtilities;
 	auto ueSize = unitySizeToUe(worldSize);
 	auto ueCoord = unityVecToUe(normalizedUnityCoord);
 	//ueCoord.X = ueCoord.X * 0.5f - 0.5f;

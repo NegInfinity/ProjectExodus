@@ -12,6 +12,8 @@
 #include "UnrealUtilities.h"
 #include "MaterialExpressionBuilder.h"
 #include "Factories/MaterialInstanceConstantFactoryNew.h"
+#include "Factories/MaterialFactoryNew.h"
+#include "AssetRegistryModule.h"
 
 //#include "MaterialUtilities.h"
 

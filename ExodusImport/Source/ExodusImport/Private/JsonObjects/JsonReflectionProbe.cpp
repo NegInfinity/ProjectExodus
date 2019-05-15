@@ -3,6 +3,8 @@
 #include "macros.h"
 
 void JsonReflectionProbe::load(JsonObjPtr jsonData){
+	using namespace JsonObjects;
+
 	JSON_GET_PARAM(jsonData, backgroundColor, getColor);
 	JSON_GET_PARAM(jsonData, blendDistance, getFloat);
 	JSON_GET_PARAM(jsonData, boxProjection, getBool);

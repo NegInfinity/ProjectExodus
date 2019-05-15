@@ -1,6 +1,18 @@
 #include "JsonImportPrivatePCH.h"
 #include "JsonImporter.h"
 
+#include "Classes/Engine/Blueprint.h"
+#include "AssetRegistry/Public/AssetRegistryModule.h"
+#include "UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
+#include "UnrealEd/Public/Editor.h"
+#include "UnrealEd/Public/Toolkits/AssetEditorManager.h"
+#include "Internationalization/Internationalization.h"
+
+#include "builders/PrefabBuilder.h"
+#include "LocTextNamespace.h"
+
+#define LOCTEXT_NAMESPACE LOCTEXT_NAMESPACE_NAME
+
 #define JSON_DISABLE_PREFAB_IMPORT
 
 /*
@@ -201,10 +213,12 @@ This is definitely broken and therefore disabled.
 }
 
 void JsonImporter::importPrefabs(const StringArray &prefabs){
+/*
 #ifdef JSON_DISABLE_PREFAB_IMPORT
 	UE_LOG(JsonLog, Warning, TEXT("Prefab import is currently disabled"));
 	return;
 #endif
+*/
 
 	FScopedSlowTask progress(prefabs.Num(), LOCTEXT("Importing prefabs", "Importing prefabs"));
 	progress.MakeDialog();

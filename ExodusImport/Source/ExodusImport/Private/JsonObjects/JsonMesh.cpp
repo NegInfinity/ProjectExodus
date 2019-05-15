@@ -2,16 +2,19 @@
 #include "JsonMesh.h"
 #include "macros.h"
 #include "loggers.h"
+#include "UnrealUtilities.h"
 
 //#define JSON_ENABLE_VALUE_LOGGING
 
-using namespace JsonObjects;
-
 void JsonSubMesh::load(JsonObjPtr data){
+	using namespace JsonObjects;
+
 	JSON_GET_VAR(data, triangles);
 }
 
 void JsonMesh::load(JsonObjPtr data){
+	using namespace JsonObjects;
+
 	JSON_GET_VAR(data, id);
 	JSON_GET_VAR(data, name);
 	JSON_GET_VAR(data, uniqueName);
@@ -76,6 +79,8 @@ void JsonMesh::load(JsonObjPtr data){
 }
 
 void JsonBlendShapeFrame::load(JsonObjPtr data){
+	using namespace JsonObjects;
+
 	JSON_GET_VAR(data, index);
 	JSON_GET_VAR(data, weight);
 	JSON_GET_VAR(data, deltaVerts);
@@ -84,6 +89,8 @@ void JsonBlendShapeFrame::load(JsonObjPtr data){
 }
 
 void JsonBlendShape::load(JsonObjPtr data){
+	using namespace JsonObjects;
+
 	JSON_GET_VAR(data, name);
 	JSON_GET_VAR(data, index);
 	JSON_GET_VAR(data, numFrames);
@@ -107,23 +114,23 @@ FString JsonMesh::makeUnrealMeshName() const{
 }
 
 const FVector JsonMesh::getVertex(int index) const{
-	return getIdxVector3(verts, index);
+	return UnrealUtilities::getIdxVector3(verts, index);
 }
 
 const FVector JsonMesh::getNormal(int index) const{
 	if (!normals.Num())
 		return FVector::ZeroVector;
-	return getIdxVector3(normals, index);
+	return UnrealUtilities::getIdxVector3(normals, index);
 }
 
 FVector JsonBlendShapeFrame::getDeltaVert(int vertIdx) const{
-	return getIdxVector3(deltaVerts, vertIdx);
+	return UnrealUtilities::getIdxVector3(deltaVerts, vertIdx);
 }
 
 FVector JsonBlendShapeFrame::getDeltaTangent(int vertIdx) const{
-	return getIdxVector3(deltaTangents, vertIdx);
+	return UnrealUtilities::getIdxVector3(deltaTangents, vertIdx);
 }
 
 FVector JsonBlendShapeFrame::getDeltaNormal(int vertIdx) const{
-	return getIdxVector3(deltaNormals, vertIdx);
+	return UnrealUtilities::getIdxVector3(deltaNormals, vertIdx);
 }

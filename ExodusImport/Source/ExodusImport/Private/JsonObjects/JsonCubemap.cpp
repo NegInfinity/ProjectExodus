@@ -7,6 +7,8 @@
 using namespace JsonObjects;
 
 void JsonCubemap::load(JsonObjPtr data){
+	using namespace JsonObjects;
+
 	JSON_GET_VAR_LOG(data, id);
 	JSON_GET_VAR_LOG(data, name);
 	JSON_GET_VAR(data, exportPath);

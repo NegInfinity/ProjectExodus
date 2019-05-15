@@ -6,13 +6,13 @@
 #include "Runtime/Engine/Classes/Engine/SkeletalMesh.h"
 #include "Runtime/Engine/Public/Rendering/SkeletalMeshModel.h"
 #include "JsonObjects/JsonMesh.h"
+#include "JsonObjects/JsonSkeleton.h"
 
 class UStaticMesh;
 class USkeletalMesh;
 class UMaterial;
 class UMaterialInterface;
 class JsonImporter;
-
 
 struct SkeletalMeshBuildData{
 	bool hasColors = false;
@@ -42,7 +42,8 @@ struct SkeletalMeshBuildData{
 class SkeletalMeshBuilder{
 public:
 	void setupSkeletalMesh(USkeletalMesh *mesh, const JsonMesh &jsonMesh, const JsonImporter *importer, 
-		std::function<void(TArray<FSkeletalMaterial> &meshMaterials)> materialSetup, std::function<void(const JsonSkeleton&, USkeleton*)> onNewSkeleton);
+		std::function<void(TArray<FSkeletalMaterial> &meshMaterials)> materialSetup, 
+		std::function<void(const JsonSkeleton&, USkeleton*)> onNewSkeleton);
 protected:
 	void setupReferenceSkeleton(FReferenceSkeleton &refSkeleton, const JsonSkeleton &jsonSkel, const JsonMesh *jsonMesh,  const USkeleton *unrealSkeleton) const;
 	void registerPreviewMesh(USkeleton *skel, USkeletalMesh *mesh, const JsonMesh &jsonMesh);

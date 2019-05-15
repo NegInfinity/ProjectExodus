@@ -5,8 +5,11 @@
 #include "UnrealUtilities.h"
 
 #include "AnimationBuilder.h"
+#include "LocTextNamespace.h"
 
 #include "Runtime/Engine/Classes/Animation/AnimSequence.h"
+
+#define LOCTEXT_NAMESPACE LOCTEXT_NAMESPACE_NAME
 
 using namespace UnrealUtilities;
 

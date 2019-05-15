@@ -4,10 +4,11 @@
 #include "LandscapeInfo.h"
 #include "LandscapeLayerInfoObject.h"
 #include "JsonImporter.h"
-//#include "JsonObjects/.h"
+
 #include "UnrealUtilities.h"
 #include "MeshBuilder.h"
 #include "Materials/Material.h"
+#include "JsonObjects/JsonBinaryTerrain.h"
 
 #include "Runtime/Foliage/Public/InstancedFoliageActor.h"
 #include "Runtime/Landscape/Classes/LandscapeGrassType.h"

@@ -4,6 +4,7 @@
 #include "Factories/WorldFactory.h"
 #include "GameFramework/Actor.h"
 #include "Engine/PointLight.h"
+#include "AssetRegistryModule.h"
 
 using namespace UnrealUtilities;
 

@@ -1,5 +1,6 @@
 #pragma once
 #include "JsonTypes.h"
+#include "JsonGameObject.h"
 
 class JsonPrefabData{
 public:
