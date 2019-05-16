@@ -7,6 +7,7 @@
 #include "Developer/RawMesh/Public/RawMesh.h"
 #include "Runtime/Engine/Classes/Engine/StaticMesh.h"
 #include <functional>
+#include "JsonObjects/loggers.h"
 
 class JsonImporter;
 class UStaticMesh;
@@ -165,7 +166,7 @@ namespace UnrealUtilities{
 		}
 		else{
 			auto moveResult = result->SetActorTransform(transform, false, nullptr, ETeleportType::ResetPhysics);
-			logValue("Actor move result: ", moveResult);
+			JsonObjects::logValue("Actor move result: ", moveResult);
 		}
 		return result;
 	}
@@ -204,6 +205,9 @@ namespace UnrealUtilities{
 
 	FString genTimestamp();
 
+	void setObjectHierarchy(const ImportedObject &object, ImportedObject *parentObject, 
+		const FString& folderPath, ImportWorkData &workData, const JsonGameObject &gameObj);
+	void registerImportedObject(ImportedObjectArray *outArray, const ImportedObject &arg);
 
 	template<typename T> UPackage* createPackage(
 			const FString &basePackageName, 

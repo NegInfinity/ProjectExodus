@@ -26,7 +26,8 @@ not much point when I can just use scoped dictionaries.
 */
 class ImportWorkData{
 public:
-	const JsonScene *scene = nullptr;
+	//const JsonScene *srcScene = nullptr;
+	const TArray<JsonGameObject> *srcObjects = nullptr;
 
 	IdNameMap objectFolderPaths;
 
@@ -55,15 +56,11 @@ public:
 	void registerAnimatorForPostProcessing(const JsonGameObject &jsonObj);
 	void registerDelayedAnimController(JsonId skelId, JsonId controllerId);
 
-	ImportWorkData(UWorld *world_, bool editorMode_, const JsonScene *scene_)
-	:scene(scene_), world(world_), editorMode(editorMode_){
-	}
+	void clear();
 
-	void clear(){
-		objectFolderPaths.Empty();
-		importedObjects.Empty();
+	ImportedObject createBlankActor(const JsonGameObject &gameObj);
 
-		delayedAnimControllers.Empty();
-	}
+	ImportWorkData(UWorld *world_, bool editorMode_, const JsonScene *scene_);
+	ImportWorkData(UWorld *world_, bool editorMode_, const TArray<JsonGameObject> *objects_);
 };
 

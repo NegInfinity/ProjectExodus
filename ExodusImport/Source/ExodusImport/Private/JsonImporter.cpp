@@ -179,11 +179,11 @@ void JsonImporter::loadObjects(const TArray<JsonGameObject> &objects, ImportWork
 	FScopedSlowTask objProgress(objects.Num(), LOCTEXT("Importing objects", "Importing objects"));
 	objProgress.MakeDialog();
 	UE_LOG(JsonLog, Log, TEXT("Import objects"));
-	int32 objId = 0;
+	//int32 objId = 0;
 	for(const auto &curObj: objects){
-		auto curId = objId;
-		objId++;
-		importObject(curObj, objId, importData);
+		//auto curId = objId;
+		//objId++;
+		importObject(curObj, importData);
 		objProgress.EnterProgressFrame(1.0f);
 	}
 

@@ -2,19 +2,6 @@
 
 #include "JsonImporter.h"
 
-#include "Engine/PointLight.h"
-#include "Engine/SpotLight.h"
-#include "Engine/SphereReflectionCapture.h"
-#include "Engine/BoxReflectionCapture.h"
-#include "Engine/DirectionalLight.h"
-#include "Engine/Classes/Components/PointLightComponent.h"
-#include "Engine/Classes/Components/SpotLightComponent.h"
-#include "Engine/Classes/Components/DirectionalLightComponent.h"
-
-#include "Engine/Classes/Components/BoxReflectionCaptureComponent.h"
-#include "Engine/Classes/Components/ReflectionCaptureComponent.h"
-#include "Engine/Classes/Components/SphereReflectionCaptureComponent.h"
-
 #include "Engine/StaticMeshActor.h"
 #include "Engine/Classes/Animation/SkeletalMeshActor.h"
 #include "Engine/Classes/Components/PoseableMeshComponent.h"
@@ -43,10 +30,12 @@
 #include "JsonObjects.h"
 #include "UnrealUtilities.h"
 
+#include "builders/LightBuilder.h"
+#include "builders/ReflectionProbeBuilder.h"
+
 #include "DesktopPlatformModule.h"
 
 using namespace JsonObjects;
-
 
 void JsonImporter::setObjectHierarchy(const ImportedObject &object, ImportedObject *parentObject, 
 		const FString& folderPath, ImportWorkData &workData, const JsonGameObject &gameObj){
@@ -59,20 +48,6 @@ void JsonImporter::setObjectHierarchy(const ImportedObject &object, ImportedObje
 	}
 
 	object.setActiveInHierarchy(gameObj.activeInHierarchy);
-}
-
-ImportedObject JsonImporter::createBlankActor(ImportWorkData &workData, const JsonGameObject &jsonGameObj){
-	FTransform transform;
-	transform.SetFromMatrix(jsonGameObj.ueWorldMatrix);
-
-	AActor *blankActor = workData.world->SpawnActor<AActor>(AActor::StaticClass(), transform);
-	auto *rootComponent = NewObject<USceneComponent>(blankActor);
-	rootComponent->SetWorldTransform(transform);
-	blankActor->SetRootComponent(rootComponent);
-	blankActor->SetActorLabel(jsonGameObj.ueName, true);
-	rootComponent->SetMobility(jsonGameObj.getUnrealMobility());
-	ImportedObject importedObject(blankActor);
-	return importedObject;
 }
 
 /*
@@ -270,10 +245,7 @@ void JsonImporter::makeComponentVisibleInEditor(USceneComponent *comp) const{
 	comp->RegisterComponent();
 }
 
-
-void JsonImporter::importObject(const JsonGameObject &jsonGameObj , int32 objId, ImportWorkData &workData){
-	//UE_LOG(JsonLog, Log, TEXT("Importing object %d"), objId);
-
+ImportedObject JsonImporter::importObject(const JsonGameObject &jsonGameObj, ImportWorkData &workData, bool createEmptyTransforms){
 	auto* parentObject = workData.findImportedObject(jsonGameObj.parentId);
 
 	auto folderPath = workData.processFolderPath(jsonGameObj);
@@ -283,25 +255,24 @@ void JsonImporter::importObject(const JsonGameObject &jsonGameObj , int32 objId,
 
 	if (!workData.world){
 		UE_LOG(JsonLog, Warning, TEXT("No world"));
-		return; 
+		return ImportedObject(); 
 	}
 
-	//ImportedObjectArray colliderObjects;
 	ImportedObjectArray createdObjects;
 
 	auto objectType = DesiredObjectType::Default;
 
-	ImportedObject rootObject = processMeshAndColliders(workData, jsonGameObj, objId, parentObject, folderPath, objectType);
+	ImportedObject rootObject = processMeshAndColliders(workData, jsonGameObj, jsonGameObj.id, parentObject, folderPath, objectType);
 
 	if (rootObject.isValid()){
 	}
 
 	if (jsonGameObj.hasProbes()){
-		processReflectionProbes(workData, jsonGameObj, objId, parentObject, folderPath, &createdObjects);
+		ReflectionProbeBuilder::processReflectionProbes(workData, jsonGameObj, parentObject, folderPath, &createdObjects, this);
 	}
 	
 	if (jsonGameObj.hasLights()){
-		processLights(workData, jsonGameObj, parentObject, folderPath, &createdObjects);
+		LightBuilder::processLights(workData, jsonGameObj, parentObject, folderPath, &createdObjects);
 	}
 
 	if (jsonGameObj.hasTerrain()){
@@ -313,7 +284,7 @@ void JsonImporter::importObject(const JsonGameObject &jsonGameObj , int32 objId,
 	}
 
 	if ((createdObjects.Num() > 1) && (!rootObject.isValid())){
-		rootObject = createBlankActor(workData, jsonGameObj);
+		rootObject = workData.createBlankActor(jsonGameObj);
 	}
 
 	if (rootObject.isValid()){
@@ -378,24 +349,13 @@ void JsonImporter::importObject(const JsonGameObject &jsonGameObj , int32 objId,
 		And this needs to be changed as well.
 		*/
 		if (!workData.importedObjects.Contains(jsonGameObj.id)){
-			auto blankActor = createBlankActor(workData, jsonGameObj);
-			/*
-			FTransform transform;
-			transform.SetFromMatrix(jsonGameObj.ueWorldMatrix);
-
-			AActor *blankActor = workData.world->SpawnActor<AActor>(AActor::StaticClass(), transform);
-			auto *rootComponent = NewObject<USceneComponent>(blankActor);
-			rootComponent->SetWorldTransform(transform);
-			blankActor->SetRootComponent(rootComponent);
-			blankActor->SetActorLabel(jsonGameObj.ueName, true);
-
-			ImportedObject importedObject(blankActor);
-			*/
+			auto blankActor = workData.createBlankActor(jsonGameObj);
 			setObjectHierarchy(blankActor, parentObject, folderPath, workData, jsonGameObj);
-			//workData.importedObjects.Add(jsonGameObj.id, blankActor);
 			workData.registerGameObject(jsonGameObj, blankActor);
 		}
 	}
+
+	return rootObject;
 }
 
 USkeletalMesh* JsonImporter::loadSkeletalMeshById(ResId id) const{
@@ -637,247 +597,6 @@ ImportedObject JsonImporter::processStaticMesh(ImportWorkData &workData, const J
 	workData.registerGameObject(jsonGameObj, result);
 
 	return result;
-}
-
-//void setupReflectionCapture(UReflectionCaptureComponent *reflComponent, const JsonReflectionProbe &probe);
-ImportedObject JsonImporter::processReflectionProbe(ImportWorkData &workData, const JsonGameObject &gameObj,
-		const JsonReflectionProbe &probe, int32 objId, ImportedObject *parentObject, const FString &folderPath){
-	using namespace UnrealUtilities;
-
-	FMatrix captureMatrix = gameObj.ueWorldMatrix;
-
-	FVector ueCenter = unityPosToUe(probe.center);
-	FVector ueSize = unitySizeToUe(probe.size);
-	FVector xAxis, yAxis, zAxis;
-	captureMatrix.GetScaledAxes(xAxis, yAxis, zAxis);
-	auto origin = captureMatrix.GetOrigin();
-	//origin += xAxis * ueCenter.X * 100.0f + yAxis * ueCenter.Y * 100.0f + zAxis * ueCenter.Z * 100.0f;
-	origin += xAxis * ueCenter.X + yAxis * ueCenter.Y + zAxis * ueCenter.Z;
-
-	auto sphereInfluence = FMath::Max3(ueSize.X, ueSize.Y, ueSize.Z) * 0.5f;
-	if (probe.boxProjection){
-		xAxis *= ueSize.X * 0.5f;
-		yAxis *= ueSize.Y * 0.5f;
-		zAxis *= ueSize.Z * 0.5f;
-	}
-
-	captureMatrix.SetOrigin(origin);
-	captureMatrix.SetAxes(&xAxis, &yAxis, &zAxis);
-
-	//bool realtime = mode == "Realtime";
-	bool baked = (probe.mode == "Baked");
-	if (!baked){
-		UE_LOG(JsonLog, Warning, TEXT("Realtime reflections are not supported. object %s(%d)"), *gameObj.ueName, objId);
-	}
-
-	FTransform captureTransform;
-	captureTransform.SetFromMatrix(captureMatrix);
-	UReflectionCaptureComponent *reflComponent = 0;
-
-	auto preInit = [&](AReflectionCapture *refl){
-		if (!refl) 
-			return;
-		refl->SetActorLabel(gameObj.ueName);
-		auto moveResult = refl->SetActorTransform(captureTransform, false, nullptr, ETeleportType::ResetPhysics);
-		logValue("Actor move result: ", moveResult);
-	};
-
-	auto postInit = [&](AReflectionCapture *refl){
-		if (!refl)
-			return;
-		refl->MarkComponentsRenderStateDirty();
-		//setActorHierarchy(refl, parentActor, folderPath, workData, gameObj);
-
-		setObjectHierarchy(ImportedObject(refl), parentObject, folderPath, workData, gameObj);
-	};
-
-	auto setupComponent = [&](UReflectionCaptureComponent *reflComponent) -> void{
-		if (!reflComponent)
-			return;
-		reflComponent->Brightness = probe.intensity;
-		reflComponent->ReflectionSourceType = EReflectionSourceType::CapturedScene;
-		if (probe.mode == "Custom"){
-			reflComponent->ReflectionSourceType = EReflectionSourceType::SpecifiedCubemap;
-			auto cube = getCubemap(probe.customCubemapId);
-			if (!cube){
-				UE_LOG(JsonLog, Warning, TEXT("Custom cubemap not set on reflection probe on object \"%s\"(%d)"),
-					*gameObj.ueName, objId);
-			}
-			else
-				reflComponent->Cubemap = cube;
-			//UE_LOG(JsonLog, Warning, TEXT("Cubemaps are not yet fully supported: %s(%d)"), *gameObj.ueName, objId);
-		}
-		if (probe.mode == "Realtime"){
-			UE_LOG(JsonLog, Warning, TEXT("Realtime reflection probes are not support: %s(%d)"), *gameObj.ueName, objId);
-		}
-	};
-
-	if (!probe.boxProjection){
-		auto sphereActor = createActor<ASphereReflectionCapture>(workData, captureTransform, TEXT("sphere capture"));
-		if (sphereActor){
-			preInit(sphereActor);
-
-			auto captureComp = sphereActor->GetCaptureComponent();
-			reflComponent = captureComp;
-			auto* sphereComp = Cast<USphereReflectionCaptureComponent>(captureComp);
-			if (sphereComp){
-				sphereComp->InfluenceRadius = sphereInfluence;
-			}
-			setupComponent(sphereComp);
-			postInit(sphereActor);
-		}
-		return ImportedObject(sphereActor);
-	}
-	else{
-		auto boxActor = createActor<ABoxReflectionCapture>(workData, captureTransform, TEXT("box reflection capture"));
-		if (boxActor){
-			preInit(boxActor);
-
-			auto captureComp = boxActor->GetCaptureComponent();
-			reflComponent = captureComp;
-			auto *boxComp = Cast<UBoxReflectionCaptureComponent>(captureComp);
-			if (boxComp){
-				boxComp->BoxTransitionDistance = unityDistanceToUe(probe.blendDistance * 0.5f);
-			}
-			setupComponent(boxComp);
-
-			//TODO: Cubemaps
-			/*if (isStatic)
-				actor->SetMobility(EComponentMobility::Static);*/
-			postInit(boxActor);
-		}
-		return ImportedObject(boxActor);
-	}
-}
-
-
-void JsonImporter::processReflectionProbes(ImportWorkData &workData, const JsonGameObject &gameObj, int32 objId, ImportedObject *parentObject, const FString &folderPath, ImportedObjectArray *createdObjects){
-	if (!gameObj.hasProbes())
-		return;
-
-	if (!gameObj.isStatic){
-		UE_LOG(JsonLog, Warning, TEXT("Moveable reflection captures are not supported. Object %s(%d)"), *gameObj.ueName, objId);
-		//return;
-	}
-
-	for (int i = 0; i < gameObj.probes.Num(); i++){
-		const auto &probe = gameObj.probes[i];
-		auto probeObject = processReflectionProbe(workData, gameObj, gameObj.probes[i], objId, parentObject, folderPath);
-		registerImportedObject(createdObjects, probeObject);
-	}
-}
-
-void JsonImporter::setupPointLightComponent(UPointLightComponent *pointLight, const JsonLight &jsonLight){
-	//light->SetIntensity(lightIntensity * 2500.0f);//100W lamp per 1 point of intensity
-
-	pointLight->SetIntensity(jsonLight.intensity);
-	pointLight->bUseInverseSquaredFalloff = false;
-	//pointLight->LightFalloffExponent = 2.0f;
-	pointLight->SetLightFalloffExponent(2.0f);
-
-	pointLight->SetLightColor(jsonLight.color);
-	float attenRadius = jsonLight.range*100.0f;//*ueAttenuationBoost;//those are fine
-	pointLight->AttenuationRadius = attenRadius;
-	pointLight->SetAttenuationRadius(attenRadius);
-	pointLight->CastShadows = jsonLight.castsShadows;//lightCastShadow;// != FString("None");
-}
-
-void JsonImporter::setupSpotLightComponent(USpotLightComponent *spotLight, const JsonLight &jsonLight){
-	//spotLight->SetIntensity(lightIntensity * 2500.0f);//100W lamp per 1 point of intensity
-	spotLight->SetIntensity(jsonLight.intensity);
-	spotLight->bUseInverseSquaredFalloff = false;
-	//spotLight->LightFalloffExponent = 2.0f;
-	spotLight->SetLightFalloffExponent(2.0f);
-
-
-	spotLight->SetLightColor(jsonLight.color);
-	float attenRadius = jsonLight.range*100.0f;//*ueAttenuationBoost;
-	spotLight->AttenuationRadius = attenRadius;
-	spotLight->SetAttenuationRadius(attenRadius);
-	spotLight->CastShadows = jsonLight.castsShadows;//lightCastShadow;// != FString("None");
-	//spotLight->InnerConeAngle = lightSpotAngle * 0.25f;
-	spotLight->InnerConeAngle = 0.0f;
-	spotLight->OuterConeAngle = jsonLight.spotAngle * 0.5f;
-	//spotLight->SetVisibility(params.visible);
-}
-
-void JsonImporter::setupDirLightComponent(ULightComponent *dirLight, const JsonLight &jsonLight){
-	//light->SetIntensity(lightIntensity * 2500.0f);//100W lamp per 1 point of intensity
-	dirLight->SetIntensity(jsonLight.intensity);
-	//light->bUseInverseSquaredFalloff = false;
-	//light->LightFalloffExponent = 2.0f;
-	//light->SetLightFalloffExponent(2.0f);
-
-	dirLight->SetLightColor(jsonLight.color);
-	//float attenRadius = lightRange*100.0f;//*ueAttenuationBoost;
-	//light->AttenuationRadius = attenRadius;
-	//light->SetAttenuationRadius(attenRadius);
-	dirLight->CastShadows = jsonLight.castsShadows;// != FString("None");
-	//light->InnerConeAngle = lightSpotAngle * 0.25f;
-
-	//light->InnerConeAngle = 0.0f;
-	//light->OuterConeAngle = lightSpotAngle * 0.5f;
-
-	//light->SetVisibility(params.visible);
-}
-
-
-ImportedObject JsonImporter::processLight(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonLight &jsonLight, ImportedObject *parentObject, const FString& folderPath){
-	using namespace UnrealUtilities;
-
-	UE_LOG(JsonLog, Log, TEXT("Creating light"));
-
-	FTransform lightTransform;
-	lightTransform.SetFromMatrix(gameObj.ueWorldMatrix);
-
-	ALight *actor = nullptr;
-	if (jsonLight.lightType == "Point"){
-		auto pointActor = createActor<APointLight>(workData, lightTransform, TEXT("point light"));
-		actor = pointActor;
-		if (pointActor){
-			auto light = pointActor->PointLightComponent;
-			setupPointLightComponent(light, jsonLight);
-		}
-	}
-	else if (jsonLight.lightType == "Spot"){
-		auto spotActor = createActor<ASpotLight>(workData, lightTransform, TEXT("spot light"));
-		actor = spotActor;
-		if (actor){
-			auto light = spotActor->SpotLightComponent;
-			setupSpotLightComponent(light, jsonLight);
-		}
-	}
-	else if (jsonLight.lightType == "Directional"){
-		auto dirLightActor = createActor<ADirectionalLight>(workData, lightTransform, TEXT("directional light"));
-		actor = dirLightActor;
-		if (dirLightActor){
-			auto light = dirLightActor->GetLightComponent();
-			setupDirLightComponent(light, jsonLight);
-		}
-	}
-
-	if (actor){
-		actor->SetActorLabel(gameObj.ueName, true);
-		if (gameObj.isStatic)
-			actor->SetMobility(EComponentMobility::Static);
-		setObjectHierarchy(ImportedObject(actor), parentObject, folderPath, workData, gameObj);
-		actor->MarkComponentsRenderStateDirty();
-	}
-
-	return ImportedObject(actor);
-}
-
-//void JsonImporter::processLights(ImportWorkData &workData, const JsonGameObject &gameObj, AActor *parentActor, const FString& folderPath){
-void JsonImporter::processLights(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedObject *parentObject, const FString& folderPath, ImportedObjectArray *createdObjects){
-	if (!gameObj.hasLights())
-		return;
-
-	for(int i = 0; i < gameObj.lights.Num(); i++){
-		const auto &curLight = gameObj.lights[i];
-		//processLight(workData, gameObj, curLight, parentActor, folderPath);
-		auto light = processLight(workData, gameObj, curLight, parentObject, folderPath);
-		registerImportedObject(createdObjects, light);
-	}
 }
 
 UBoxComponent* JsonImporter::createBoxCollider(UObject *ownerPtr, const JsonGameObject &jsonGameObj, const JsonCollider &collider) const{

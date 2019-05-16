@@ -11,6 +11,10 @@ public:
 
 	TArray<JsonGameObject> objects;
 
+	bool hasObjects() const{
+		return objects.Num() > 0;
+	}
+
 	void load(JsonObjPtr jsonData);
 	JsonPrefabData() = default;
 	JsonPrefabData(JsonObjPtr jsonData);

@@ -83,13 +83,9 @@ protected:
 
 	static void registerImportedObject(ImportedObjectArray *outArray, const ImportedObject &arg);
 
-	void setupPointLightComponent(UPointLightComponent *pointLight, const JsonLight &jsonLight);
-	void setupSpotLightComponent(USpotLightComponent *spotLight, const JsonLight &jsonLight);
-	void setupDirLightComponent(ULightComponent *dirLight, const JsonLight &jsonLight);
-
 	UWorld* importSceneObjectsAsWorld(const JsonScene &scene, const FString &sceneNameOverride, const FString &scenePathOverride);
 
-	static ImportedObject createBlankActor(ImportWorkData &workData, const JsonGameObject &gameObj);
+	//static ImportedObject createBlankActor(ImportWorkData &workData, const JsonGameObject &gameObj);
 
 	UBoxComponent *createBoxCollider(UObject *ownerPtr, const JsonGameObject &gameObj, const JsonCollider &collider) const;
 	USphereComponent *createSphereCollider(UObject *ownerPtr, const JsonGameObject &gameObj, const JsonCollider &collider) const;
@@ -112,12 +108,8 @@ protected:
 	ImportedObject processMeshAndColliders(ImportWorkData &workData, const JsonGameObject &gameObj, int objId, ImportedObject *parentObject, const FString &folderPath, DesiredObjectType objectType);
 
 	ImportedObject processReflectionProbe(ImportWorkData &workData, const JsonGameObject &gameObj,
-		const JsonReflectionProbe &probe, int32 objId, ImportedObject *parentObject, const FString &folderPath);
-	void processReflectionProbes(ImportWorkData &workData, const JsonGameObject &gameObj, int32 objId, ImportedObject *parentObject, const FString &folderPath,
-		ImportedObjectArray *createdObjects);
-
-	ImportedObject processLight(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonLight &light, ImportedObject *parentObject, const FString& folderPath);
-	void processLights(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedObject *parentObject, const FString& folderPath,
+		const JsonReflectionProbe &probe, ImportedObject *parentObject, const FString &folderPath);
+	void processReflectionProbes(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedObject *parentObject, const FString &folderPath,
 		ImportedObjectArray *createdObjects);
 
 	void setupCommonColliderSettings(const ImportWorkData &workData, UPrimitiveComponent *dstCollider, const JsonGameObject &jsonGameObj, const JsonCollider &collider) const;
@@ -139,7 +131,7 @@ protected:
 
 	UWorld* importScene(const JsonScene &scene, bool createWorld);
 
-	void importPrefab(const JsonPrefabData& prefab);
+	//void importPrefab(const JsonPrefabData& prefab);
 	void importPrefabs(const StringArray &prefabs);
 
 	void importTerrainData(JsonObjPtr jsonData, JsonId terrainId, const FString &rootPath);
@@ -235,7 +227,7 @@ public:
 
 	void importMesh(JsonObjPtr obj, int32 meshId);
 	void importMesh(const JsonMesh &jsonMesh, int32 meshId);
-	void importObject(const JsonGameObject &jsonGameObj , int32 objId, ImportWorkData &importData);
+	ImportedObject importObject(const JsonGameObject &jsonGameObj, ImportWorkData &importData, bool createEmptyTransforms = false);
 
 	static int findMatchingLength(const FString& arg1, const FString& arg2);
 	FString findCommonPath(const JsonValPtrs* resources) const;

@@ -61,6 +61,10 @@ public:
 	FVector unityLocalVectorToUnrealWorld(const FVector &arg) const;
 	FVector unityLocalPosToUnrealWorld(const FVector &arg) const;
 
+	bool hasParent() const{
+		return parentId >= 0;
+	}
+
 	int findSuitableRootColliderIndex() const{
 		for(int i = 0; i < colliders.Num(); i++){
 			const auto& cur = colliders[i];

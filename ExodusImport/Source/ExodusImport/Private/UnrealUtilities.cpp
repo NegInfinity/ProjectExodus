@@ -23,8 +23,7 @@ UPackage* UnrealUtilities::createAssetPackage(const FString &objectName, const F
 	}
 
 	return newPackage;
-}
-	
+}	
 
 FString UnrealUtilities::getDefaultImportPath(){
 	return TEXT("/Game/Import");
@@ -398,3 +397,25 @@ FVector UnrealUtilities::getUnityRightVector(){
 FVector UnrealUtilities::getUnityForwardVector(){
 	return FVector(0.0f, 0.0f, 1.0f);
 }
+
+void UnrealUtilities::setObjectHierarchy(const ImportedObject &object, ImportedObject *parentObject, 
+	const FString& folderPath, ImportWorkData &workData, const JsonGameObject &gameObj){
+	if (parentObject){
+		object.attachTo(parentObject);
+	}
+	else{
+		if (folderPath.Len())
+			object.setFolderPath(*folderPath);
+	}
+
+	object.setActiveInHierarchy(gameObj.activeInHierarchy);
+}
+
+void UnrealUtilities::registerImportedObject(ImportedObjectArray *outArray, const ImportedObject &arg){
+	if (!outArray)
+		return;
+	if (!arg.isValid())
+		return;
+	outArray->Push(arg);
+}
+

@@ -3,6 +3,9 @@
 #include "Runtime/Engine/Classes/Components/SceneComponent.h"
 #include "Runtime/Engine/Classes/GameFramework/Actor.h"
 #include "JsonObjects/utilities.h"
+#include "Classes/GameFramework/Actor.h"
+#include "Classes/Engine/World.h"
+
 
 void ImportWorkData::registerDelayedAnimController(JsonId skelId, JsonId controllerId){
 	delayedAnimControllers.Add(AnimControllerIdKey(skelId, controllerId));
@@ -14,9 +17,12 @@ void ImportWorkData::registerAnimatorForPostProcessing(const JsonGameObject &jso
 }
 
 const JsonGameObject* ImportWorkData::findJsonObject(JsonId id) const{
-	check(scene != nullptr);
-	if ((id >= 0) && (id < scene->objects.Num()))
-		return &scene->objects[id];
+	//check(srcScene != nullptr);
+	check(srcObjects != nullptr);
+	//if ((id >= 0) && (id < srcScene->objects.Num()))
+	if ((id >= 0) && (id < srcObjects->Num()))
+		return &(*srcObjects)[id];
+		//return &srcScene->objects[id];
 
 	return nullptr;
 }
@@ -32,7 +38,8 @@ const JsonRigidbody* ImportWorkData::locateRigidbody(const JsonGameObject &srcGa
 		if (!isValidId(currentObject->parentId))
 			break;
 
-		if (!scene)
+		//if (!srcScene)
+		if (!srcObjects)
 			break;
 
 		currentObject = findJsonObject(currentObject->parentId);
@@ -126,4 +133,38 @@ bool ImportWorkData::isCompoundRigidbodyRootCollider(const JsonGameObject &gameO
 	}
 	check(false);//somehow we found neither rigidbody nor colliders? This is an illegal scene graph and likely an error
 	return false;
+}
+
+ImportedObject ImportWorkData::createBlankActor(const JsonGameObject &jsonGameObj){
+	check(world);
+	FTransform transform;
+	transform.SetFromMatrix(jsonGameObj.ueWorldMatrix);
+
+	AActor *blankActor = world->SpawnActor<AActor>(AActor::StaticClass(), transform);
+	auto *rootComponent = NewObject<USceneComponent>(blankActor);
+	rootComponent->SetWorldTransform(transform);
+	blankActor->SetRootComponent(rootComponent);
+	blankActor->SetActorLabel(jsonGameObj.ueName, true);
+	rootComponent->SetMobility(jsonGameObj.getUnrealMobility());
+	ImportedObject importedObject(blankActor);
+	return importedObject;
+}
+
+ImportWorkData::ImportWorkData(UWorld *world_, bool editorMode_, const JsonScene *scene_)
+//:srcScene(scene_), world(world_), editorMode(editorMode_){
+:srcObjects(nullptr), world(world_), editorMode(editorMode_){
+	check(scene_ != nullptr);
+	srcObjects = &scene_->objects;
+}
+
+ImportWorkData::ImportWorkData(UWorld *world_, bool editorMode_, const TArray<JsonGameObject> *objects_)
+:srcObjects(objects_), world(world_), editorMode(editorMode_){
+}
+
+
+void ImportWorkData::clear(){
+	objectFolderPaths.Empty();
+	importedObjects.Empty();
+
+	delayedAnimControllers.Empty();
 }
