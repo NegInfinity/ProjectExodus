@@ -214,4 +214,8 @@ void MeshBuilder::setupStaticMesh(UStaticMesh *mesh, const JsonMesh &jsonMesh, s
 			UE_LOG(JsonLog, Warning, TEXT("Could not setup collision flags for mesh %d(\"%s\") - body setup not generated"), (int)jsonMesh.id, *jsonMesh.name);
 		}
 	}
+
+#if (ENGINE_MAJOR_VERSION >= 4) && (ENGINE_MINOR_VERSION >= 22)
+	srcModel.StaticMeshOwner = mesh;
+#endif
 }

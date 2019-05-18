@@ -116,11 +116,6 @@ protected:
 	bool configureStaticMeshComponent(ImportWorkData &workData, UStaticMeshComponent *meshComp, const JsonGameObject &gameObj, bool configForRender, const JsonCollider *collider) const;
 	ImportedObject processStaticMesh(ImportWorkData &workData, const JsonGameObject &gameObj, int objId, ImportedObject *parentObject, const FString& folderPath, const JsonCollider *collider, bool spawnAsComponent, UObject *outer);
 
-	ImportedObject processTerrain(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonTerrain &jsonTerrain, ImportedObject *parentObject, 
-		const FString& folderPath);
-	void processTerrains(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedObject *parentObject, const FString& folderPath, 
-		ImportedObjectArray *createdObjects);
-
 	void processSkinMeshes(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedObject *parentObject, const FString &folderPath,
 		ImportedObjectArray *createdObjects);
 	ImportedObject processSkinRenderer(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonSkinRenderer &skinRend, ImportedObject *parentObject, const FString &folderPath);
@@ -146,8 +141,6 @@ protected:
 	void loadAnimatorsDebug(const StringArray &animatorPaths);
 	void loadAnimClipsDebug(const StringArray &animClipPaths);
 
-	static void setObjectHierarchy(const ImportedObject &object, ImportedObject *parentObject, const FString& folderPath, ImportWorkData &workData, const JsonGameObject &gameObj);
-
 	void processDelayedAnimators(const TArray<JsonGameObject> &objects, ImportWorkData &workData);
 	void processDelayedAnimator(JsonId skelId, JsonId controllerId);
 
@@ -168,6 +161,10 @@ protected:
 		return true;
 	}
 public:
+	const TMap<JsonId, JsonTerrainData>& getTerrainDataMap() const{
+		return terrainDataMap;
+	}
+
 	UAnimSequence* getAnimSequence(AnimClipIdKey key) const;
 	void registerAnimSequence(AnimClipIdKey key, UAnimSequence *sequence);
 

@@ -32,23 +32,9 @@
 
 #include "builders/LightBuilder.h"
 #include "builders/ReflectionProbeBuilder.h"
+#include "builders/TerrainComponentBuilder.h"
 
 #include "DesktopPlatformModule.h"
-
-using namespace JsonObjects;
-
-void JsonImporter::setObjectHierarchy(const ImportedObject &object, ImportedObject *parentObject, 
-		const FString& folderPath, ImportWorkData &workData, const JsonGameObject &gameObj){
-	if (parentObject){
-		object.attachTo(parentObject);
-	}
-	else{
-		if (folderPath.Len())
-			object.setFolderPath(*folderPath);
-	}
-
-	object.setActiveInHierarchy(gameObj.activeInHierarchy);
-}
 
 /*
 This does it. 
@@ -246,6 +232,8 @@ void JsonImporter::makeComponentVisibleInEditor(USceneComponent *comp) const{
 }
 
 ImportedObject JsonImporter::importObject(const JsonGameObject &jsonGameObj, ImportWorkData &workData, bool createEmptyTransforms){
+	using namespace UnrealUtilities;
+
 	auto* parentObject = workData.findImportedObject(jsonGameObj.parentId);
 
 	auto folderPath = workData.processFolderPath(jsonGameObj);
@@ -276,7 +264,8 @@ ImportedObject JsonImporter::importObject(const JsonGameObject &jsonGameObj, Imp
 	}
 
 	if (jsonGameObj.hasTerrain()){
-		processTerrains(workData, jsonGameObj, parentObject, folderPath, &createdObjects);
+		TerrainComponentBuilder::processTerrains(workData, jsonGameObj, parentObject, folderPath, &createdObjects, this);
+		//processTerrains(workData, jsonGameObj, parentObject, folderPath, &createdObjects);
 	}
 
 	if (jsonGameObj.hasSkinMeshes()){
@@ -374,6 +363,7 @@ USkeletalMesh* JsonImporter::loadSkeletalMeshById(ResId id) const{
 
 ImportedObject JsonImporter::processSkinRenderer(ImportWorkData &workData, const JsonGameObject &jsonGameObj, 
 		const JsonSkinRenderer &skinRend, ImportedObject *parentObject, const FString &folderPath){
+	using namespace UnrealUtilities;
 
 	UE_LOG(JsonLog, Log, TEXT("Importing skin mesh %d for object %s"), skinRend.meshId.toIndex(), *jsonGameObj.name);
 	//if (skinRend.meshId < 0)
@@ -451,6 +441,7 @@ void JsonImporter::processSkinMeshes(ImportWorkData &workData, const JsonGameObj
 }
 
 bool JsonImporter::configureStaticMeshComponent(ImportWorkData &workData, UStaticMeshComponent *meshComp, const JsonGameObject &jsonGameObj, bool configForRender, const JsonCollider *collider) const{
+	using namespace JsonObjects;
 	check(meshComp);
 
 	/*
@@ -537,6 +528,7 @@ bool JsonImporter::configureStaticMeshComponent(ImportWorkData &workData, UStati
 }
 
 ImportedObject JsonImporter::processStaticMesh(ImportWorkData &workData, const JsonGameObject &jsonGameObj, int objId, ImportedObject *parentObject, const FString& folderPath, const JsonCollider *colliderData, bool spawnAsComponent, UObject *outer){
+	using namespace UnrealUtilities;
 	if (!jsonGameObj.hasMesh())
 		return ImportedObject();
 
