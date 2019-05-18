@@ -81,12 +81,10 @@ UBlueprint* createBlueprintFromActor(const FName blueprintName, UObject* outer, 
 
 
 void JsonImporter::importPrefabs(const StringArray &prefabs){
-/*
 #ifdef JSON_DISABLE_PREFAB_IMPORT
 	UE_LOG(JsonLog, Warning, TEXT("Prefab import is currently disabled"));
 	return;
 #endif
-*/
 
 	FScopedSlowTask progress(prefabs.Num(), LOCTEXT("Importing prefabs", "Importing prefabs"));
 	progress.MakeDialog();

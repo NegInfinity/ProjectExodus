@@ -33,6 +33,7 @@
 #include "builders/LightBuilder.h"
 #include "builders/ReflectionProbeBuilder.h"
 #include "builders/TerrainComponentBuilder.h"
+#include "builders/SkeletalMeshComponentBuilder.h"
 
 #include "DesktopPlatformModule.h"
 
@@ -265,11 +266,10 @@ ImportedObject JsonImporter::importObject(const JsonGameObject &jsonGameObj, Imp
 
 	if (jsonGameObj.hasTerrain()){
 		TerrainComponentBuilder::processTerrains(workData, jsonGameObj, parentObject, folderPath, &createdObjects, this);
-		//processTerrains(workData, jsonGameObj, parentObject, folderPath, &createdObjects);
 	}
 
 	if (jsonGameObj.hasSkinMeshes()){
-		processSkinMeshes(workData, jsonGameObj, parentObject, folderPath, &createdObjects);
+		SkeletalMeshComponentBuilder::processSkinMeshes(workData, jsonGameObj, parentObject, folderPath, &createdObjects, this);
 	}
 
 	if ((createdObjects.Num() > 1) && (!rootObject.isValid())){
@@ -361,83 +361,12 @@ USkeletalMesh* JsonImporter::loadSkeletalMeshById(ResId id) const{
 	//return nullptr;
 }
 
-ImportedObject JsonImporter::processSkinRenderer(ImportWorkData &workData, const JsonGameObject &jsonGameObj, 
-		const JsonSkinRenderer &skinRend, ImportedObject *parentObject, const FString &folderPath){
-	using namespace UnrealUtilities;
-
-	UE_LOG(JsonLog, Log, TEXT("Importing skin mesh %d for object %s"), skinRend.meshId.toIndex(), *jsonGameObj.name);
-	//if (skinRend.meshId < 0)
-	if (!skinRend.meshId.isValid())
-		return ImportedObject();
-
-	auto foundMeshPath = skinMeshIdMap.Find(skinRend.meshId);
-	if (!foundMeshPath){
-		UE_LOG(JsonLog, Log, TEXT("Could not locate skin mesh %d for object %s"), skinRend.meshId.toIndex(), *jsonGameObj.name);
-		return ImportedObject();
-	}
-
-	auto *skelMesh = loadSkeletalMeshById(skinRend.meshId);
-	if (!skelMesh){
-		UE_LOG(JsonLog, Error, TEXT("Coudl not load skinMesh %d on object %d(%s)"), skinRend.meshId.toIndex(), jsonGameObj.id, *jsonGameObj.name);
-		return ImportedObject();
-	}
-
-
-	/*
-	This is great.
-
-	Looks like there's major discrepancy in how components work in unity and unreal engine.
-
-	Unity skinned mesh acts as BOTH PoseableMesh and SkeletalMesh, meaning you can move individual bones around while they're being animated.
-	*/
-	FActorSpawnParameters spawnParams;
-	FTransform transform;
-	transform.SetFromMatrix(jsonGameObj.ueWorldMatrix);
-
-	ASkeletalMeshActor *meshActor = workData.world->SpawnActor<ASkeletalMeshActor>(ASkeletalMeshActor::StaticClass(), transform, spawnParams);
-	if (!meshActor){
-		UE_LOG(JsonLog, Warning, TEXT("Couldn't spawn skeletal actor"));
-		return ImportedObject();
-	}
-
-	meshActor->SetActorLabel(jsonGameObj.ueName, true);
-
-	USkeletalMeshComponent *meshComponent = meshActor->GetSkeletalMeshComponent();
-
-	meshComponent->SetSkeletalMesh(skelMesh, true);
-
-	const auto& materials = skinRend.materials;
-	if (materials.Num() > 0){
-		for(int i = 0; i < materials.Num(); i++){
-			auto matId = materials[i];
-
-			auto material = loadMaterialInterface(matId);
-			meshComponent->SetMaterial(i, material);
-		}
-	}
-
-	ImportedObject importedObject(meshActor);
-	//workData.importedObjects.Add(jsonGameObj.id, importedObject);
-	workData.registerGameObject(jsonGameObj, importedObject);
-	setObjectHierarchy(importedObject, parentObject, folderPath, workData, jsonGameObj);
-	return importedObject;
-}
-
 void JsonImporter::registerImportedObject(ImportedObjectArray *outArray, const ImportedObject &arg){
 	if (!outArray)
 		return;
 	if (!arg.isValid())
 		return;
 	outArray->Push(arg);
-}
-
-void JsonImporter::processSkinMeshes(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedObject *parentObject, const FString &folderPath, ImportedObjectArray *createdObjects){
-	for(const auto &jsonSkin: gameObj.skinRenderers){
-		if (!gameObj.activeInHierarchy)//Temporary hack to debug
-			continue;
-		auto skinMesh = processSkinRenderer(workData, gameObj, jsonSkin, parentObject, folderPath);
-		registerImportedObject(createdObjects, skinMesh);
-	}
 }
 
 bool JsonImporter::configureStaticMeshComponent(ImportWorkData &workData, UStaticMeshComponent *meshComp, const JsonGameObject &jsonGameObj, bool configForRender, const JsonCollider *collider) const{

@@ -107,18 +107,9 @@ protected:
 	*/
 	ImportedObject processMeshAndColliders(ImportWorkData &workData, const JsonGameObject &gameObj, int objId, ImportedObject *parentObject, const FString &folderPath, DesiredObjectType objectType);
 
-	ImportedObject processReflectionProbe(ImportWorkData &workData, const JsonGameObject &gameObj,
-		const JsonReflectionProbe &probe, ImportedObject *parentObject, const FString &folderPath);
-	void processReflectionProbes(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedObject *parentObject, const FString &folderPath,
-		ImportedObjectArray *createdObjects);
-
 	void setupCommonColliderSettings(const ImportWorkData &workData, UPrimitiveComponent *dstCollider, const JsonGameObject &jsonGameObj, const JsonCollider &collider) const;
 	bool configureStaticMeshComponent(ImportWorkData &workData, UStaticMeshComponent *meshComp, const JsonGameObject &gameObj, bool configForRender, const JsonCollider *collider) const;
 	ImportedObject processStaticMesh(ImportWorkData &workData, const JsonGameObject &gameObj, int objId, ImportedObject *parentObject, const FString& folderPath, const JsonCollider *collider, bool spawnAsComponent, UObject *outer);
-
-	void processSkinMeshes(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedObject *parentObject, const FString &folderPath,
-		ImportedObjectArray *createdObjects);
-	ImportedObject processSkinRenderer(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonSkinRenderer &skinRend, ImportedObject *parentObject, const FString &folderPath);
 
 	void processAnimator(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonAnimator &jsonAnimator,
 		ImportedObject *parentObject, const FString &folderPath);
@@ -163,6 +154,10 @@ protected:
 public:
 	const TMap<JsonId, JsonTerrainData>& getTerrainDataMap() const{
 		return terrainDataMap;
+	}
+
+	const ResIdNameMap& getSkinMeshIdMap() const{
+		return skinMeshIdMap;
 	}
 
 	UAnimSequence* getAnimSequence(AnimClipIdKey key) const;
