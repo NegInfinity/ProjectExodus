@@ -25,3 +25,9 @@ using ByteArray = TArray<uint8>;
 using StringArray = TArray<FString>;
 using LinearColorArray = TArray<FLinearColor>;
 using MatrixArray = TArray<FMatrix>;
+
+enum class DesiredObjectType{
+	Default = 0,
+	Actor, Component
+};
+

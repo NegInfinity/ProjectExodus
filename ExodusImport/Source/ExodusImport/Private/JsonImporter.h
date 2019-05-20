@@ -6,44 +6,17 @@
 #include "MaterialBuilder.h"
 #include "JsonObjects/JsonTerrainData.h"
 #include "JsonObjects/JsonSkeleton.h"
+#include "JsonObjects/JsonMaterial.h"
 #include "JsonObjects.h"
 #include "ImportWorkData.h"
 #include "ObjectTools.h"
 #include "Editor/UnrealEd/Public/PackageTools.h"
 
-class UMaterialExpression;
-class UMaterialExpressionParameter;
-class UMaterialExpressionVectorParameter;
-class UMaterialExpressionConstant;
-class UMaterialExpressionTextureSample;
+class USkeletalMesh;
 class UTexture;
 class UTextureCube;
-class UMaterial;
-class ALandscape;
-class ULandscapeLayerInfoObject;
-class ULandscapeGrassType;
-class APointLight;
-class ASpotLight;
-class ADirectionalLight;
-class UPointLightComponent;
-class USpotLightComponent;
-class UDirectionalLightComponent;
-class USphereReflectionCaptureComponent;
-class UBoxReflectionCaptureComponent;
-class UReflectionCaptureComponent;
-class ULightComponent;
 class USkeleton;
-class USkeletalMesh;
 class UAnimSequence;
-class UBoxComponent;
-class USphereComponent;
-class UCapsuleComponent;
-class UPrimitiveComponent;
-
-enum class DesiredObjectType{
-	Default = 0,
-	Actor, Component
-};
 
 class JsonImporter{
 protected:
@@ -84,32 +57,6 @@ protected:
 	static void registerImportedObject(ImportedObjectArray *outArray, const ImportedObject &arg);
 
 	UWorld* importSceneObjectsAsWorld(const JsonScene &scene, const FString &sceneNameOverride, const FString &scenePathOverride);
-
-	//static ImportedObject createBlankActor(ImportWorkData &workData, const JsonGameObject &gameObj);
-
-	UBoxComponent *createBoxCollider(UObject *ownerPtr, const JsonGameObject &gameObj, const JsonCollider &collider) const;
-	USphereComponent *createSphereCollider(UObject *ownerPtr, const JsonGameObject &gameObj, const JsonCollider &collider) const;
-	UCapsuleComponent *createCapsuleCollider(UObject *ownerPtr, const JsonGameObject &gameObj, const JsonCollider &collider) const;
-	UStaticMeshComponent *createMeshCollider(UObject *ownerPtr, const JsonGameObject &gameObj, const JsonCollider &collider, ImportWorkData &workData) const;
-
-	void makeComponentVisibleInEditor(USceneComponent *comp) const;
-	void convertToInstanceComponent(USceneComponent *comp) const;
-
-	UPrimitiveComponent* processCollider(ImportWorkData &workData, const JsonGameObject &gameObj, UObject *ownerPtr, const JsonCollider &collider);
-
-	/*
-	Alright....
-
-	This function processes mesh and colliders for the game object, and if either of them are present, it returns ImportedObject that is meant to serve as a root object 
-	for everything else found on this object.
-
-	The function is a headache.
-	*/
-	ImportedObject processMeshAndColliders(ImportWorkData &workData, const JsonGameObject &gameObj, int objId, ImportedObject *parentObject, const FString &folderPath, DesiredObjectType objectType);
-
-	void setupCommonColliderSettings(const ImportWorkData &workData, UPrimitiveComponent *dstCollider, const JsonGameObject &jsonGameObj, const JsonCollider &collider) const;
-	bool configureStaticMeshComponent(ImportWorkData &workData, UStaticMeshComponent *meshComp, const JsonGameObject &gameObj, bool configForRender, const JsonCollider *collider) const;
-	ImportedObject processStaticMesh(ImportWorkData &workData, const JsonGameObject &gameObj, int objId, ImportedObject *parentObject, const FString& folderPath, const JsonCollider *collider, bool spawnAsComponent, UObject *outer);
 
 	void processAnimator(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonAnimator &jsonAnimator,
 		ImportedObject *parentObject, const FString &folderPath);
@@ -159,6 +106,8 @@ public:
 	const ResIdNameMap& getSkinMeshIdMap() const{
 		return skinMeshIdMap;
 	}
+
+	const FString *findMeshPath(ResId meshId) const;
 
 	UAnimSequence* getAnimSequence(AnimClipIdKey key) const;
 	void registerAnimSequence(AnimClipIdKey key, UAnimSequence *sequence);
@@ -300,5 +249,3 @@ public:
 		return package;
 	}
 };
-
-//void setActorHierarchy(AActor *actor, AActor *parentActor, const FString& folderPath, ImportWorkData &workData, const JsonGameObject &gameObj);

@@ -11,6 +11,8 @@
 
 class JsonImporter;
 class UStaticMesh;
+class USceneComponent;
+
 
 namespace UnrealUtilities{
 	FVector getUnityUpVector();
@@ -19,6 +21,9 @@ namespace UnrealUtilities{
 
 	void unityMatrixToUnrealBasisVectors(const FMatrix& unityWorld, FVector *outX, FVector *outY, FVector *outZ, FVector *outPos);
 	void unityMatrixToUnrealBasisVectors(const FMatrix& unityWorld, FVector &outX, FVector &outY, FVector &outZ, FVector &outPos);
+
+	void convertToInstanceComponent(USceneComponent *comp);
+	void makeComponentVisibleInEditor(USceneComponent *comp);
 
 	//Creates a vector perpendicular to the argument, uses Projection onto plane
 	FVector makePerpendicular(const FVector& arg);

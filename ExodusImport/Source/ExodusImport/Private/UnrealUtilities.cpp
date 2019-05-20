@@ -4,6 +4,7 @@
 #include "UnrealEd/Public/ObjectTools.h"
 #include "UnrealEd/Public/PackageTools.h"
 #include "AssetRegistry/Public/AssetRegistryModule.h"
+#include "Classes/Components/SceneComponent.h"
 
 using namespace UnrealUtilities;
 
@@ -420,5 +421,22 @@ void UnrealUtilities::registerImportedObject(ImportedObjectArray *outArray, cons
 	if (!arg.isValid())
 		return;
 	outArray->Push(arg);
+}
+
+void UnrealUtilities::convertToInstanceComponent(USceneComponent *comp){
+	if (!comp)
+		return;
+	auto rootActor = comp->GetAttachmentRootActor();
+	check(rootActor);
+	rootActor->AddInstanceComponent(comp);
+}
+
+void UnrealUtilities::makeComponentVisibleInEditor(USceneComponent *comp){
+	if (!comp)
+		return;
+	auto rootActor = comp->GetAttachmentRootActor();
+	check(rootActor);
+	comp->bEditableWhenInherited = true;
+	comp->RegisterComponent();
 }
 

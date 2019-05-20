@@ -295,3 +295,7 @@ void JsonImporter::registerAnimSequence(AnimClipIdKey key, UAnimSequence *sequen
 	auto path = sequence->GetPathName();
 	animClipPaths.Add(key, path);
 }
+
+const FString* JsonImporter::findMeshPath(ResId meshId) const{
+	return meshIdMap.Find(meshId);
+}
