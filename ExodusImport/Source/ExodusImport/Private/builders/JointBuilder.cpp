@@ -526,3 +526,5 @@ JointBuilder::AngularAdjustment JointBuilder::angleRangeFromLimits(float min, fl
 	result.setMinMax(min, max);
 	return result;
 }
+
+#undef LOCTEXT_NAMESPACE

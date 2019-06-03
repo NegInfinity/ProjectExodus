@@ -106,3 +106,5 @@ void JsonImporter::importPrefabs(const StringArray &prefabs){
 		progress.EnterProgressFrame(1.0f);
 	}
 }
+
+#undef LOCTEXT_NAMESPACE

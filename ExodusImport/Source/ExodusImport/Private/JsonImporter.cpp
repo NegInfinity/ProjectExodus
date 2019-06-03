@@ -299,3 +299,5 @@ void JsonImporter::registerAnimSequence(AnimClipIdKey key, UAnimSequence *sequen
 const FString* JsonImporter::findMeshPath(ResId meshId) const{
 	return meshIdMap.Find(meshId);
 }
+
+#undef LOCTEXT_NAMESPACE

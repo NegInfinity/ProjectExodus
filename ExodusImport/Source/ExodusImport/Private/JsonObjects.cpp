@@ -23,3 +23,5 @@ JsonObjPtr JsonObjects::loadJsonFromFile(const FString &filename){
 	}
 	return jsonData;
 }
+
+#undef LOCTEXT_NAMESPACE
