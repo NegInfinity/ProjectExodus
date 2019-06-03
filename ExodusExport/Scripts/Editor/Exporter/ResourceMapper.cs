@@ -366,7 +366,7 @@ namespace SceneExport{
 				}
 				sb.Append(cur);
 			}
-			return src.ToString();
+			return sb.ToString();
 		}
 		
 		static string makeJsonResourcePath(string resourceName, string objName, int resourceIndex){
