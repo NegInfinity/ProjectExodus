@@ -165,6 +165,6 @@ void FJsonImportModule::AddToolbarExtension(FToolBarBuilder& Builder){
 	*/
 }
 
-#undef LOCTEXT_NAMESPACE
-	
 IMPLEMENT_MODULE(FJsonImportModule, ExodusImport)
+
+#undef LOCTEXT_NAMESPACE

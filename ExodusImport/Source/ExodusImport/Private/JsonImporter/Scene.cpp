@@ -195,3 +195,5 @@ void JsonImporter::importProject(const FString& filename){
 		FMessageDialog::Debugf(FText::FromString(text));
 	}
 }
+
+#undef LOCTEXT_NAMESPACE

@@ -1,4 +1,6 @@
 #include "JsonImportPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "JsonTypes.h"
 #include "JsonImporter.h"
 
 #include "Classes/Engine/Blueprint.h"
@@ -106,3 +108,5 @@ void JsonImporter::importPrefabs(const StringArray &prefabs){
 		progress.EnterProgressFrame(1.0f);
 	}
 }
+
+#undef LOCTEXT_NAMESPACE

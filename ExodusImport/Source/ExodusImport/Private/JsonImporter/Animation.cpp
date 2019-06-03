@@ -153,3 +153,5 @@ void JsonImporter::processDelayedAnimator(JsonId skelId, JsonId controllerId){
 		//auto assetObj = createAssetObject(
 	}	
 }
+
+#undef LOCTEXT_NAMESPACE

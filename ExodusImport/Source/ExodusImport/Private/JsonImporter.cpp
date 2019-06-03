@@ -1,41 +1,7 @@
 #include "JsonImportPrivatePCH.h"
 
 #include "JsonImporter.h"
-
-#include "Engine/PointLight.h"
-#include "Engine/SpotLight.h"
-#include "Engine/DirectionalLight.h"
-#include "Engine/Classes/Components/PointLightComponent.h"
-#include "Engine/Classes/Components/SpotLightComponent.h"
-#include "Engine/Classes/Components/DirectionalLightComponent.h"
-#include "Engine/StaticMeshActor.h"
-#include "Engine/Classes/Components/StaticMeshComponent.h"
-#include "Engine/Classes/Components/ChildActorComponent.h"
-#include "LevelEditorViewport.h"
-#include "Factories/TextureFactory.h"
-#include "Factories/MaterialFactoryNew.h"
-#include "Factories/WorldFactory.h"
-
-#include "Materials/Material.h"
-#include "Materials/MaterialExpressionTextureSample.h"
-#include "Materials/MaterialExpressionSubtract.h"
-#include "Materials/MaterialExpressionMultiply.h"
-#include "Materials/MaterialExpressionAdd.h"
-#include "Materials/MaterialExpressionTextureCoordinate.h"
-#include "Materials/MaterialExpressionVectorParameter.h"
-#include "Materials/MaterialExpressionConstant.h"
-	
-#include "RawMesh.h"
-
-#include "DesktopPlatformModule.h"
-#include "JsonObjects.h"
-
-#include "Kismet2/KismetEditorUtilities.h"
 #include "UnrealUtilities.h"
-#include "JsonObjects/JsonTerrainData.h"
-#include "Classes/Animation/Skeleton.h"
-#include "Classes/Animation/AnimSequence.h"
-
 #include "builders/JointBuilder.h"
 
 #include "LocTextNamespace.h"
@@ -44,7 +10,6 @@
 
 using namespace JsonObjects;
 using namespace UnrealUtilities;
-//using namespace MaterialTools;
 
 FString JsonImporter::getProjectImportPath() const{
 	auto result = getDefaultImportPath();
@@ -59,7 +24,6 @@ void JsonImporter::importTerrainData(JsonObjPtr jsonData, JsonId terrainId, cons
 	terrainData.load(jsonData);
 
 	terrainDataMap.Add(terrainId, terrainData);
-	//binTerrainIdMap.Add(terrainData
 }
 
 void JsonImporter::loadTerrains(const StringArray &terrains){
@@ -299,3 +263,5 @@ void JsonImporter::registerAnimSequence(AnimClipIdKey key, UAnimSequence *sequen
 const FString* JsonImporter::findMeshPath(ResId meshId) const{
 	return meshIdMap.Find(meshId);
 }
+
+#undef LOCTEXT_NAMESPACE
