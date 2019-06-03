@@ -58,13 +58,6 @@ void JsonImporter::importStaticMesh(const JsonMesh &jsonMesh, int32 meshId){
 	);
 
 	if (mesh){
-		/*
-		auto bodySetup = mesh->BodySetup;
-		if (!bodySetup){
-			mesh->CreateBodySetup();
-		}
-		*/
-
 		auto meshPath = mesh->GetPathName();
 		meshIdMap.Add(jsonMesh.id, meshPath);
 	}
@@ -111,6 +104,7 @@ void JsonImporter::importSkeletalMesh(const JsonMesh &jsonMesh, int32 meshId){
 }
 
 void JsonImporter::importMesh(const JsonMesh &jsonMesh, int32 meshId){
+	UE_LOG(JsonLog, Log, TEXT("Importing mesh: %s(%d)"), *jsonMesh.name, jsonMesh.id.id)
 	UE_LOG(JsonLog, Log, TEXT("Mesh data: Verts: %d; submeshes: %d; materials: %d; colors %d; normals: %d"), 
 		jsonMesh.verts.Num(), jsonMesh.subMeshes.Num(), jsonMesh.colors.Num(), jsonMesh.normals.Num());
 	UE_LOG(JsonLog, Log, TEXT("Mesh data: uv0: %d; uv1: %d; uv2: %d; uv3: %d; uv4: %d; uv5: %d; uv6: %d; uv7: %d;"),

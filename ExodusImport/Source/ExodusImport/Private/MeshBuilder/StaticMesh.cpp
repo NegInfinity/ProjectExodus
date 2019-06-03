@@ -64,6 +64,10 @@ void MeshBuilder::setupStaticMesh(UStaticMesh *mesh, const JsonMesh &jsonMesh, s
 			UE_LOG(JsonLog, Log, TEXT("Uv floats[%d]: %d, hasUvs: %d"), i, uvFloats[i]->Num(), (int)hasUvs[i]);
 		}
 
+		if (!hasUvs[0]){
+			UE_LOG(JsonLog, Warning, TEXT("No default uvs found on mesh %s(%d). Placeholder coordinates will be used."), *jsonMesh.name, jsonMesh.id.id);
+		}
+
 		//submesh generation
 		newRawMesh.WedgeIndices.SetNum(0);
 
@@ -101,8 +105,14 @@ void MeshBuilder::setupStaticMesh(UStaticMesh *mesh, const JsonMesh &jsonMesh, s
 					);
 
 					for(int32 uvIndex = 0; uvIndex < maxUvs; uvIndex++){
-						if (!hasUvs[uvIndex])
+						if (!hasUvs[uvIndex]){
+							if (uvIndex != 0)
+								continue;
+							auto tmpPos = getIdxVector3(jsonMesh.verts, origIndex);
+							FVector2D tmpUv(tmpPos.X, tmpPos.Y);
+							newRawMesh.WedgeTexCoords[uvIndex].Add(tmpUv);
 							continue;
+						}
 
 						auto tmpUv = getIdxVector2(*uvFloats[uvIndex], origIndex);
 						tmpUv.Y = 1.0f - tmpUv.Y;
