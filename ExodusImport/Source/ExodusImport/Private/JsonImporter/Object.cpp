@@ -22,8 +22,6 @@ ImportedObject JsonImporter::importObject(const JsonGameObject &jsonGameObj, Imp
 	auto folderPath = workData.processFolderPath(jsonGameObj);
 	UE_LOG(JsonLog, Log, TEXT("Num components for object %d(%s): %d"), jsonGameObj.id, *folderPath, jsonGameObj.getNumComponents());
 
-	bool multiComponentObject = jsonGameObj.getNumComponents() > 1;
-
 	if (!workData.world){
 		UE_LOG(JsonLog, Warning, TEXT("No world"));
 		return ImportedObject(); 
@@ -32,13 +30,24 @@ ImportedObject JsonImporter::importObject(const JsonGameObject &jsonGameObj, Imp
 	ImportedObjectArray createdObjects;
 
 	auto objectType = DesiredObjectType::Default;
+	bool createActorNodes = true;
 
-	//ImportedObject rootObject = processMeshAndColliders(workData, jsonGameObj, jsonGameObj.id, parentObject, folderPath, objectType);
-	ImportedObject rootObject = GeometryComponentBuilder::processMeshAndColliders(workData, jsonGameObj, jsonGameObj.id, parentObject, folderPath, objectType, this);
+	//In situation where there's no parent, we have to create an actor. Otherwise we will have no valid outer
+	createActorNodes = createActorNodes || !parentObject;
 
+	/*
+	Here we handle creation of display geometry and colliders. This particular function call harvests colliders, reigidbody properties, builds them into a somewhat sensible hierarchy,
+	and returns root object to us
+	*/
+	ImportedObject rootObject = GeometryComponentBuilder::processMeshAndColliders(workData, jsonGameObj, jsonGameObj.id, parentObject, folderPath, 
+		createActorNodes ? DesiredObjectType::Actor: objectType, this);
 	if (rootObject.isValid()){
+		createdObjects.Add(rootObject);
 	}
 
+	/*
+	The block below walks through every component type we currently support, and spawns unreal-side representation.
+	*/
 	if (jsonGameObj.hasProbes()){
 		ReflectionProbeBuilder::processReflectionProbes(workData, jsonGameObj, parentObject, folderPath, &createdObjects, this);
 	}
@@ -55,29 +64,102 @@ ImportedObject JsonImporter::importObject(const JsonGameObject &jsonGameObj, Imp
 		SkeletalMeshComponentBuilder::processSkinMeshes(workData, jsonGameObj, parentObject, folderPath, &createdObjects, this);
 	}
 
-	if ((createdObjects.Num() > 1) && (!rootObject.isValid())){
-		rootObject = workData.createBlankActor(jsonGameObj);
+	if (createdObjects.Num() > 1){
+		if (!rootObject.isValid()){
+			//More than one object exists, however, in case this is a mesh node, then the mesh actor is registered as a root by default.
+			rootObject = workData.createBlankActor(jsonGameObj);
+			check(rootObject.isValid());
+		}
+	}
+	else if (createdObjects.Num() == 1){
+		//Oh. There  is a bug. In case we have a mesh with a single component parented to it, the check wil fail.
+		//check(!rootObject.isValid());
+		rootObject = createdObjects[0];
+	}
+	else if (createdObjects.Num() == 0){
+		//No objects has been created. In this scenario, we do not make any nodes, unless requested.
+		if (createEmptyTransforms){
+			rootObject = workData.createBlankNode(jsonGameObj, createActorNodes);
+				//workData.createBlankActor(jsonGameObj);
+			check(rootObject.isValid());
+		}
+	}
+	else{
+		check(false);//This shouldn't happen, buuut....
 	}
 
 	if (rootObject.isValid()){
 		for (auto& cur : createdObjects){
 			if (!cur.isValid())
 				continue;
+			if (cur == rootObject)
+				continue;
+			/*
+			And then we parent created objects to the root object. The objects returned by previous methods do not form a hierarchy, 
+			and are all treated as "sibling" nodes.
+			*/
 			setObjectHierarchy(cur, &rootObject, folderPath, workData, jsonGameObj);
 		}
-	}
-	else{
-		if (createdObjects.Num() == 1){
-			check(!rootObject.isValid());
-			rootObject = createdObjects[0];
-		}
-	}
 
-	if (rootObject.isValid()){
 		workData.registerGameObject(jsonGameObj, rootObject);
 		setObjectHierarchy(rootObject, parentObject, folderPath, workData, jsonGameObj);
 		rootObject.setFolderPath(folderPath, true);
 	}
+#if 0
+	/*
+	Previous calls created more than one object, and as a result, we now need to spawn an object that will serve as a root for everything else.
+
+	Currently it is going to be an AActor, and in future I'd likely need to deal with situation where it should be an USceneComponent
+	*/
+	if ((createdObjects.Num() > 1) && (!rootObject.isValid())){
+		rootObject = workData.createBlankActor(jsonGameObj);
+	}
+
+	/*
+	Processing root object...
+	*/
+	if (rootObject.isValid()){
+		for (auto& cur : createdObjects){
+			if (!cur.isValid())
+				continue;
+
+			/*
+			And then we parent created objects to the root object. The objects returned by previous methods do not form a hierarchy, 
+			and are all treated as "sibling" nodes.
+			*/
+			setObjectHierarchy(cur, &rootObject, folderPath, workData, jsonGameObj);
+		}
+	}
+	else{
+		/*
+		Verifying existence of root object. The object may or may not have been created.
+		*/
+		if (createdObjects.Num() == 1){
+			//Only one object exists, and it is going to be treated as root now.
+			check(!rootObject.isValid());
+			rootObject = createdObjects[0];
+		}
+		else{
+			/*
+			We're in scenario when no objects were created, and no root object exists
+			If created objects were > 1, then root has been created.
+
+			I need to refator that...
+			*/
+		}
+	}
+
+	if (rootObject.isValid()){
+		/*
+		A root object exists. Either it is a lone object, or it is a blank created to unite multiple "sibling" objects harvested from components.
+
+		We setup parent relationship, and assign correct scene folder
+		*/
+		workData.registerGameObject(jsonGameObj, rootObject);
+		setObjectHierarchy(rootObject, parentObject, folderPath, workData, jsonGameObj);
+		rootObject.setFolderPath(folderPath, true);
+	}
+#endif
 
 	/*
 	Let's summarize collision approach and differences.

@@ -25,7 +25,10 @@ I kinda wonder if I should work towards ensureing ids being globally unique, but
 not much point when I can just use scoped dictionaries.
 */
 class ImportWorkData{
+protected:
+	mutable uint64 uniqueInt = 0;
 public:
+	uint64 getUniqueUint() const;
 	//const JsonScene *srcScene = nullptr;
 	const TArray<JsonGameObject> *srcObjects = nullptr;
 
@@ -58,7 +61,8 @@ public:
 
 	void clear();
 
-	ImportedObject createBlankActor(const JsonGameObject &gameObj);
+	ImportedObject createBlankActor(const JsonGameObject &gameObj) const;
+	ImportedObject createBlankNode(const JsonGameObject &gameObj, bool createActor) const;
 
 	ImportWorkData(UWorld *world_, bool editorMode_, const JsonScene *scene_);
 	ImportWorkData(UWorld *world_, bool editorMode_, const TArray<JsonGameObject> *objects_);

@@ -29,6 +29,14 @@ public:
 		return actor || component;
 	}
 
+	bool operator==(const ImportedObject &other) const{
+		return (actor == other.actor) && (component == other.component);
+	}
+
+	bool operator!=(const ImportedObject &other) const{
+		return !(*this == other);
+	}
+
 	/*
 	Fixes object ownership in case of complex reattachment scenarios
 	*/

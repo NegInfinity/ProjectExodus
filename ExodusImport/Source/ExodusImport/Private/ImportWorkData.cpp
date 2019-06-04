@@ -135,7 +135,7 @@ bool ImportWorkData::isCompoundRigidbodyRootCollider(const JsonGameObject &gameO
 	return false;
 }
 
-ImportedObject ImportWorkData::createBlankActor(const JsonGameObject &jsonGameObj){
+ImportedObject ImportWorkData::createBlankActor(const JsonGameObject &jsonGameObj) const{
 	check(world);
 	FTransform transform;
 	transform.SetFromMatrix(jsonGameObj.ueWorldMatrix);
@@ -150,8 +150,26 @@ ImportedObject ImportWorkData::createBlankActor(const JsonGameObject &jsonGameOb
 	return importedObject;
 }
 
+ImportedObject ImportWorkData::createBlankNode(const JsonGameObject &gameObj, bool createActor) const{
+	if (createActor)
+		return createBlankActor(gameObj);
+
+	FTransform transform;
+	transform.SetFromMatrix(gameObj.ueWorldMatrix);
+	auto *rootComponent = NewObject<USceneComponent>();
+	rootComponent->SetWorldTransform(transform);
+	rootComponent->SetMobility(gameObj.getUnrealMobility());
+
+	//auto nameGuid = FGuid::NewGuid();
+	auto nodeName = FString::Printf(TEXT("%s_node(%d_%llu)"), *gameObj.ueName, gameObj.id, getUniqueUint());
+	rootComponent->Rename(*nodeName);
+
+	ImportedObject importedObject(rootComponent);
+	return importedObject;
+}
+
+
 ImportWorkData::ImportWorkData(UWorld *world_, bool editorMode_, const JsonScene *scene_)
-//:srcScene(scene_), world(world_), editorMode(editorMode_){
 :srcObjects(nullptr), world(world_), editorMode(editorMode_){
 	check(scene_ != nullptr);
 	srcObjects = &scene_->objects;
@@ -167,4 +185,10 @@ void ImportWorkData::clear(){
 	importedObjects.Empty();
 
 	delayedAnimControllers.Empty();
+}
+
+uint64 ImportWorkData::getUniqueUint() const{
+	//static uint64 val = 0;
+	//return val++;
+	return uniqueInt++;//Should I switch to guids?
 }
