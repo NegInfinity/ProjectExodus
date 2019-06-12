@@ -124,3 +124,80 @@ FVector JsonGameObject::unityLocalPosToUnrealWorld(const FVector &arg) const{
 	pos = worldMatrix.GetOrigin();
 	return unityPosToUe(arg.X * x + arg.Y * y + arg.Z * z + pos);
 }
+
+int JsonGameObject::findSuitableRootColliderIndex() const{
+	for(int i = 0; i < colliders.Num(); i++){
+		const auto& cur = colliders[i];
+		if (!cur.isMeshCollider() && (cur.center == FVector::ZeroVector))
+			return i;
+	}
+	return -1;
+}
+
+int JsonGameObject::findMainMeshColliderIndex() const{
+	if (!meshId.isValid())
+		return -1;//magic number...
+	for (int i = 0; i < colliders.Num(); i++){
+		const auto &cur = colliders[i];
+		if (cur.isMeshCollider() && (cur.meshId == meshId))
+			return i;
+	}
+
+	return -1;
+}
+
+const JsonCollider* JsonGameObject::getMainMeshCollider() const{
+	return getColliderByIndex(findMainMeshColliderIndex());
+}
+
+bool JsonGameObject::hasMainMeshCollider() const{
+	return getMainMeshCollider() != nullptr;
+}
+
+const JsonCollider* JsonGameObject::getColliderByIndex(int index) const{
+	if (index < 0)
+		return nullptr;
+	return &colliders[index];
+}
+
+const JsonRenderer* JsonGameObject::getFirstRenderer() const{
+	if (renderers.Num() > 0)
+		return &renderers[0];
+	return nullptr;
+}
+
+int JsonGameObject::getNumSpawnComponents() const{
+	return lights.Num()
+		+ probes.Num()
+		+ renderers.Num()
+		+ skinRenderers.Num()
+		+ terrains.Num()
+		//+ animators.Num() animators do not spawn components
+		+ colliders.Num()
+		+ rigidbodies.Num();
+}
+
+int JsonGameObject::getNumComponents() const{
+	return lights.Num() 
+		+ probes.Num()
+		+ renderers.Num() 
+		+ skinRenderers.Num()
+		+ terrains.Num() 
+		+ animators.Num()
+		+ colliders.Num() 
+		+ rigidbodies.Num();
+}
+
+EComponentMobility::Type JsonGameObject::getUnrealMobility() const{
+	if (isStatic)
+		return EComponentMobility::Static;
+	return EComponentMobility::Movable;
+}
+
+bool JsonGameObject::usesPrefab() const{
+	return (prefabRootId >= 0) && (prefabObjectId >= 0);
+}
+
+bool JsonGameObject::isPrefabRoot() const{
+	return usesPrefab() && (prefabObjectId == 0);
+}

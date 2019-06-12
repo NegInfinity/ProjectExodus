@@ -15,6 +15,8 @@ public:
 	AActor *actor = nullptr;
 	USceneComponent *component = nullptr;
 
+	void setCompatibleMobility(ImportedObject parentObject) const;
+	void setCompatibleMobility(AActor *parentActor, USceneComponent *parentComponent) const;
 	bool hasActor() const{
 		return actor != nullptr;//goddamn msvc warning...
 	}
@@ -40,7 +42,7 @@ public:
 	/*
 	Fixes object ownership in case of complex reattachment scenarios
 	*/
-	void fixMismatchingOwner() const;//Erm... const modifier.
+	void fixMismatchingOwner(bool applyToChidlren) const;//Erm... const modifier.
 
 	void setActiveInHierarchy(bool active) const;
 	void setFolderPath(const FString &folderPath, bool recursive = false) const;

@@ -3,10 +3,13 @@
 #include "JsonImporter.h"
 #include "UnrealUtilities.h"
 #include "builders/JointBuilder.h"
+#include "builders/PrefabBuilder.h"
 
 #include "LocTextNamespace.h"
 
 #define LOCTEXT_NAMESPACE LOCTEXT_NAMESPACE_NAME
+
+//#define JSON_DISABLE_PREFAB_IMPORT
 
 using namespace JsonObjects;
 using namespace UnrealUtilities;
@@ -262,6 +265,33 @@ void JsonImporter::registerAnimSequence(AnimClipIdKey key, UAnimSequence *sequen
 
 const FString* JsonImporter::findMeshPath(ResId meshId) const{
 	return meshIdMap.Find(meshId);
+}
+
+void JsonImporter::importPrefabs(const StringArray &prefabs){
+#ifdef JSON_DISABLE_PREFAB_IMPORT
+	UE_LOG(JsonLog, Warning, TEXT("Prefab import is currently disabled"));
+	return;
+#endif
+
+	FScopedSlowTask progress(prefabs.Num(), LOCTEXT("Importing prefabs", "Importing prefabs"));
+	progress.MakeDialog();
+	UE_LOG(JsonLog, Log, TEXT("Import prefabs"));
+	int32 objId = 0;
+	for(auto curFilename: prefabs){
+		auto obj = loadExternResourceFromFile(curFilename);
+		auto curId = objId;
+		objId++;
+		if (!obj.IsValid())
+			continue;
+
+		PrefabBuilder builder;
+		auto prefab = JsonPrefabData(obj);
+
+		builder.importPrefab(prefab, this);
+		//importPrefab(prefab);
+
+		progress.EnterProgressFrame(1.0f);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

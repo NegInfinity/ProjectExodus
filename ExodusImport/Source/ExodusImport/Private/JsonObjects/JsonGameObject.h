@@ -61,18 +61,7 @@ public:
 	FVector unityLocalVectorToUnrealWorld(const FVector &arg) const;
 	FVector unityLocalPosToUnrealWorld(const FVector &arg) const;
 
-	bool hasParent() const{
-		return parentId >= 0;
-	}
-
-	int findSuitableRootColliderIndex() const{
-		for(int i = 0; i < colliders.Num(); i++){
-			const auto& cur = colliders[i];
-			if (!cur.isMeshCollider() && (cur.center == FVector::ZeroVector))
-				return i;
-		}
-		return -1;
-	}
+	int findSuitableRootColliderIndex() const;
 
 	/*
 	Returns index of collider that is pointing at the main mesh.
@@ -81,109 +70,32 @@ public:
 	Of course, unity allows multiple mesh rendere components, despite usingo nly one mesh filter,
 	but I'm not quite sure in which scenario this would ever be used, and how to transfer it to unreal properly.
 	*/
-	int findMainMeshColliderIndex() const{
-		//if (meshId < 0)
-		if (!meshId.isValid())
-			return -1;//magic number...
-		for (int i = 0; i < colliders.Num(); i++){
-			const auto &cur = colliders[i];
-			if (cur.isMeshCollider() && (cur.meshId == meshId))
-				return i;
-		}
+	int findMainMeshColliderIndex() const;
 
-		return -1;
-	}
-
-	const JsonCollider* getMainMeshCollider() const{
-		return getColliderByIndex(findMainMeshColliderIndex());
-	}
-
-	bool hasMainMeshCollider() const{
-		return getMainMeshCollider() != nullptr;
-	}
-
-	const JsonCollider* getColliderByIndex(int index) const{
-		if (index < 0)
-			return nullptr;
-		return &colliders[index];
-	}
-
-	const JsonRenderer* getFirstRenderer() const{
-		if (renderers.Num() > 0)
-			return &renderers[0];
-		return nullptr;
-	}
-
-	int getNumSpawnComponents() const{
-		return lights.Num()
-			+ probes.Num()
-			+ renderers.Num()
-			+ skinRenderers.Num()
-			+ terrains.Num()
-			//+ animators.Num() animators do not spawn components
-			+ colliders.Num()
-			+ rigidbodies.Num();
-	}
-
-	int getNumComponents() const{
-		return lights.Num() 
-			+ probes.Num()
-			+ renderers.Num() 
-			+ skinRenderers.Num()
-			+ terrains.Num() 
-			+ animators.Num()
-			+ colliders.Num() 
-			+ rigidbodies.Num();
-	}
+	const JsonCollider* getMainMeshCollider() const;
+	bool hasMainMeshCollider() const;
+	const JsonCollider* getColliderByIndex(int index) const;
+	const JsonRenderer* getFirstRenderer() const;
+	int getNumSpawnComponents() const;
+	int getNumComponents() const;
 
 	IntArray getFirstMaterials() const;
 
-	bool hasTerrain() const{
-		return terrains.Num() > 0;
-	}
+	bool usesPrefab() const;
+	bool isPrefabRoot() const;
+	bool hasParent() const{return parentId >= 0;}
+	bool hasTerrain() const{return terrains.Num() > 0;}
+	bool hasSkinMeshes() const{return skinRenderers.Num() > 0;}
+	bool hasMesh() const{return meshId.isValid();}
+	bool hasJoints() const{return joints.Num() > 0;}
+	bool hasColliders() const{return colliders.Num() > 0;}
+	bool hasRigidbody() const{return rigidbodies.Num() > 0;}
+	bool hasLights() const{return lights.Num() > 0;}
+	bool hasProbes() const{return probes.Num() > 0;}
+	bool hasRenderers() const{return renderers.Num() > 0;}
+	bool hasAnimators() const{return animators.Num() > 0;}
 
-	bool hasSkinMeshes() const{
-		return skinRenderers.Num() > 0;
-	}
-
-	bool hasMesh() const{
-		return meshId.isValid();
-		//return meshId >= 0;
-	}
-
-	bool hasJoints() const{
-		return joints.Num() > 0;
-	}
-
-	bool hasColliders() const{
-		return colliders.Num() > 0;
-	}
-
-	bool hasRigidbody() const{
-		return rigidbodies.Num() > 0;
-	}
-
-	bool hasLights() const{
-		return lights.Num() > 0;
-	}
-
-	bool hasProbes() const{
-		return probes.Num() > 0;
-	}
-
-	bool hasRenderers() const{
-		return renderers.Num() > 0;
-	}
-
-	bool hasAnimators() const{
-		return animators.Num() > 0;
-	}
-
-	EComponentMobility::Type getUnrealMobility() const{
-		if (isStatic)
-			return EComponentMobility::Static;
-		return EComponentMobility::Movable;
-	}
+	EComponentMobility::Type getUnrealMobility() const;
 
 	FTransform getUnrealTransform(const FVector& localUnityOffset) const;
 	FTransform getUnrealTransform() const;

@@ -5,7 +5,41 @@
 #include "Components/SceneComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/DrawSphereComponent.h"
+#include "Engine/Classes/Components/PointLightComponent.h"
+#include "Engine/Classes/Components/SpotLightComponent.h"
+#include "Engine/Classes/Components/DirectionalLightComponent.h"
+#include "UnrealUtilities.h"
 
+void PluginDebugTest::run(){
+	UE_LOG(JsonLog, Log, TEXT("Debug function started: testing blueprint creation"));
+	auto world = GEditor->GetEditorWorldContext().World();
+
+	FTransform transform;
+	transform.SetFromMatrix(FMatrix::Identity);
+	auto actor1 = world->SpawnActor<AActor>(AActor::StaticClass(), transform);
+	actor1->SetActorLabel("Root Actor");
+
+	auto rootComponent= NewObject<USceneComponent>(actor1);
+	actor1->SetRootComponent(rootComponent);
+	rootComponent->SetWorldLocation(FVector(0.0f, 0.0f, 300.0f));
+	rootComponent->RegisterComponent();
+
+	auto subComponent = NewObject<USceneComponent>(actor1);
+	subComponent->SetWorldLocation(FVector(0.0f, 0.0f, 600.0f));
+	subComponent->AttachToComponent(rootComponent, FAttachmentTransformRules::KeepWorldTransform);
+	subComponent->RegisterComponent();
+
+	//TStrongRefPtr<UPointLightComponent> 
+	auto lightComp = NewObject<UPointLightComponent>();
+	lightComp->Rename(0, actor1);
+	lightComp->AttachToComponent(subComponent, FAttachmentTransformRules::KeepWorldTransform);
+	lightComp->RegisterComponent();
+
+	actor1->AddInstanceComponent(subComponent);
+	actor1->AddInstanceComponent(lightComp);
+}
+
+#if 0
 void PluginDebugTest::run(){
 	UE_LOG(JsonLog, Log, TEXT("Debug function started"));
 	auto world = GEditor->GetEditorWorldContext().World();
@@ -52,6 +86,8 @@ void PluginDebugTest::run(){
 	scene2->RegisterComponent();
 	*/
 }
+#endif
+
 #if 0
 void PluginDebugTest::run(){
 	UE_LOG(JsonLog, Log, TEXT("Debug function started"));

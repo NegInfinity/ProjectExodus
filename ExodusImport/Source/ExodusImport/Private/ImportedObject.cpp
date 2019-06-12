@@ -2,11 +2,44 @@
 #include "ImportedObject.h"
 #include "Components/SceneComponent.h"
 #include "GameFramework/Actor.h"
+#include "UnrealUtilities.h"
+
+void ImportedObject::setCompatibleMobility(ImportedObject parentObject) const{
+	if (!actor && !component)
+		return;
+	if (!parentObject.isValid())
+		return;
+
+	USceneComponent *myComponent = actor ? actor->GetRootComponent(): component;
+	USceneComponent *parentComponent  = parentObject.actor ?parentObject.actor->GetRootComponent(): parentObject.component;
+
+	check(myComponent && parentComponent);
+
+	if (parentComponent->Mobility != EComponentMobility::Movable)
+		return;
+
+	UE_LOG(JsonLog, Warning, TEXT("Fixing mobility issues:\ncomponent\n%s\nparent component:\n%s\nMobility will be recursively set to moveable."), 
+		*myComponent->GetFullName(), *parentComponent->GetFullName());
+
+	auto newMobility = EComponentMobility::Movable;
+	UnrealUtilities::processComponentsRecursively(myComponent, 
+		nullptr, 
+		[&](USceneComponent *component){
+			component->SetMobility(newMobility);
+		}, false
+	);
+}
+
+void ImportedObject::setCompatibleMobility(AActor *parentActor, USceneComponent *parentComponent) const{
+	setCompatibleMobility(ImportedObject(parentActor, parentComponent));
+}
 
 void ImportedObject::attachTo(AActor *parentActor, USceneComponent *parentComponent) const{
 	check(actor || component);
 
 	check(parentActor || parentComponent);
+
+	setCompatibleMobility(parentActor, parentComponent);
 
 	if (component){
 		UE_LOG(JsonLog, Log, TEXT("Attaching component %s"), *component->GetName());
@@ -25,7 +58,7 @@ void ImportedObject::attachTo(AActor *parentActor, USceneComponent *parentCompon
 			}
 		}
 
-		fixMismatchingOwner();
+		fixMismatchingOwner(true);//erm... this actually might be dangerous
 	}
 	else if (actor){
 		UE_LOG(JsonLog, Log, TEXT("Attaching an actor %s"), *actor->GetName());
@@ -84,7 +117,7 @@ void ImportedObject::setNameOrLabel(const FString &newName, bool markDirty){
 		component->Rename(*newName);
 }
 
-void ImportedObject::fixMismatchingOwner() const{
+void ImportedObject::fixMismatchingOwner(bool applyToChildren) const{
 	if (!component)
 		return;//nothing to do, an AActor is supposed to have a proper container by default.
 	auto root = component->GetAttachmentRoot();
@@ -92,8 +125,14 @@ void ImportedObject::fixMismatchingOwner() const{
 		return;//how? should we fail in this case?
 	auto rootOuter = root->GetOuter();
 	auto curOuter = component->GetOuter();
-	if (curOuter != rootOuter)
+	if (curOuter == rootOuter)
+		return;
+	if (!applyToChildren){
 		component->Rename(0, rootOuter);
+	}
+	else{
+		UnrealUtilities::changeOwnerRecursively(component, rootOuter);
+	}
 }
 
 void ImportedObject::fixEditorVisibility() const{

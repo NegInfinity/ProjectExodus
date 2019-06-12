@@ -7,6 +7,7 @@
 class UPointLightComponent;
 class USpotLightComponent;
 class ULightComponent;
+class USceneComponent;
 
 class LightBuilder{
 public:
@@ -14,7 +15,8 @@ public:
 	static void setupSpotLightComponent(USpotLightComponent *spotLight, const JsonLight &jsonLight);
 	static void setupDirLightComponent(ULightComponent *dirLight, const JsonLight &jsonLight);
 
-	static ImportedObject processLight(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonLight &light, ImportedObject *parentObject, const FString& folderPath);
+	static ImportedObject processLight(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonLight &light,
+		ImportedObject *parentObject, const FString& folderPath, bool createActors);
 	static void processLights(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedObject *parentObject, const FString& folderPath,
-		ImportedObjectArray *createdObjects);
+		ImportedObjectArray *createdObjects, bool createActors);
 };

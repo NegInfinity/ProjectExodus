@@ -43,6 +43,8 @@ public:
 
 	UObject* findSuitableOuter(const JsonGameObject &jsonObj) const;
 
+	//void changeOwnerRecursively(USceneComponent *rootComponent, UObject *newOwner) const;
+
 	const ImportedObject* findImportedObject(JsonId id) const;
 	ImportedObject* findImportedObject(JsonId id);
 	FString processFolderPath(const JsonGameObject &jsonObj);
@@ -61,10 +63,9 @@ public:
 
 	void clear();
 
-	ImportedObject createBlankActor(const JsonGameObject &gameObj) const;
+	ImportedObject createBlankActor(const JsonGameObject &gameObj, USceneComponent *rootComponent = nullptr, bool changeOwnership = false) const;
 	ImportedObject createBlankNode(const JsonGameObject &gameObj, bool createActor) const;
 
 	ImportWorkData(UWorld *world_, bool editorMode_, const JsonScene *scene_);
 	ImportWorkData(UWorld *world_, bool editorMode_, const TArray<JsonGameObject> *objects_);
 };
-

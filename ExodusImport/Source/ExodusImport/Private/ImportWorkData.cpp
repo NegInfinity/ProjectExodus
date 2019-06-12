@@ -5,6 +5,7 @@
 #include "JsonObjects/utilities.h"
 #include "Classes/GameFramework/Actor.h"
 #include "Classes/Engine/World.h"
+#include "UnrealUtilities.h"
 
 
 void ImportWorkData::registerDelayedAnimController(JsonId skelId, JsonId controllerId){
@@ -17,12 +18,9 @@ void ImportWorkData::registerAnimatorForPostProcessing(const JsonGameObject &jso
 }
 
 const JsonGameObject* ImportWorkData::findJsonObject(JsonId id) const{
-	//check(srcScene != nullptr);
 	check(srcObjects != nullptr);
-	//if ((id >= 0) && (id < srcScene->objects.Num()))
 	if ((id >= 0) && (id < srcObjects->Num()))
 		return &(*srcObjects)[id];
-		//return &srcScene->objects[id];
 
 	return nullptr;
 }
@@ -38,7 +36,6 @@ const JsonRigidbody* ImportWorkData::locateRigidbody(const JsonGameObject &srcGa
 		if (!isValidId(currentObject->parentId))
 			break;
 
-		//if (!srcScene)
 		if (!srcObjects)
 			break;
 
@@ -135,17 +132,26 @@ bool ImportWorkData::isCompoundRigidbodyRootCollider(const JsonGameObject &gameO
 	return false;
 }
 
-ImportedObject ImportWorkData::createBlankActor(const JsonGameObject &jsonGameObj) const{
+ImportedObject ImportWorkData::createBlankActor(const JsonGameObject &gameObj, USceneComponent *rootComponent, bool changeOwnership) const{
+	using namespace UnrealUtilities;
 	check(world);
 	FTransform transform;
-	transform.SetFromMatrix(jsonGameObj.ueWorldMatrix);
+	transform.SetFromMatrix(gameObj.ueWorldMatrix);
 
 	AActor *blankActor = world->SpawnActor<AActor>(AActor::StaticClass(), transform);
-	auto *rootComponent = NewObject<USceneComponent>(blankActor);
-	rootComponent->SetWorldTransform(transform);
+	if (!rootComponent){
+		rootComponent = NewObject<USceneComponent>(blankActor);
+		rootComponent->SetWorldTransform(transform);
+	}
+	else{
+		if (changeOwnership){
+			changeOwnerRecursively(rootComponent, blankActor);//Due to the way it works, this is not enough to fix ownership issues when importing prefabs
+		}
+	}
+
 	blankActor->SetRootComponent(rootComponent);
-	blankActor->SetActorLabel(jsonGameObj.ueName, true);
-	rootComponent->SetMobility(jsonGameObj.getUnrealMobility());
+	blankActor->SetActorLabel(gameObj.ueName, true);
+	rootComponent->SetMobility(gameObj.getUnrealMobility());
 	ImportedObject importedObject(blankActor);
 	return importedObject;
 }
@@ -188,7 +194,5 @@ void ImportWorkData::clear(){
 }
 
 uint64 ImportWorkData::getUniqueUint() const{
-	//static uint64 val = 0;
-	//return val++;
 	return uniqueInt++;//Should I switch to guids?
 }

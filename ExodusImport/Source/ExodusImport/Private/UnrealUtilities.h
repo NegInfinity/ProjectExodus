@@ -13,7 +13,6 @@ class JsonImporter;
 class UStaticMesh;
 class USceneComponent;
 
-
 namespace UnrealUtilities{
 	FVector getUnityUpVector();
 	FVector getUnityRightVector();
@@ -178,7 +177,13 @@ namespace UnrealUtilities{
 
 	template <typename T>T* createActor(ImportWorkData& workData, FTransform transform, const TCHAR* logName = 0){
 		return createActor<T>(workData.world.Get(), transform, workData.editorMode, logName);
-	}	
+	}
+
+	void changeOwnerRecursively(USceneComponent *rootComponent, UObject *newOwner);
+	void processComponentsRecursively(USceneComponent *rootComponent,
+		std::function<bool(USceneComponent* curComponent)> filterCallback,
+		std::function<void(USceneComponent* curComponent)> processCallback,
+		bool childrenFirst = false);
 
 	FString sanitizeObjectName(const FString &arg);
 	FString sanitizePackageName(const FString &arg);

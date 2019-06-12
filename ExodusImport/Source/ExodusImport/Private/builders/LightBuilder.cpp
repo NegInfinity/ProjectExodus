@@ -7,6 +7,7 @@
 #include "Engine/Classes/Components/SpotLightComponent.h"
 #include "Engine/Classes/Components/DirectionalLightComponent.h"
 #include "UnrealUtilities.h"
+#include <utility>
 
 void LightBuilder::setupPointLightComponent(UPointLightComponent *pointLight, const JsonLight &jsonLight){
 	//light->SetIntensity(lightIntensity * 2500.0f);//100W lamp per 1 point of intensity
@@ -62,7 +63,35 @@ void LightBuilder::setupDirLightComponent(ULightComponent *dirLight, const JsonL
 												   //light->SetVisibility(params.visible);
 }
 
-ImportedObject LightBuilder::processLight(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonLight &jsonLight, ImportedObject *parentObject, const FString& folderPath){
+template <typename ActorClass, typename ComponentClass> 
+std::pair<ActorClass*, ComponentClass*> createLightActorAndComponent(
+		ImportWorkData &workData,
+		FTransform lightTransform, 
+		std::function<ComponentClass*(ActorClass*)> componentGetter, 
+		std::function<void(ComponentClass*)> componentConfigurator,
+		const TCHAR* lightName, bool createActors){
+
+	check(componentGetter);
+	check(lightName != nullptr);
+
+	ActorClass *lightActor = nullptr;
+	ComponentClass *lightComponent = nullptr;
+
+	if (createActors){
+		lightActor = UnrealUtilities::createActor<ActorClass>(workData, lightTransform, TEXT("point light"));
+		lightComponent = componentGetter(lightActor);
+	}
+	else{
+		lightComponent = NewObject<ComponentClass>();
+	}
+	if (componentConfigurator && lightComponent)
+		componentConfigurator(lightComponent);
+
+	return std::make_pair(lightActor, lightComponent);
+}
+
+ImportedObject LightBuilder::processLight(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonLight &jsonLight, ImportedObject *parentObject,
+		const FString& folderPath, bool createActors){
 	using namespace UnrealUtilities;
 
 	UE_LOG(JsonLog, Log, TEXT("Creating light"));
@@ -70,44 +99,58 @@ ImportedObject LightBuilder::processLight(ImportWorkData &workData, const JsonGa
 	FTransform lightTransform;
 	lightTransform.SetFromMatrix(gameObj.ueWorldMatrix);
 
-	ALight *actor = nullptr;
+	ALight *lightActor = nullptr;
+	USceneComponent *lightComponent = nullptr;
 	if (jsonLight.lightType == "Point"){
-		auto pointActor = createActor<APointLight>(workData, lightTransform, TEXT("point light"));
-		actor = pointActor;
-		if (pointActor){
-			auto light = pointActor->PointLightComponent;
-			setupPointLightComponent(light, jsonLight);
-		}
+		auto data = createLightActorAndComponent<APointLight, UPointLightComponent>(
+			workData, lightTransform, 
+			[](auto arg){return arg->PointLightComponent;}, 
+			[&](auto arg){setupPointLightComponent(arg, jsonLight);},
+			TEXT("point light"), createActors
+		);
+		lightActor = data.first;
+		lightComponent = data.second;
 	}
 	else if (jsonLight.lightType == "Spot"){
-		auto spotActor = createActor<ASpotLight>(workData, lightTransform, TEXT("spot light"));
-		actor = spotActor;
-		if (actor){
-			auto light = spotActor->SpotLightComponent;
-			setupSpotLightComponent(light, jsonLight);
-		}
+		auto data = createLightActorAndComponent<ASpotLight, USpotLightComponent>(
+			workData, lightTransform, 
+			[](auto arg){return arg->SpotLightComponent;}, 
+			[&](auto arg){setupSpotLightComponent(arg, jsonLight);},
+			TEXT("spot light"), createActors
+		);
+		lightActor = data.first;
+		lightComponent = data.second;
 	}
 	else if (jsonLight.lightType == "Directional"){
-		auto dirLightActor = createActor<ADirectionalLight>(workData, lightTransform, TEXT("directional light"));
-		actor = dirLightActor;
-		if (dirLightActor){
-			auto light = dirLightActor->GetLightComponent();
-			setupDirLightComponent(light, jsonLight);
-		}
+		auto data = createLightActorAndComponent<ADirectionalLight, ULightComponent>(
+			workData, lightTransform, 
+			[](auto arg){return arg->GetLightComponent();}, 
+			[&](auto arg){setupDirLightComponent(arg, jsonLight);},
+			TEXT("directional light"), createActors
+		);
+		lightActor = data.first;
+		lightComponent = data.second;
 	}
 
-	if (actor){
-		actor->SetActorLabel(gameObj.ueName, true);
+	if (lightActor){
+		lightActor->SetActorLabel(gameObj.ueName, true);
 		if (gameObj.isStatic)
-			actor->SetMobility(EComponentMobility::Static);
-		setObjectHierarchy(ImportedObject(actor), parentObject, folderPath, workData, gameObj);
-		actor->MarkComponentsRenderStateDirty();
+			lightActor->SetMobility(EComponentMobility::Static);
+		setObjectHierarchy(ImportedObject(lightActor), parentObject, folderPath, workData, gameObj);
+		lightActor->MarkComponentsRenderStateDirty();
+	}
+	else if (lightComponent){
+		if (gameObj.isStatic)
+			lightComponent->SetMobility(EComponentMobility::Static);
+		auto compName = FString::Printf(TEXT("%s_light(%d_%llu)"), *gameObj.ueName, gameObj.id, workData.getUniqueUint());
+		lightComponent->Rename(*compName);
 	}
 
-	return ImportedObject(actor);
+	return ImportedObject(lightActor, lightComponent);
 }
 
-void LightBuilder::processLights(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedObject *parentObject, const FString& folderPath, ImportedObjectArray *createdObjects){
+void LightBuilder::processLights(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedObject *parentObject,
+		const FString& folderPath, ImportedObjectArray *createdObjects, bool createActors){
 	using namespace UnrealUtilities;
 	if (!gameObj.hasLights())
 		return;
@@ -115,7 +158,7 @@ void LightBuilder::processLights(ImportWorkData &workData, const JsonGameObject 
 	for(int i = 0; i < gameObj.lights.Num(); i++){
 		const auto &curLight = gameObj.lights[i];
 		//processLight(workData, gameObj, curLight, parentActor, folderPath);
-		auto light = processLight(workData, gameObj, curLight, parentObject, folderPath);
+		auto light = processLight(workData, gameObj, curLight, parentObject, folderPath, createActors);
 		registerImportedObject(createdObjects, light);
 	}
 }

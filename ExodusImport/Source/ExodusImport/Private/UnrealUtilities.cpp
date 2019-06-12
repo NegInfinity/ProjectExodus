@@ -440,3 +440,54 @@ void UnrealUtilities::makeComponentVisibleInEditor(USceneComponent *comp){
 	comp->RegisterComponent();
 }
 
+void UnrealUtilities::changeOwnerRecursively(USceneComponent *rootComponent, UObject *newOwner){
+	check(rootComponent != nullptr);
+	check(newOwner != nullptr);
+
+	auto rootActor = rootComponent->GetAttachmentRootActor();
+	auto numChildren = rootComponent->GetNumChildrenComponents();
+	for(int32 childIndex = 0; childIndex < numChildren; childIndex++){
+		auto child = rootComponent->GetChildComponent(childIndex);
+		if (!child)
+			continue;
+		auto childRootActor = child->GetAttachmentRootActor();
+
+		//This method awkwardly detects situation when child component is a component that belong to another actor
+		if (rootActor != childRootActor)
+			continue;
+
+		changeOwnerRecursively(child, newOwner);
+	}
+
+	rootComponent->Rename(0, newOwner);
+}
+
+void UnrealUtilities::processComponentsRecursively(USceneComponent *rootComponent,
+		std::function<bool(USceneComponent* curComponent)> filterCallback,
+		std::function<void(USceneComponent* curComponent)> processCallback,
+		bool childrenFirst){
+
+	check(processCallback);
+	check(rootComponent);
+
+	if (filterCallback && !filterCallback(rootComponent))
+		return;
+
+	if (!childrenFirst)
+		processCallback(rootComponent);
+
+	auto numChildren = rootComponent->GetNumChildrenComponents();
+	for(int32 childIndex = 0; childIndex < numChildren; childIndex++){
+		auto child = rootComponent->GetChildComponent(childIndex);
+		if (!child)
+			continue;
+
+		if (filterCallback && !filterCallback(child))
+			continue;
+
+		processComponentsRecursively(child, filterCallback, processCallback, childrenFirst);
+	}
+
+	if (childrenFirst)
+		processCallback(rootComponent);
+}
