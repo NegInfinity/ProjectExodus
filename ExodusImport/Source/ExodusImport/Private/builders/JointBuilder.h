@@ -1,7 +1,7 @@
 #pragma once
 #include "JsonTypes.h"
 #include "InstanceIdMap.h"
-#include "ImportWorkData.h"
+#include "ImportContext.h"
 
 class UPhysicsConstraintComponent;
 

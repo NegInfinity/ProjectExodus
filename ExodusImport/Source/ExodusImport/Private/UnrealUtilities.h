@@ -3,7 +3,7 @@
 #include "CoreMinimal.h"
 #include "JsonTypes.h"
 #include "JsonLog.h"
-#include "ImportWorkData.h"
+#include "ImportContext.h"
 #include "Developer/RawMesh/Public/RawMesh.h"
 #include "Runtime/Engine/Classes/Engine/StaticMesh.h"
 #include <functional>

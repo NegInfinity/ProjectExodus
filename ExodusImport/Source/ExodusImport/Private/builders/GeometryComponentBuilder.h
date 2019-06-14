@@ -1,6 +1,6 @@
 #pragma once
 #include "JsonTypes.h"
-#include "ImportWorkData.h"
+#include "ImportContext.h"
 #include "JsonObjects/JsonGameObject.h"
 
 class JsonImporter;

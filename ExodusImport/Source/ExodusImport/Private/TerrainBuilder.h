@@ -4,7 +4,7 @@
 #include "JsonObjects/JsonGameObject.h"
 #include "JsonObjects/JsonTerrain.h"
 #include "JsonObjects/JsonTerrainData.h"
-#include "ImportWorkData.h"
+#include "ImportContext.h"
 
 class JsonImporter;
 class ALandscape;

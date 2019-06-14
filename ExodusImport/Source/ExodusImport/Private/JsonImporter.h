@@ -8,7 +8,7 @@
 #include "JsonObjects/JsonSkeleton.h"
 #include "JsonObjects/JsonMaterial.h"
 #include "JsonObjects.h"
-#include "ImportWorkData.h"
+#include "ImportContext.h"
 #include "ObjectTools.h"
 #include "Editor/UnrealEd/Public/PackageTools.h"
 

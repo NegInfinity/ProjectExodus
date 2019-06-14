@@ -2,7 +2,7 @@
 #include "JsonTypes.h"
 #include "JsonObjects/JsonLight.h"
 #include "ImportedObject.h"
-#include "ImportWorkData.h"
+#include "ImportContext.h"
 
 class UPointLightComponent;
 class USpotLightComponent;
