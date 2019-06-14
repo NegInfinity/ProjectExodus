@@ -5,7 +5,7 @@
 #include "Classes/Animation/SkeletalMeshActor.h"
 #include "Classes/Components/SkeletalMeshComponent.h"
 
-void SkeletalMeshComponentBuilder::processSkinMeshes(ImportWorkData &workData, const JsonGameObject &gameObj, 
+void SkeletalMeshComponentBuilder::processSkinMeshes(ImportContext &workData, const JsonGameObject &gameObj, 
 		ImportedObject *parentObject, const FString &folderPath, ImportedObjectArray *createdObjects, JsonImporter *importer){
 	using namespace UnrealUtilities;
 	check(importer != nullptr);
@@ -17,7 +17,7 @@ void SkeletalMeshComponentBuilder::processSkinMeshes(ImportWorkData &workData, c
 	}
 }
 
-ImportedObject SkeletalMeshComponentBuilder::processSkinRenderer(ImportWorkData &workData, const JsonGameObject &jsonGameObj, 
+ImportedObject SkeletalMeshComponentBuilder::processSkinRenderer(ImportContext &workData, const JsonGameObject &jsonGameObj, 
 		const JsonSkinRenderer &skinRend, ImportedObject *parentObject, const FString &folderPath, JsonImporter *importer){
 	using namespace UnrealUtilities;
 	check(importer != nullptr);

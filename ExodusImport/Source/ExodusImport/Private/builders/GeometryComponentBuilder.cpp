@@ -13,7 +13,7 @@ This does it.
 
 This method processess collision and mesh during object import
 */
-ImportedObject GeometryComponentBuilder::processMeshAndColliders(ImportWorkData &workData, 
+ImportedObject GeometryComponentBuilder::processMeshAndColliders(ImportContext &workData, 
 		const JsonGameObject &jsonGameObj, int objId, ImportedObject *parentObject, const FString &folderPath, DesiredObjectType desiredObjectType,
 		JsonImporter *importer){
 	using namespace UnrealUtilities;
@@ -189,7 +189,7 @@ ImportedObject GeometryComponentBuilder::processMeshAndColliders(ImportWorkData 
 	return rootObject;
 }
 
-ImportedObject GeometryComponentBuilder::processStaticMesh(ImportWorkData &workData, const JsonGameObject &jsonGameObj, 
+ImportedObject GeometryComponentBuilder::processStaticMesh(ImportContext &workData, const JsonGameObject &jsonGameObj, 
 		int objId, ImportedObject *parentObject, const FString& folderPath, const JsonCollider *colliderData, bool spawnAsComponent, UObject *outer,
 		JsonImporter *importer){
 	using namespace UnrealUtilities;
@@ -255,7 +255,7 @@ ImportedObject GeometryComponentBuilder::processStaticMesh(ImportWorkData &workD
 	return result;
 }
 
-UPrimitiveComponent* GeometryComponentBuilder::processCollider(ImportWorkData &workData, const JsonGameObject &jsonGameObj, 
+UPrimitiveComponent* GeometryComponentBuilder::processCollider(ImportContext &workData, const JsonGameObject &jsonGameObj, 
 		UObject *ownerPtr, const JsonCollider &collider, JsonImporter *importer){
 	using namespace UnrealUtilities;
 	//trigger support...?
@@ -351,7 +351,7 @@ UCapsuleComponent* GeometryComponentBuilder::createCapsuleCollider(UObject *owne
 	return capsule;
 }
 
-UStaticMeshComponent* GeometryComponentBuilder::createMeshCollider(UObject *ownerPtr, const JsonGameObject &jsonGameObj, const JsonCollider &collider, ImportWorkData &workData, JsonImporter *importer){
+UStaticMeshComponent* GeometryComponentBuilder::createMeshCollider(UObject *ownerPtr, const JsonGameObject &jsonGameObj, const JsonCollider &collider, ImportContext &workData, JsonImporter *importer){
 	using namespace UnrealUtilities;
 	check(importer);
 	auto *meshComponent = NewObject<UStaticMeshComponent>(ownerPtr ? ownerPtr : GetTransientPackage(), UStaticMeshComponent::StaticClass());
@@ -365,7 +365,7 @@ UStaticMeshComponent* GeometryComponentBuilder::createMeshCollider(UObject *owne
 }
 
 
-void GeometryComponentBuilder::setupCommonColliderSettings(const ImportWorkData &workData, UPrimitiveComponent *dstCollider, const JsonGameObject &jsonGameObj, const JsonCollider &collider){
+void GeometryComponentBuilder::setupCommonColliderSettings(const ImportContext &workData, UPrimitiveComponent *dstCollider, const JsonGameObject &jsonGameObj, const JsonCollider &collider){
 	check(dstCollider);
 	if (collider.trigger){
 		dstCollider->SetCollisionProfileName(FName("OverlapAll"));//this is not available as a constant 
@@ -409,7 +409,7 @@ void GeometryComponentBuilder::setupCommonColliderSettings(const ImportWorkData 
 	}
 }
 
-bool GeometryComponentBuilder::configureStaticMeshComponent(ImportWorkData &workData, UStaticMeshComponent *meshComp, 
+bool GeometryComponentBuilder::configureStaticMeshComponent(ImportContext &workData, UStaticMeshComponent *meshComp, 
 		const JsonGameObject &jsonGameObj, bool configForRender, const JsonCollider *collider, JsonImporter *importer){
 	using namespace JsonObjects;
 	check(meshComp);

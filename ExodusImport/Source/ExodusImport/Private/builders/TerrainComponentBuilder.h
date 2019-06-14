@@ -9,9 +9,9 @@ class JsonImporter;
 class TerrainComponentBuilder{
 public:
 	static void processTerrains(
-		ImportWorkData &workData, const JsonGameObject &gameObj, ImportedObject *parentObject, const FString& folderPath, ImportedObjectArray *createdObjects,
+		ImportContext &workData, const JsonGameObject &gameObj, ImportedObject *parentObject, const FString& folderPath, ImportedObjectArray *createdObjects,
 		JsonImporter *importer);
-	static ImportedObject processTerrain(ImportWorkData &workData, const JsonGameObject &jsonGameObj, 
+	static ImportedObject processTerrain(ImportContext &workData, const JsonGameObject &jsonGameObj, 
 		const JsonTerrain &jsonTerrain, ImportedObject *parentObject, const FString& folderPath, 
 		JsonImporter *importer);
 };

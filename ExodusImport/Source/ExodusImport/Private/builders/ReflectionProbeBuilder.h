@@ -7,8 +7,8 @@ class JsonImporter;
 
 class ReflectionProbeBuilder{
 public:
-	static ImportedObject processReflectionProbe(ImportWorkData &workData, const JsonGameObject &gameObj,
+	static ImportedObject processReflectionProbe(ImportContext &workData, const JsonGameObject &gameObj,
 		const JsonReflectionProbe &probe, ImportedObject *parentObject, const FString &folderPath, JsonImporter *importer);
-	static void processReflectionProbes(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedObject *parentObject, const FString &folderPath,
+	static void processReflectionProbes(ImportContext &workData, const JsonGameObject &gameObj, ImportedObject *parentObject, const FString &folderPath,
 		ImportedObjectArray *createdObjects, JsonImporter *importer);
 };

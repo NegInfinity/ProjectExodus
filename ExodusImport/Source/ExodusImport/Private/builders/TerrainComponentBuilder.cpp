@@ -5,7 +5,7 @@
 #include "JsonImporter.h"
 #include "Landscape.h"
 
-void TerrainComponentBuilder::processTerrains(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedObject *parentObject, 
+void TerrainComponentBuilder::processTerrains(ImportContext &workData, const JsonGameObject &gameObj, ImportedObject *parentObject, 
 		const FString& folderPath, ImportedObjectArray *createdObjects, JsonImporter *importer){
 	using namespace UnrealUtilities;
 	check(importer != nullptr);
@@ -17,7 +17,7 @@ void TerrainComponentBuilder::processTerrains(ImportWorkData &workData, const Js
 	}
 }
 
-ImportedObject TerrainComponentBuilder::processTerrain(ImportWorkData &workData, const JsonGameObject &jsonGameObj, 
+ImportedObject TerrainComponentBuilder::processTerrain(ImportContext &workData, const JsonGameObject &jsonGameObj, 
 	const JsonTerrain &jsonTerrain, ImportedObject *parentObject, const FString& folderPath,
 	JsonImporter *importer){
 	using namespace UnrealUtilities;

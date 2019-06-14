@@ -319,7 +319,7 @@ FTransform &jointTransform, const JsonPhysicsJoint &joint, const JsonGameObject 
 }
 
 void JointBuilder::processPhysicsJoint(const JsonGameObject &obj, const InstanceIdMap &instanceMap,
-	const TArray<JsonGameObject>& objects, ImportWorkData &workData) const{
+	const TArray<JsonGameObject>& objects, ImportContext &workData) const{
 	using namespace UnrealUtilities;
 
 	if (!obj.hasJoints())
@@ -412,7 +412,7 @@ void JointBuilder::processPhysicsJoint(const JsonGameObject &obj, const Instance
 	}
 }
 
-void JointBuilder::processPhysicsJoints(const TArray<JsonGameObject>& objects, ImportWorkData &workData) const{
+void JointBuilder::processPhysicsJoints(const TArray<JsonGameObject>& objects, ImportContext &workData) const{
 	InstanceIdMap instanceMap;
 	FScopedSlowTask progress(objects.Num(), LOCTEXT("Processing joints", "Processing joints"));
 	progress.MakeDialog();

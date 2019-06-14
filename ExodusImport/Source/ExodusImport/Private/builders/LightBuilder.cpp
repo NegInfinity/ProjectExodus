@@ -65,7 +65,7 @@ void LightBuilder::setupDirLightComponent(ULightComponent *dirLight, const JsonL
 
 template <typename ActorClass, typename ComponentClass> 
 std::pair<ActorClass*, ComponentClass*> createLightActorAndComponent(
-		ImportWorkData &workData,
+		ImportContext &workData,
 		FTransform lightTransform, 
 		std::function<ComponentClass*(ActorClass*)> componentGetter, 
 		std::function<void(ComponentClass*)> componentConfigurator,
@@ -90,7 +90,7 @@ std::pair<ActorClass*, ComponentClass*> createLightActorAndComponent(
 	return std::make_pair(lightActor, lightComponent);
 }
 
-ImportedObject LightBuilder::processLight(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonLight &jsonLight, ImportedObject *parentObject,
+ImportedObject LightBuilder::processLight(ImportContext &workData, const JsonGameObject &gameObj, const JsonLight &jsonLight, ImportedObject *parentObject,
 		const FString& folderPath, bool createActors){
 	using namespace UnrealUtilities;
 
@@ -149,7 +149,7 @@ ImportedObject LightBuilder::processLight(ImportWorkData &workData, const JsonGa
 	return ImportedObject(lightActor, lightComponent);
 }
 
-void LightBuilder::processLights(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedObject *parentObject,
+void LightBuilder::processLights(ImportContext &workData, const JsonGameObject &gameObj, ImportedObject *parentObject,
 		const FString& folderPath, ImportedObjectArray *createdObjects, bool createActors){
 	using namespace UnrealUtilities;
 	if (!gameObj.hasLights())

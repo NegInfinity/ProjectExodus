@@ -68,7 +68,7 @@ UWorld* JsonImporter::importScene(const JsonScene &scene, bool createWorld){
 	}
 
 	if (!createWorld){
-		ImportWorkData workData(GEditor->GetEditorWorldContext().World(), editorMode, &scene);
+		ImportContext workData(GEditor->GetEditorWorldContext().World(), editorMode, &scene);
 		loadObjects(scene.objects, workData);
 		return nullptr;
 	}
@@ -103,7 +103,7 @@ UWorld* JsonImporter::importSceneObjectsAsWorld(const JsonScene &scene, const FS
 		UWorld::StaticClass(), worldPackage, *outWorldName, flags, 0, GWarn));
 
 	if (newWorld){
-		ImportWorkData workData(newWorld, false, &scene);
+		ImportContext workData(newWorld, false, &scene);
 		loadObjects(scene.objects, workData);
 	}
 

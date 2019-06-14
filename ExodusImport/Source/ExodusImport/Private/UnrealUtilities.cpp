@@ -403,7 +403,7 @@ FVector UnrealUtilities::getUnityForwardVector(){
 }
 
 void UnrealUtilities::setObjectHierarchy(const ImportedObject &object, ImportedObject *parentObject, 
-	const FString& folderPath, ImportWorkData &workData, const JsonGameObject &gameObj){
+	const FString& folderPath, ImportContext &workData, const JsonGameObject &gameObj){
 	if (parentObject){
 		object.attachTo(parentObject);
 	}

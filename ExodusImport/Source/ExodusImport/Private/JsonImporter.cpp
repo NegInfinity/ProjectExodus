@@ -142,7 +142,7 @@ void JsonImporter::loadMeshes(const StringArray &meshes){
 	}
 }
 
-void JsonImporter::loadObjects(const TArray<JsonGameObject> &objects, ImportWorkData &importData){
+void JsonImporter::loadObjects(const TArray<JsonGameObject> &objects, ImportContext &importData){
 	FScopedSlowTask objProgress(objects.Num(), LOCTEXT("Importing objects", "Importing objects"));
 	objProgress.MakeDialog();
 	UE_LOG(JsonLog, Log, TEXT("Import objects"));

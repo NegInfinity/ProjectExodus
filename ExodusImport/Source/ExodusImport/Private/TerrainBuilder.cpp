@@ -16,7 +16,7 @@
 using namespace JsonObjects;
 using namespace UnrealUtilities;
 
-TerrainBuilder::TerrainBuilder(ImportWorkData &workData_, JsonImporter *importer_, const JsonGameObject &gameObj_, 
+TerrainBuilder::TerrainBuilder(ImportContext &workData_, JsonImporter *importer_, const JsonGameObject &gameObj_, 
 	const JsonTerrain &jsonTerrain_, const JsonTerrainData &terrainData_)
 :importer(importer_), workData(workData_), jsonGameObj(gameObj_), jsonTerrain(jsonTerrain_), terrainData(terrainData_){
 }

@@ -53,7 +53,7 @@ void PrefabBuilder::importPrefab(const JsonPrefabData& prefab, JsonImporter *imp
 		return;
 	}
 
-	ImportWorkData workData(tmpWorld.Get(), false, &prefab.objects);
+	ImportContext workData(tmpWorld.Get(), false, &prefab.objects);
 	for(const auto& cur: prefab.objects){
 		importer->importObject(cur, workData, true);
 	}

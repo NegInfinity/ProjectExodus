@@ -8,16 +8,16 @@
 #include "UnrealUtilities.h"
 
 
-void ImportWorkData::registerDelayedAnimController(JsonId skelId, JsonId controllerId){
+void ImportContext::registerDelayedAnimController(JsonId skelId, JsonId controllerId){
 	delayedAnimControllers.Add(AnimControllerIdKey(skelId, controllerId));
 }
 
-void ImportWorkData::registerAnimatorForPostProcessing(const JsonGameObject &jsonObj){
+void ImportContext::registerAnimatorForPostProcessing(const JsonGameObject &jsonObj){
 	if (!postProcessAnimatorObjects.Contains(jsonObj.id))
 		postProcessAnimatorObjects.Add(jsonObj.id);
 }
 
-const JsonGameObject* ImportWorkData::findJsonObject(JsonId id) const{
+const JsonGameObject* ImportContext::findJsonObject(JsonId id) const{
 	check(srcObjects != nullptr);
 	if ((id >= 0) && (id < srcObjects->Num()))
 		return &(*srcObjects)[id];
@@ -25,7 +25,7 @@ const JsonGameObject* ImportWorkData::findJsonObject(JsonId id) const{
 	return nullptr;
 }
 
-const JsonRigidbody* ImportWorkData::locateRigidbody(const JsonGameObject &srcGameObj) const{
+const JsonRigidbody* ImportContext::locateRigidbody(const JsonGameObject &srcGameObj) const{
 	using namespace JsonObjects;
 
 	const JsonGameObject *currentObject = &srcGameObj;
@@ -44,7 +44,7 @@ const JsonRigidbody* ImportWorkData::locateRigidbody(const JsonGameObject &srcGa
 	return nullptr;
 }
 
-void ImportWorkData::registerGameObject(const JsonGameObject &gameObj, ImportedObject imported){
+void ImportContext::registerGameObject(const JsonGameObject &gameObj, ImportedObject imported){
 	check(JsonObjects::isValidId(gameObj.id));
 	check(imported.isValid());
 	/*if (importedObjects.Contains(gameObj.id))
@@ -53,19 +53,19 @@ void ImportWorkData::registerGameObject(const JsonGameObject &gameObj, ImportedO
 	importedObjects.Add(gameObj.id, imported);
 }
 
-const ImportedObject* ImportWorkData::findImportedObject(JsonId id) const{
+const ImportedObject* ImportContext::findImportedObject(JsonId id) const{
 	return importedObjects.Find(id);
 }
 
-ImportedObject* ImportWorkData::findImportedObject(JsonId id){
+ImportedObject* ImportContext::findImportedObject(JsonId id){
 	return importedObjects.Find(id);
 }
 
-const FString* ImportWorkData::findFolderPath(JsonId id) const{
+const FString* ImportContext::findFolderPath(JsonId id) const{
 	return objectFolderPaths.Find(id);
 }
 
-FString ImportWorkData::processFolderPath(const JsonGameObject &jsonGameObj){
+FString ImportContext::processFolderPath(const JsonGameObject &jsonGameObj){
 	FString folderPath;
 	FString childFolderPath = jsonGameObj.ueName;
 	if (jsonGameObj.parentId >= 0){
@@ -84,7 +84,7 @@ FString ImportWorkData::processFolderPath(const JsonGameObject &jsonGameObj){
 	return folderPath;
 }
 
-UObject* ImportWorkData::findSuitableOuter(const JsonGameObject &jsonObj) const{
+UObject* ImportContext::findSuitableOuter(const JsonGameObject &jsonObj) const{
 	using namespace JsonObjects;
 
 	JsonId parentId = jsonObj.parentId;
@@ -104,7 +104,7 @@ UObject* ImportWorkData::findSuitableOuter(const JsonGameObject &jsonObj) const{
 	return result;
 }
 
-bool ImportWorkData::isCompoundRigidbodyRootCollider(const JsonGameObject &gameObj) const{
+bool ImportContext::isCompoundRigidbodyRootCollider(const JsonGameObject &gameObj) const{
 	using namespace JsonObjects;
 
 	if (!gameObj.hasColliders())
@@ -132,7 +132,7 @@ bool ImportWorkData::isCompoundRigidbodyRootCollider(const JsonGameObject &gameO
 	return false;
 }
 
-ImportedObject ImportWorkData::createBlankActor(const JsonGameObject &gameObj, USceneComponent *rootComponent, bool changeOwnership) const{
+ImportedObject ImportContext::createBlankActor(const JsonGameObject &gameObj, USceneComponent *rootComponent, bool changeOwnership) const{
 	using namespace UnrealUtilities;
 	check(world);
 	FTransform transform;
@@ -156,7 +156,7 @@ ImportedObject ImportWorkData::createBlankActor(const JsonGameObject &gameObj, U
 	return importedObject;
 }
 
-ImportedObject ImportWorkData::createBlankNode(const JsonGameObject &gameObj, bool createActor) const{
+ImportedObject ImportContext::createBlankNode(const JsonGameObject &gameObj, bool createActor) const{
 	if (createActor)
 		return createBlankActor(gameObj);
 
@@ -175,24 +175,24 @@ ImportedObject ImportWorkData::createBlankNode(const JsonGameObject &gameObj, bo
 }
 
 
-ImportWorkData::ImportWorkData(UWorld *world_, bool editorMode_, const JsonScene *scene_)
+ImportContext::ImportContext(UWorld *world_, bool editorMode_, const JsonScene *scene_)
 :srcObjects(nullptr), world(world_), editorMode(editorMode_){
 	check(scene_ != nullptr);
 	srcObjects = &scene_->objects;
 }
 
-ImportWorkData::ImportWorkData(UWorld *world_, bool editorMode_, const TArray<JsonGameObject> *objects_)
+ImportContext::ImportContext(UWorld *world_, bool editorMode_, const TArray<JsonGameObject> *objects_)
 :srcObjects(objects_), world(world_), editorMode(editorMode_){
 }
 
 
-void ImportWorkData::clear(){
+void ImportContext::clear(){
 	objectFolderPaths.Empty();
 	importedObjects.Empty();
 
 	delayedAnimControllers.Empty();
 }
 
-uint64 ImportWorkData::getUniqueUint() const{
+uint64 ImportContext::getUniqueUint() const{
 	return uniqueInt++;//Should I switch to guids?
 }

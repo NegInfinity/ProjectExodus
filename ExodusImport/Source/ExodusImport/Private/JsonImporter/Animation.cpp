@@ -61,13 +61,13 @@ void JsonImporter::loadAnimClipsDebug(const StringArray &animClipPathNames){
 	}
 }
 
-void JsonImporter::processAnimators(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedObject *parentObject, const FString &folderPath){
+void JsonImporter::processAnimators(ImportContext &workData, const JsonGameObject &gameObj, ImportedObject *parentObject, const FString &folderPath){
 	for(const auto& animator: gameObj.animators){
 		processAnimator(workData, gameObj, animator, parentObject, folderPath);
 	}
 }
 
-void JsonImporter::processAnimator(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonAnimator &jsonAnimator, 
+void JsonImporter::processAnimator(ImportContext &workData, const JsonGameObject &gameObj, const JsonAnimator &jsonAnimator, 
 		ImportedObject *parentObject, const FString &folderPath){
 
 	auto animatorId = jsonAnimator.animatorControllerId;
@@ -85,7 +85,7 @@ void JsonImporter::processAnimator(ImportWorkData &workData, const JsonGameObjec
 	workData.registerDelayedAnimController(skelId, animatorId);
 }
 
-void JsonImporter::processDelayedAnimators(const TArray<JsonGameObject> &objects, ImportWorkData &workData){
+void JsonImporter::processDelayedAnimators(const TArray<JsonGameObject> &objects, ImportContext &workData){
 	FScopedSlowTask delayedAnimProgress(workData.delayedAnimControllers.Num(), 
 		LOCTEXT("Processing animator controllers", "Processing animator controllers"));
 

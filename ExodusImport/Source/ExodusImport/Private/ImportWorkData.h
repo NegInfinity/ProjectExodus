@@ -24,7 +24,7 @@ and within each scene they start from zero.
 I kinda wonder if I should work towards ensureing ids being globally unique, but then again...
 not much point when I can just use scoped dictionaries.
 */
-class ImportWorkData{
+class ImportContext{
 protected:
 	mutable uint64 uniqueInt = 0;
 public:
@@ -66,6 +66,6 @@ public:
 	ImportedObject createBlankActor(const JsonGameObject &gameObj, USceneComponent *rootComponent = nullptr, bool changeOwnership = false) const;
 	ImportedObject createBlankNode(const JsonGameObject &gameObj, bool createActor) const;
 
-	ImportWorkData(UWorld *world_, bool editorMode_, const JsonScene *scene_);
-	ImportWorkData(UWorld *world_, bool editorMode_, const TArray<JsonGameObject> *objects_);
+	ImportContext(UWorld *world_, bool editorMode_, const JsonScene *scene_);
+	ImportContext(UWorld *world_, bool editorMode_, const TArray<JsonGameObject> *objects_);
 };

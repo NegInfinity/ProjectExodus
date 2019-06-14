@@ -58,9 +58,9 @@ protected:
 
 	UWorld* importSceneObjectsAsWorld(const JsonScene &scene, const FString &sceneNameOverride, const FString &scenePathOverride);
 
-	void processAnimator(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonAnimator &jsonAnimator,
+	void processAnimator(ImportContext &workData, const JsonGameObject &gameObj, const JsonAnimator &jsonAnimator,
 		ImportedObject *parentObject, const FString &folderPath);
-	void processAnimators(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedObject *parentObject, const FString &folderPath);
+	void processAnimators(ImportContext &workData, const JsonGameObject &gameObj, ImportedObject *parentObject, const FString &folderPath);
 
 	UWorld* importScene(const JsonScene &scene, bool createWorld);
 
@@ -79,7 +79,7 @@ protected:
 	void loadAnimatorsDebug(const StringArray &animatorPaths);
 	void loadAnimClipsDebug(const StringArray &animClipPaths);
 
-	void processDelayedAnimators(const TArray<JsonGameObject> &objects, ImportWorkData &workData);
+	void processDelayedAnimators(const TArray<JsonGameObject> &objects, ImportContext &workData);
 	void processDelayedAnimator(JsonId skelId, JsonId controllerId);
 
 	template<typename T> bool loadIndexedExternResource(T& outObj, int index, const StringArray &resPaths) const{
@@ -156,7 +156,7 @@ public:
 	void loadSkeletons(const StringArray &materials);
 	void loadMeshes(const StringArray &meshes);
 
-	void loadObjects(const TArray<JsonGameObject> &objects, ImportWorkData &importData);
+	void loadObjects(const TArray<JsonGameObject> &objects, ImportContext &importData);
 
 	void setupAssetPaths(const FString &jsonFilename);
 
@@ -168,7 +168,7 @@ public:
 
 	void importMesh(JsonObjPtr obj, int32 meshId);
 	void importMesh(const JsonMesh &jsonMesh, int32 meshId);
-	ImportedObject importObject(const JsonGameObject &jsonGameObj, ImportWorkData &importData, bool createEmptyTransforms = false);
+	ImportedObject importObject(const JsonGameObject &jsonGameObj, ImportContext &importData, bool createEmptyTransforms = false);
 
 	static int findMatchingLength(const FString& arg1, const FString& arg2);
 	FString findCommonPath(const JsonValPtrs* resources) const;

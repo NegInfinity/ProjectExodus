@@ -10,7 +10,7 @@
 #include "JsonImporter.h"
 
 //void setupReflectionCapture(UReflectionCaptureComponent *reflComponent, const JsonReflectionProbe &probe);
-ImportedObject ReflectionProbeBuilder::processReflectionProbe(ImportWorkData &workData, const JsonGameObject &gameObj,
+ImportedObject ReflectionProbeBuilder::processReflectionProbe(ImportContext &workData, const JsonGameObject &gameObj,
 	const JsonReflectionProbe &probe, ImportedObject *parentObject, const FString &folderPath, JsonImporter *importer){
 	using namespace UnrealUtilities;
 	using namespace JsonObjects;
@@ -122,7 +122,7 @@ ImportedObject ReflectionProbeBuilder::processReflectionProbe(ImportWorkData &wo
 	}
 }
 
-void ReflectionProbeBuilder::processReflectionProbes(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedObject *parentObject, 
+void ReflectionProbeBuilder::processReflectionProbes(ImportContext &workData, const JsonGameObject &gameObj, ImportedObject *parentObject, 
 		const FString &folderPath, ImportedObjectArray *createdObjects, JsonImporter *importer){
 	using namespace UnrealUtilities;
 	if (!gameObj.hasProbes())

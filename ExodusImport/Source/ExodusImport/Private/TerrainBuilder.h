@@ -16,7 +16,7 @@ class UMaterialInstanceConstant;
 class TerrainBuilder{
 protected:
 	JsonImporter *importer = nullptr;
-	ImportWorkData &workData;
+	ImportContext &workData;
 	//FString terrainDataPath;
 public:
 	TArray<ULandscapeGrassType*> grassTypes;
@@ -25,7 +25,7 @@ public:
 	const JsonTerrainData &terrainData;
 
 	ALandscape* buildTerrain();
-	TerrainBuilder(ImportWorkData &workData, JsonImporter *importer, const JsonGameObject &gameObj, const JsonTerrain &jsonTerrain, const JsonTerrainData &terrainData);
+	TerrainBuilder(ImportContext &workData, JsonImporter *importer, const JsonGameObject &gameObj, const JsonTerrain &jsonTerrain, const JsonTerrainData &terrainData);
 
 	TerrainBuilder() = delete;
 	TerrainBuilder(const TerrainBuilder&) = delete;

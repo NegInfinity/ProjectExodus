@@ -14,7 +14,7 @@
 
 #include "DesktopPlatformModule.h"
 
-ImportedObject JsonImporter::importObject(const JsonGameObject &jsonGameObj, ImportWorkData &workData, bool createEmptyTransforms){
+ImportedObject JsonImporter::importObject(const JsonGameObject &jsonGameObj, ImportContext &workData, bool createEmptyTransforms){
 	using namespace UnrealUtilities;
 
 	auto* parentObject = workData.findImportedObject(jsonGameObj.parentId);

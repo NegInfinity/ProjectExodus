@@ -175,7 +175,7 @@ namespace UnrealUtilities{
 		return result;
 	}
 
-	template <typename T>T* createActor(ImportWorkData& workData, FTransform transform, const TCHAR* logName = 0){
+	template <typename T>T* createActor(ImportContext& workData, FTransform transform, const TCHAR* logName = 0){
 		return createActor<T>(workData.world.Get(), transform, workData.editorMode, logName);
 	}
 
@@ -216,7 +216,7 @@ namespace UnrealUtilities{
 	FString genTimestamp();
 
 	void setObjectHierarchy(const ImportedObject &object, ImportedObject *parentObject, 
-		const FString& folderPath, ImportWorkData &workData, const JsonGameObject &gameObj);
+		const FString& folderPath, ImportContext &workData, const JsonGameObject &gameObj);
 	void registerImportedObject(ImportedObjectArray *outArray, const ImportedObject &arg);
 
 	template<typename T> UPackage* createPackage(

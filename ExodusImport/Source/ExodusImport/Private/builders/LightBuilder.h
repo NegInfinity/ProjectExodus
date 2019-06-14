@@ -15,8 +15,8 @@ public:
 	static void setupSpotLightComponent(USpotLightComponent *spotLight, const JsonLight &jsonLight);
 	static void setupDirLightComponent(ULightComponent *dirLight, const JsonLight &jsonLight);
 
-	static ImportedObject processLight(ImportWorkData &workData, const JsonGameObject &gameObj, const JsonLight &light,
+	static ImportedObject processLight(ImportContext &workData, const JsonGameObject &gameObj, const JsonLight &light,
 		ImportedObject *parentObject, const FString& folderPath, bool createActors);
-	static void processLights(ImportWorkData &workData, const JsonGameObject &gameObj, ImportedObject *parentObject, const FString& folderPath,
+	static void processLights(ImportContext &workData, const JsonGameObject &gameObj, ImportedObject *parentObject, const FString& folderPath,
 		ImportedObjectArray *createdObjects, bool createActors);
 };
