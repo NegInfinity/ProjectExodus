@@ -19,6 +19,7 @@ void PluginDebugTest::run(){
 	auto actor1 = world->SpawnActor<AActor>(AActor::StaticClass(), transform);
 	actor1->SetActorLabel("Root Actor");
 
+	/*
 	auto rootComponent= NewObject<USceneComponent>(actor1);
 	actor1->SetRootComponent(rootComponent);
 	rootComponent->SetWorldLocation(FVector(0.0f, 0.0f, 300.0f));
@@ -28,14 +29,21 @@ void PluginDebugTest::run(){
 	subComponent->SetWorldLocation(FVector(0.0f, 0.0f, 600.0f));
 	subComponent->AttachToComponent(rootComponent, FAttachmentTransformRules::KeepWorldTransform);
 	subComponent->RegisterComponent();
+	*/
 
-	//TStrongRefPtr<UPointLightComponent> 
-	auto lightComp = NewObject<UPointLightComponent>();
-	lightComp->Rename(0, actor1);
-	lightComp->AttachToComponent(subComponent, FAttachmentTransformRules::KeepWorldTransform);
+	//auto lightComp = NewObject<UPointLightComponent>(actor1);
+	auto lightComp = NewObject<UDirectionalLightComponent>(actor1);
+	FMatrix lightMatrix = FMatrix::Identity;
+	lightMatrix.SetOrigin(FVector(100.0f, 200.0f, 300.0f));
+	FTransform lightTransform(lightMatrix);
+
+	lightComp->SetWorldTransform(lightTransform);
+
+	actor1->SetRootComponent(lightComp);
+	//lightComp->AttachToComponent(subComponent, FAttachmentTransformRules::KeepWorldTransform);
 	lightComp->RegisterComponent();
 
-	actor1->AddInstanceComponent(subComponent);
+	//actor1->AddInstanceComponent(subComponent);
 	actor1->AddInstanceComponent(lightComp);
 }
 
