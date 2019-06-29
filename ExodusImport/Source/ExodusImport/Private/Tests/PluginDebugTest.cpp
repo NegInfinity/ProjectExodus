@@ -31,8 +31,8 @@ void PluginDebugTest::run(){
 	subComponent->RegisterComponent();
 	*/
 
-	//auto lightComp = NewObject<UPointLightComponent>(actor1);
-	auto lightComp = NewObject<UDirectionalLightComponent>(actor1);
+	auto lightComp = NewObject<UPointLightComponent>(actor1);
+	//auto lightComp = NewObject<UDirectionalLightComponent>(actor1);
 	FMatrix lightMatrix = FMatrix::Identity;
 	lightMatrix.SetOrigin(FVector(100.0f, 200.0f, 300.0f));
 	FTransform lightTransform(lightMatrix);
