@@ -324,11 +324,14 @@ void JointBuilder::processPhysicsJoint(const JsonGameObject &obj, const Instance
 
 	if (!obj.hasJoints())
 		return;
+
 	auto srcObj = workData.findImportedObject(obj.id);
 	if (!srcObj){
 		UE_LOG(JsonLog, Warning, TEXT("Src object %d not found while processing joints"), obj.id);
+		return;//
 	}
 
+	check(srcObj);
 	check(srcObj->hasComponent() || srcObj->hasActor());
 	auto srcRootActor = srcObj->findRootActor();
 	check(srcRootActor);
@@ -406,7 +409,8 @@ void JointBuilder::processPhysicsJoint(const JsonGameObject &obj, const Instance
 		}
 
 		physConstraint->SetWorldTransform(jointTransform);
-		physObj.attachTo(srcObj);
+		check(srcObj);
+		physObj.attachTo(*srcObj);
 		physObj.convertToInstanceComponent();
 		physObj.fixEditorVisibility();
 	}

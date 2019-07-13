@@ -14,9 +14,16 @@ class ImportedObject{
 public:
 	AActor *actor = nullptr;
 	USceneComponent *component = nullptr;
+public:
+	AActor* getActor() const{
+		return actor;
+	}
+
+	USceneComponent* getComponent() const{
+		return component;
+	}
 
 	void setCompatibleMobility(ImportedObject parentObject) const;
-	void setCompatibleMobility(AActor *parentActor, USceneComponent *parentComponent) const;
 	bool hasActor() const{
 		return actor != nullptr;//goddamn msvc warning...
 	}
@@ -47,8 +54,7 @@ public:
 	void setActiveInHierarchy(bool active) const;
 	void setFolderPath(const FString &folderPath, bool recursive = false) const;
 
-	void attachTo(AActor *actor, USceneComponent *component) const;
-	void attachTo(ImportedObject *parent) const;
+	void attachTo(const ImportedObject &parent) const;
 
 	void setNameOrLabel(const FString &newName, bool markDirty = true);
 
@@ -62,9 +68,6 @@ public:
 
 	ImportedObject(USceneComponent *component_)
 		:actor(nullptr), component(component_){}
-
-	ImportedObject(AActor *actor_, USceneComponent *component_)
-		:actor(actor_), component(component_){}
 };
 
 using ImportedObjectMap = TMap<JsonId, ImportedObject>;

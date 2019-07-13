@@ -80,7 +80,7 @@ void PrefabBuilder::importPrefab(const JsonPrefabData& prefab, JsonImporter *imp
 	else{
 		check(prefab.hasObjects());
 		auto newRoot = workData.createBlankActor(prefab.objects[0]);
-		rootObject.attachTo(&newRoot);
+		rootObject.attachTo(newRoot);
 		check(newRoot.actor);
 		rootActor = newRoot.actor;
 		rootObject = newRoot;

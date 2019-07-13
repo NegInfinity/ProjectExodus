@@ -14,13 +14,58 @@
 
 #include "DesktopPlatformModule.h"
 
+/*
+We've ... actually I've run into a pickle.
+
+It goes like this:
+* Scene graph constructed from multiple actors cannot be automatically harvested into a blueprint.
+* Harvesting objects into blueprint opens blueprint editor (troublesome with a lot of blueprints)
+* Apparently skinned mesh can crash the whole process.
+
+So, there's a need of major overhaul.
+
+First, there's a category of situations where objects will need to be reconstructed as a single actor, with actor node being enabled for root.
+This happens in case of prefabs, or prefab instances.
+
+Question remains how to track non-prefab objects linked to prefab instances. But this can wait for later.
+
+In a situation where we're dealing with a prefab instance, we'll have to create a root at the bottom AND spawn empty scene nodes as components.
+As contents are no longer working as folders.
+
+Additionally, we would want to track situations where there's a single object with a single component that spawns a specialized actor.
+This is not strictly necessary, but desirable, so lights will be point light actors and not actors.
+
+Additionally, there's trouble with ownership. It seems that creating component as part of transient package and then switching ownership 
+to a non-transient package causes that component to disappear. I kinda wonder why, perhaps I missed a part where I update number of gc links or something.
+
+Therefore, we need to create a blank actor IN ADVANCE, and use that blank actor as an owner to all the child components.
+
+Additioanlly, previously discarded version where I attempted to create chidl components with specifying owners had a glitch where the components created this way were not properly registering in the scene.
+
+So. I scrapped the whole branch, and started over.
+
+To summarize the rules:
+* an object spawns actor instance, if it is not part of a prefab instance and has components.
+* an objects spawns nothing, if it is not a part of a prefab instance, and has no components.
+* an objects spawns components, if it is a part of prefab instance. 
+* prefab instance has AActor as its base class, EXCEPT the situation where it is dealing with a single component object...? 
+
+Hmm... (-_-)
+
+Current plan - disable creation of prefabs.
+Add handling of prefab instances according to those rules.
+*/
+
+/*
+*/
 ImportedObject JsonImporter::importObject(const JsonGameObject &jsonGameObj, ImportContext &workData, bool createEmptyTransforms){
 	using namespace UnrealUtilities;
 
 	auto* parentObject = workData.findImportedObject(jsonGameObj.parentId);
 
 	auto folderPath = workData.processFolderPath(jsonGameObj);
-	UE_LOG(JsonLog, Log, TEXT("Num components for object %d(%s): %d"), jsonGameObj.id, *folderPath, jsonGameObj.getNumComponents());
+	UE_LOG(JsonLog, Log, TEXT("importing object: %d(%s), folder: %s, Num Components: %d"), 
+		jsonGameObj.id, *jsonGameObj.name, *folderPath, jsonGameObj.getNumComponents());
 
 	if (!workData.world){
 		UE_LOG(JsonLog, Warning, TEXT("No world"));
@@ -33,11 +78,14 @@ ImportedObject JsonImporter::importObject(const JsonGameObject &jsonGameObj, Imp
 	/*
 	When importing prefabs, child actor nodes are not being harvested correctly. They have to be rebuilt as component-only structures
 	*/
-	//bool createActorNodes = true;
-	bool createActorNodes = jsonGameObj.isPrefabRoot() || !jsonGameObj.usesPrefab();
+	bool objectIsPrefab = jsonGameObj.usesPrefab();
+	bool mustCreateBlankNodes = objectIsPrefab || createEmptyTransforms;//prefab objects can have no folders, so we're going to faithfully rebuild node hierarchy.
+	bool createActorNodes = jsonGameObj.isPrefabRoot() || !objectIsPrefab;
 
 	//In situation where there's no parent, we have to create an actor. Otherwise we will have no valid outer
 	createActorNodes = createActorNodes || !parentObject;
+
+	//createActorNodes = true;
 	bool rootMustBeActor = createActorNodes;
 
 	/*
@@ -83,7 +131,7 @@ ImportedObject JsonImporter::importObject(const JsonGameObject &jsonGameObj, Imp
 	}
 	else if (createdObjects.Num() == 0){
 		//No objects has been created. In this scenario, we do not make any nodes, unless requested.
-		if (createEmptyTransforms){
+		if (mustCreateBlankNodes){
 			rootObject = workData.createBlankNode(jsonGameObj, createActorNodes);
 				//workData.createBlankActor(jsonGameObj);
 			check(rootObject.isValid());
@@ -121,7 +169,6 @@ ImportedObject JsonImporter::importObject(const JsonGameObject &jsonGameObj, Imp
 	if (rootObject.isValid() && parentObject && parentObject->isValid()){
 		//We need to change owner if the object tree was made without root actor. Otherwise it'll poof.
 		if (!rootObject.hasActor()){
-			//rootObject.o
 		}
 	}
 
