@@ -146,7 +146,11 @@ ImportedObject LightBuilder::processLight(ImportContext &workData, const JsonGam
 		lightComponent->Rename(*compName);
 	}
 
-	return ImportedObject(lightActor, lightComponent);
+	check(lightActor || lightComponent);
+	if (lightActor)
+		return ImportedObject(lightActor);
+	return ImportedObject(lightComponent);
+	//return ImportedObject(lightActor, lightComponent);
 }
 
 void LightBuilder::processLights(ImportContext &workData, const JsonGameObject &gameObj, ImportedObject *parentObject,

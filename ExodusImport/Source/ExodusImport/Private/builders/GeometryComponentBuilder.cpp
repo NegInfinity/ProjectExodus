@@ -155,7 +155,7 @@ ImportedObject GeometryComponentBuilder::processMeshAndColliders(ImportContext &
 			continue;
 		if (i != rootCompIndex){
 			auto tmpObj = ImportedObject(curCollider);
-			tmpObj.attachTo(&rootObject);
+			tmpObj.attachTo(rootObject);
 		}
 
 		makeComponentVisibleInEditor(curCollider);
@@ -164,7 +164,7 @@ ImportedObject GeometryComponentBuilder::processMeshAndColliders(ImportContext &
 
 	if (displayOnlyMesh.isValid()){
 		check(rootObject.isValid());
-		displayOnlyMesh.attachTo(&rootObject);
+		displayOnlyMesh.attachTo(rootObject);
 		displayOnlyMesh.fixEditorVisibility();
 	}
 

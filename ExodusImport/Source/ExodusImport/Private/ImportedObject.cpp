@@ -30,16 +30,14 @@ void ImportedObject::setCompatibleMobility(ImportedObject parentObject) const{
 	);
 }
 
-void ImportedObject::setCompatibleMobility(AActor *parentActor, USceneComponent *parentComponent) const{
-	setCompatibleMobility(ImportedObject(parentActor, parentComponent));
-}
-
-void ImportedObject::attachTo(AActor *parentActor, USceneComponent *parentComponent) const{
+void ImportedObject::attachTo(const ImportedObject &parent) const{
+	auto parentActor = parent.actor;
+	auto parentComponent = parent.component;
 	check(actor || component);
 
 	check(parentActor || parentComponent);
 
-	setCompatibleMobility(parentActor, parentComponent);
+	setCompatibleMobility(parent);
 
 	if (component){
 		UE_LOG(JsonLog, Log, TEXT("Attaching component %s"), *component->GetName());
@@ -77,11 +75,6 @@ void ImportedObject::attachTo(AActor *parentActor, USceneComponent *parentCompon
 			}
 		}
 	}
-}
-
-void ImportedObject::attachTo(ImportedObject *parent) const{
-	check(parent);
-	attachTo(parent->actor, parent->component);
 }
 
 void ImportedObject::setActiveInHierarchy(bool active) const{
