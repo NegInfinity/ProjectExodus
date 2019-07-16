@@ -92,7 +92,7 @@ ImportedObject JsonImporter::importObject(const JsonGameObject &jsonGameObj, Imp
 	Here we handle creation of display geometry and colliders. This particular function call harvests colliders, reigidbody properties, builds them into a somewhat sensible hierarchy,
 	and returns root object to us
 	*/
-	ImportedObject rootObject = GeometryComponentBuilder::processMeshAndColliders(workData, jsonGameObj, jsonGameObj.id, parentObject, folderPath, 
+	ImportedObject rootObject = GeometryComponentBuilder::processMeshAndColliders(workData, jsonGameObj, parentObject, folderPath, 
 		createActorNodes ? DesiredObjectType::Actor: objectType, this);
 	if (rootObject.isValid()){
 		createdObjects.Add(rootObject);

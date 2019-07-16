@@ -14,7 +14,7 @@ This does it.
 This method processess collision and mesh during object import
 */
 ImportedObject GeometryComponentBuilder::processMeshAndColliders(ImportContext &workData, 
-		const JsonGameObject &jsonGameObj, int objId, ImportedObject *parentObject, const FString &folderPath, DesiredObjectType desiredObjectType,
+		const JsonGameObject &jsonGameObj, ImportedObject *parentObject, const FString &folderPath, DesiredObjectType desiredObjectType,
 		JsonImporter *importer){
 	using namespace UnrealUtilities;
 	/*
@@ -59,10 +59,10 @@ ImportedObject GeometryComponentBuilder::processMeshAndColliders(ImportContext &
 	if (jsonGameObj.hasMesh()){
 		bool componentRequested = (desiredObjectType == DesiredObjectType::Component);
 		if (jsonGameObj.colliders.Num() == 0){//only display mesh is present
-			return processStaticMesh(workData, jsonGameObj, objId, parentObject, folderPath, nullptr, componentRequested && outer, outer, importer);
+			return processStaticMesh(workData, jsonGameObj, jsonGameObj.id, parentObject, folderPath, nullptr, componentRequested && outer, outer, importer);
 		}
 		if ((jsonGameObj.colliders.Num() == 1) && mainMeshCollider){
-			return processStaticMesh(workData, jsonGameObj, objId, parentObject, folderPath, mainMeshCollider, componentRequested && outer, outer, importer);
+			return processStaticMesh(workData, jsonGameObj, jsonGameObj.id, parentObject, folderPath, mainMeshCollider, componentRequested && outer, outer, importer);
 		}
 	}
 
@@ -92,12 +92,12 @@ ImportedObject GeometryComponentBuilder::processMeshAndColliders(ImportContext &
 	check(outer);
 	if (hasMainMesh){
 		if (mainMeshCollider){
-			collisionMesh = processStaticMesh(workData, jsonGameObj, objId, nullptr, folderPath, mainMeshCollider, spawnMeshAsComponent, outer, importer);
+			collisionMesh = processStaticMesh(workData, jsonGameObj, jsonGameObj.id, nullptr, folderPath, mainMeshCollider, spawnMeshAsComponent, outer, importer);
 			auto name = FString::Printf(TEXT("%s_collisionMesh"), *jsonGameObj.ueName);
 			collisionMesh.setNameOrLabel(*name);
 		}
 		else{
-			displayOnlyMesh = processStaticMesh(workData, jsonGameObj, objId, nullptr, folderPath, nullptr, spawnMeshAsComponent, outer, importer);
+			displayOnlyMesh = processStaticMesh(workData, jsonGameObj, jsonGameObj.id, nullptr, folderPath, nullptr, spawnMeshAsComponent, outer, importer);
 			auto name = FString::Printf(TEXT("%s_displayMesh"), *jsonGameObj.ueName);
 			displayOnlyMesh.setNameOrLabel(*name);
 		}
@@ -134,7 +134,7 @@ ImportedObject GeometryComponentBuilder::processMeshAndColliders(ImportContext &
 	if (!mainMeshCollider){
 		rootCompIndex = jsonGameObj.findSuitableRootColliderIndex();
 		if ((rootCompIndex < 0) || (rootCompIndex >= newColliders.Num())){
-			UE_LOG(JsonLog, Warning, TEXT("Could not find suitable root collider on %s(%d)"), *jsonGameObj.name, objId);
+			UE_LOG(JsonLog, Warning, TEXT("Could not find suitable root collider on %s(%d)"), *jsonGameObj.name, jsonGameObj.id);
 			rootCompIndex = 0;
 		}
 

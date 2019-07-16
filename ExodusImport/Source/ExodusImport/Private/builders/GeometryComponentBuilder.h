@@ -29,5 +29,5 @@ protected:
 		UObject *ownerPtr, const JsonCollider &collider, JsonImporter *importer);
 public:
 	static ImportedObject processMeshAndColliders(ImportContext &workData, 
-		const JsonGameObject &jsonGameObj, int objId, ImportedObject *parentObject, const FString &folderPath, DesiredObjectType desiredObjectType, JsonImporter *importer);
+		const JsonGameObject &jsonGameObj, ImportedObject *parentObject, const FString &folderPath, DesiredObjectType desiredObjectType, JsonImporter *importer);
 };
