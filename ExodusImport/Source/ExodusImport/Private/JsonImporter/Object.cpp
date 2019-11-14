@@ -88,39 +88,74 @@ ImportedObject JsonImporter::importObject(const JsonGameObject &jsonGameObj, Imp
 	//createActorNodes = true;
 	bool rootMustBeActor = createActorNodes;
 
+	UObject *existingOuter = workData.findSuitableOuter(jsonGameObj);
+	AActor *existingRootActor = nullptr;
+	AActor *createdRootActor = nullptr;
+	auto outerCreator = [&]() -> UObject*{
+		if (existingOuter)
+			return existingOuter;
+		if (existingRootActor)
+			return existingRootActor;
+		if (!createdRootActor){
+			createdRootActor = workData.createBlankActor(jsonGameObj, false);
+		}
+		check(createdRootActor != nullptr);
+		return createdRootActor;
+	};
+
 	/*
 	Here we handle creation of display geometry and colliders. This particular function call harvests colliders, reigidbody properties, builds them into a somewhat sensible hierarchy,
 	and returns root object to us
 	*/
 	ImportedObject rootObject = GeometryComponentBuilder::processMeshAndColliders(workData, jsonGameObj, parentObject, folderPath, 
-		createActorNodes ? DesiredObjectType::Actor: objectType, this);
+		createActorNodes ? DesiredObjectType::Actor: objectType, this, outerCreator);
 	if (rootObject.isValid()){
 		createdObjects.Add(rootObject);
+		if (rootObject.hasActor()){
+			//leaky abstractions, leaky abstractions everywhere....
+			existingRootActor = rootObject.actor;
+			check(existingRootActor != nullptr);
+		}
 	}
+
+	//Oh, I know. This si kinda nuts, but let's initialize root actor using lazy evaluation.
 
 	/*
 	The block below walks through every component type we currently support, and spawns unreal-side representation.
 	*/
 	if (jsonGameObj.hasProbes()){
-		ReflectionProbeBuilder::processReflectionProbes(workData, jsonGameObj, parentObject, folderPath, &createdObjects, this);
+		ReflectionProbeBuilder::processReflectionProbes(workData, jsonGameObj, parentObject, folderPath, &createdObjects, this, outerCreator);
 	}
 	
 	if (jsonGameObj.hasLights()){
-		LightBuilder::processLights(workData, jsonGameObj, parentObject, folderPath, &createdObjects, createActorNodes);
+		LightBuilder::processLights(workData, jsonGameObj, parentObject, folderPath, &createdObjects, createActorNodes, outerCreator);
 	}
 
 	if (jsonGameObj.hasTerrain()){
-		TerrainComponentBuilder::processTerrains(workData, jsonGameObj, parentObject, folderPath, &createdObjects, this);
+		TerrainComponentBuilder::processTerrains(workData, jsonGameObj, parentObject, folderPath, &createdObjects, this, outerCreator);
 	}
 
 	if (jsonGameObj.hasSkinMeshes()){
-		SkeletalMeshComponentBuilder::processSkinMeshes(workData, jsonGameObj, parentObject, folderPath, &createdObjects, this);
+		SkeletalMeshComponentBuilder::processSkinMeshes(workData, jsonGameObj, parentObject, folderPath, &createdObjects, this, outerCreator);
 	}
+
+	/*
+	At this point, one of the scenarios is true:
+
+	1. Root actor has been created by mesh component. (existingRootActor set)
+	2. Root actor has been created by actor creator and has no scene root component.
+	3. Root actor hasn't been created, but outerPtr was located on request.
+
+	So....
+
+	It seems we only need to process the root normally, and an actor is created, but lacks root component, we set the root object as its component.
+	*/
 
 	if (createdObjects.Num() > 1){
 		if (!rootObject.isValid()){
 			//More than one object exists, however, in case this is a mesh node, then the mesh actor is registered as a root by default.
-			rootObject = workData.createBlankActor(jsonGameObj);
+			//rootObject = workData.createBlankActor(jsonGameObj);
+			rootObject = workData.createBlankNode(jsonGameObj, createActorNodes, true, outerCreator);
 			check(rootObject.isValid());
 		}
 	}
@@ -132,7 +167,7 @@ ImportedObject JsonImporter::importObject(const JsonGameObject &jsonGameObj, Imp
 	else if (createdObjects.Num() == 0){
 		//No objects has been created. In this scenario, we do not make any nodes, unless requested.
 		if (mustCreateBlankNodes){
-			rootObject = workData.createBlankNode(jsonGameObj, createActorNodes);
+			rootObject = workData.createBlankNode(jsonGameObj, createActorNodes, true, outerCreator);
 				//workData.createBlankActor(jsonGameObj);
 			check(rootObject.isValid());
 		}
@@ -157,7 +192,14 @@ ImportedObject JsonImporter::importObject(const JsonGameObject &jsonGameObj, Imp
 		if (rootMustBeActor && !rootObject.hasActor()){
 			//whoops. Creating blank node.
 			check(rootObject.hasComponent());
-			auto blankNode = workData.createBlankActor(jsonGameObj, rootObject.component, true);
+			check(createdRootActor != nullptr);//This HAS to be created by this point.
+			//if (!)
+			//auto blankNode = workData.createBlankActor(jsonGameObj, rootObject.component, true);
+			//rootObject = blankNode;
+			check(createdRootActor->GetRootComponent() == nullptr);
+			createdRootActor->SetRootComponent(rootObject.component);
+
+			auto blankNode = ImportedObject(createdRootActor);
 			rootObject = blankNode;
 		}
 

@@ -16,7 +16,7 @@ public:
 	static void setupDirLightComponent(ULightComponent *dirLight, const JsonLight &jsonLight);
 
 	static ImportedObject processLight(ImportContext &workData, const JsonGameObject &gameObj, const JsonLight &light,
-		ImportedObject *parentObject, const FString& folderPath, bool createActors);
+		ImportedObject *parentObject, const FString& folderPath, bool createActors, std::function<UObject*()> outerCreator);
 	static void processLights(ImportContext &workData, const JsonGameObject &gameObj, ImportedObject *parentObject, const FString& folderPath,
-		ImportedObjectArray *createdObjects, bool createActors);
+		ImportedObjectArray *createdObjects, bool createActors, std::function<UObject*()> outerCreator);
 };

@@ -4,6 +4,8 @@
 #include "JsonLog.h"
 #include "JsonObjects/ResId.h"
 
+#include <functional>
+
 using FStringArray = TArray<FString>;
 using JsonObjPtr = TSharedPtr<FJsonObject>;
 using JsonValPtr = TSharedPtr<FJsonValue>;
@@ -31,3 +33,4 @@ enum class DesiredObjectType{
 	Actor, Component
 };
 
+using OuterCallback = std::function<UObject*()>;

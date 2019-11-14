@@ -12,7 +12,7 @@ class UStaticMeshComponent;
 class GeometryComponentBuilder{
 protected:
 	static ImportedObject processStaticMesh(ImportContext &workData, const JsonGameObject &jsonGameObj, 
-		int objId, ImportedObject *parentObject, const FString& folderPath, const JsonCollider *colliderData, bool spawnAsComponent, UObject *outer,
+		ImportedObject *parentObject, const FString& folderPath, const JsonCollider *colliderData, bool spawnAsComponent, UObject *outer,
 		JsonImporter *importer);
 
 	static void setupCommonColliderSettings(const ImportContext &workData, UPrimitiveComponent *dstCollider, const JsonGameObject &jsonGameObj, const JsonCollider &collider);
@@ -29,5 +29,6 @@ protected:
 		UObject *ownerPtr, const JsonCollider &collider, JsonImporter *importer);
 public:
 	static ImportedObject processMeshAndColliders(ImportContext &workData, 
-		const JsonGameObject &jsonGameObj, ImportedObject *parentObject, const FString &folderPath, DesiredObjectType desiredObjectType, JsonImporter *importer);
+		const JsonGameObject &jsonGameObj, ImportedObject *parentObject, const FString &folderPath, DesiredObjectType desiredObjectType, JsonImporter *importer, 
+		std::function<UObject*()> outerCreator);
 };

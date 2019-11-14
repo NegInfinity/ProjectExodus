@@ -11,7 +11,7 @@
 
 //void setupReflectionCapture(UReflectionCaptureComponent *reflComponent, const JsonReflectionProbe &probe);
 ImportedObject ReflectionProbeBuilder::processReflectionProbe(ImportContext &workData, const JsonGameObject &gameObj,
-	const JsonReflectionProbe &probe, ImportedObject *parentObject, const FString &folderPath, JsonImporter *importer){
+	const JsonReflectionProbe &probe, ImportedObject *parentObject, const FString &folderPath, JsonImporter *importer, std::function<UObject*()> outerCallback){
 	using namespace UnrealUtilities;
 	using namespace JsonObjects;
 
@@ -123,7 +123,7 @@ ImportedObject ReflectionProbeBuilder::processReflectionProbe(ImportContext &wor
 }
 
 void ReflectionProbeBuilder::processReflectionProbes(ImportContext &workData, const JsonGameObject &gameObj, ImportedObject *parentObject, 
-		const FString &folderPath, ImportedObjectArray *createdObjects, JsonImporter *importer){
+		const FString &folderPath, ImportedObjectArray *createdObjects, JsonImporter *importer, std::function<UObject*()> outerCallback){
 	using namespace UnrealUtilities;
 	if (!gameObj.hasProbes())
 		return;
@@ -134,7 +134,7 @@ void ReflectionProbeBuilder::processReflectionProbes(ImportContext &workData, co
 
 	for (int i = 0; i < gameObj.probes.Num(); i++){
 		const auto &probe = gameObj.probes[i];
-		auto probeObject = processReflectionProbe(workData, gameObj, gameObj.probes[i], parentObject, folderPath, importer);
+		auto probeObject = processReflectionProbe(workData, gameObj, gameObj.probes[i], parentObject, folderPath, importer, outerCallback);
 		registerImportedObject(createdObjects, probeObject);
 	}
 }

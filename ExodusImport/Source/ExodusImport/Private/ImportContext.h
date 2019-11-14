@@ -63,8 +63,10 @@ public:
 
 	void clear();
 
-	ImportedObject createBlankActor(const JsonGameObject &gameObj, USceneComponent *rootComponent = nullptr, bool changeOwnership = false) const;
-	ImportedObject createBlankNode(const JsonGameObject &gameObj, bool createActor) const;
+	AActor* createBlankActor(const JsonGameObject &gameObj, bool createMissingRootComponent) const;
+	ImportedObject createBlankActor(const JsonGameObject &gameObj, USceneComponent *rootComponent = nullptr, 
+		bool changeOwnership = false, bool createMissingRootComponeint = true) const;
+	ImportedObject createBlankNode(const JsonGameObject &gameObj, bool createActor, bool createMissingRootComponent, std::function<UObject*()> outerGetter) const;
 
 	ImportContext(UWorld *world_, bool editorMode_, const JsonScene *scene_);
 	ImportContext(UWorld *world_, bool editorMode_, const TArray<JsonGameObject> *objects_);

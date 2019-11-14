@@ -6,20 +6,20 @@
 #include "Landscape.h"
 
 void TerrainComponentBuilder::processTerrains(ImportContext &workData, const JsonGameObject &gameObj, ImportedObject *parentObject, 
-		const FString& folderPath, ImportedObjectArray *createdObjects, JsonImporter *importer){
+		const FString& folderPath, ImportedObjectArray *createdObjects, JsonImporter *importer, std::function<UObject*()> outerCreator){
 	using namespace UnrealUtilities;
 	check(importer != nullptr);
 
 	UE_LOG(JsonLog, Log, TEXT("Processing terrains for object %d"), gameObj.id);
 	for(const auto& cur: gameObj.terrains){
-		auto obj = processTerrain(workData, gameObj, cur, parentObject, folderPath, importer);
+		auto obj = processTerrain(workData, gameObj, cur, parentObject, folderPath, importer, outerCreator);
 		registerImportedObject(createdObjects, obj);
 	}
 }
 
 ImportedObject TerrainComponentBuilder::processTerrain(ImportContext &workData, const JsonGameObject &jsonGameObj, 
 	const JsonTerrain &jsonTerrain, ImportedObject *parentObject, const FString& folderPath,
-	JsonImporter *importer){
+	JsonImporter *importer, std::function<UObject*()> outerCreator){
 	using namespace UnrealUtilities;
 	check(importer != nullptr);
 

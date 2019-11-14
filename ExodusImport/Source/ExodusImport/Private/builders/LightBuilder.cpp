@@ -91,7 +91,7 @@ std::pair<ActorClass*, ComponentClass*> createLightActorAndComponent(
 }
 
 ImportedObject LightBuilder::processLight(ImportContext &workData, const JsonGameObject &gameObj, const JsonLight &jsonLight, ImportedObject *parentObject,
-		const FString& folderPath, bool createActors){
+		const FString& folderPath, bool createActors, std::function<UObject*()> outerCreator){
 	using namespace UnrealUtilities;
 
 	UE_LOG(JsonLog, Log, TEXT("Creating light"));
@@ -154,7 +154,7 @@ ImportedObject LightBuilder::processLight(ImportContext &workData, const JsonGam
 }
 
 void LightBuilder::processLights(ImportContext &workData, const JsonGameObject &gameObj, ImportedObject *parentObject,
-		const FString& folderPath, ImportedObjectArray *createdObjects, bool createActors){
+		const FString& folderPath, ImportedObjectArray *createdObjects, bool createActors, std::function<UObject*()> outerCreator){
 	using namespace UnrealUtilities;
 	if (!gameObj.hasLights())
 		return;
@@ -162,7 +162,7 @@ void LightBuilder::processLights(ImportContext &workData, const JsonGameObject &
 	for(int i = 0; i < gameObj.lights.Num(); i++){
 		const auto &curLight = gameObj.lights[i];
 		//processLight(workData, gameObj, curLight, parentActor, folderPath);
-		auto light = processLight(workData, gameObj, curLight, parentObject, folderPath, createActors);
+		auto light = processLight(workData, gameObj, curLight, parentObject, folderPath, createActors, outerCreator);
 		registerImportedObject(createdObjects, light);
 	}
 }

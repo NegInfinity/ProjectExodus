@@ -132,7 +132,28 @@ bool ImportContext::isCompoundRigidbodyRootCollider(const JsonGameObject &gameOb
 	return false;
 }
 
-ImportedObject ImportContext::createBlankActor(const JsonGameObject &gameObj, USceneComponent *rootComponent, bool changeOwnership) const{
+AActor* ImportContext::createBlankActor(const JsonGameObject &gameObj, bool createMissingRootComponent) const{
+	using namespace UnrealUtilities;
+	check(world);
+	FTransform transform;
+	transform.SetFromMatrix(gameObj.ueWorldMatrix);
+
+	AActor *blankActor = world->SpawnActor<AActor>(AActor::StaticClass(), transform);
+	USceneComponent *rootComponent = nullptr;
+	if (createMissingRootComponent){
+		rootComponent = NewObject<USceneComponent>(blankActor);
+		rootComponent->SetWorldTransform(transform);
+	}
+
+	if (rootComponent){
+		blankActor->SetRootComponent(rootComponent);
+		rootComponent->SetMobility(gameObj.getUnrealMobility());
+	}
+	blankActor->SetActorLabel(gameObj.ueName, true);
+	return blankActor;
+}
+
+ImportedObject ImportContext::createBlankActor(const JsonGameObject &gameObj, USceneComponent *rootComponent, bool changeOwnership, bool createMissingRootComponent) const{
 	using namespace UnrealUtilities;
 	check(world);
 	FTransform transform;
@@ -140,8 +161,10 @@ ImportedObject ImportContext::createBlankActor(const JsonGameObject &gameObj, US
 
 	AActor *blankActor = world->SpawnActor<AActor>(AActor::StaticClass(), transform);
 	if (!rootComponent){
-		rootComponent = NewObject<USceneComponent>(blankActor);
-		rootComponent->SetWorldTransform(transform);
+		if (createMissingRootComponent){
+			rootComponent = NewObject<USceneComponent>(blankActor);
+			rootComponent->SetWorldTransform(transform);
+		}
 	}
 	else{
 		if (changeOwnership){
@@ -149,20 +172,31 @@ ImportedObject ImportContext::createBlankActor(const JsonGameObject &gameObj, US
 		}
 	}
 
-	blankActor->SetRootComponent(rootComponent);
+	if (rootComponent){
+		blankActor->SetRootComponent(rootComponent);
+		rootComponent->SetMobility(gameObj.getUnrealMobility());
+	}
 	blankActor->SetActorLabel(gameObj.ueName, true);
-	rootComponent->SetMobility(gameObj.getUnrealMobility());
 	ImportedObject importedObject(blankActor);
 	return importedObject;
 }
 
-ImportedObject ImportContext::createBlankNode(const JsonGameObject &gameObj, bool createActor) const{
+ImportedObject ImportContext::createBlankNode(const JsonGameObject &gameObj, bool createActor, bool createMissingRootComponent, std::function<UObject*()> outerGetter) const{
 	if (createActor)
-		return createBlankActor(gameObj);
+		return createBlankActor(gameObj, nullptr, true, createMissingRootComponent);
 
 	FTransform transform;
 	transform.SetFromMatrix(gameObj.ueWorldMatrix);
-	auto *rootComponent = NewObject<USceneComponent>();
+	UObject *outerPtr = nullptr;
+	if (outerGetter){
+		outerPtr = outerGetter();
+		check(outerPtr != nullptr);
+	}
+	else{
+		outerPtr = GetTransientPackage();
+	}
+
+	auto *rootComponent = NewObject<USceneComponent>(outerPtr);
 	rootComponent->SetWorldTransform(transform);
 	rootComponent->SetMobility(gameObj.getUnrealMobility());
 

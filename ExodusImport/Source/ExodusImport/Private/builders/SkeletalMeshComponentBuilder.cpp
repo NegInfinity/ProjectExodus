@@ -6,19 +6,20 @@
 #include "Classes/Components/SkeletalMeshComponent.h"
 
 void SkeletalMeshComponentBuilder::processSkinMeshes(ImportContext &workData, const JsonGameObject &gameObj, 
-		ImportedObject *parentObject, const FString &folderPath, ImportedObjectArray *createdObjects, JsonImporter *importer){
+		ImportedObject *parentObject, const FString &folderPath, ImportedObjectArray *createdObjects, JsonImporter *importer, 
+		std::function<UObject*()> outerCreator){
 	using namespace UnrealUtilities;
 	check(importer != nullptr);
 	for(const auto &jsonSkin: gameObj.skinRenderers){
 		if (!gameObj.activeInHierarchy)//Temporary hack to debug
 			continue;
-		auto skinMesh = processSkinRenderer(workData, gameObj, jsonSkin, parentObject, folderPath, importer);
+		auto skinMesh = processSkinRenderer(workData, gameObj, jsonSkin, parentObject, folderPath, importer, outerCreator);
 		registerImportedObject(createdObjects, skinMesh);
 	}
 }
 
 ImportedObject SkeletalMeshComponentBuilder::processSkinRenderer(ImportContext &workData, const JsonGameObject &jsonGameObj, 
-		const JsonSkinRenderer &skinRend, ImportedObject *parentObject, const FString &folderPath, JsonImporter *importer){
+		const JsonSkinRenderer &skinRend, ImportedObject *parentObject, const FString &folderPath, JsonImporter *importer, std::function<UObject*()> outerCreator){
 	using namespace UnrealUtilities;
 	check(importer != nullptr);
 

@@ -15,7 +15,7 @@ This method processess collision and mesh during object import
 */
 ImportedObject GeometryComponentBuilder::processMeshAndColliders(ImportContext &workData, 
 		const JsonGameObject &jsonGameObj, ImportedObject *parentObject, const FString &folderPath, DesiredObjectType desiredObjectType,
-		JsonImporter *importer){
+		JsonImporter *importer, std::function<UObject*()> outerCreator){
 	using namespace UnrealUtilities;
 	/*
 	There are several scenarios ....
@@ -49,7 +49,7 @@ ImportedObject GeometryComponentBuilder::processMeshAndColliders(ImportContext &
 	ImportedObject collisionMesh, displayOnlyMesh;
 
 	/*
-	Not spawning mesh as component means spawning it as actor.
+	Not spawning mesh as component means spawning it as an actor.
 	We... we only want to spawn static mesh as an actor if:
 	1. The object has no colliders
 	2. It has a signle collider that uses the same mesh
@@ -59,10 +59,10 @@ ImportedObject GeometryComponentBuilder::processMeshAndColliders(ImportContext &
 	if (jsonGameObj.hasMesh()){
 		bool componentRequested = (desiredObjectType == DesiredObjectType::Component);
 		if (jsonGameObj.colliders.Num() == 0){//only display mesh is present
-			return processStaticMesh(workData, jsonGameObj, jsonGameObj.id, parentObject, folderPath, nullptr, componentRequested && outer, outer, importer);
+			return processStaticMesh(workData, jsonGameObj, parentObject, folderPath, nullptr, componentRequested && outer, outer, importer);
 		}
 		if ((jsonGameObj.colliders.Num() == 1) && mainMeshCollider){
-			return processStaticMesh(workData, jsonGameObj, jsonGameObj.id, parentObject, folderPath, mainMeshCollider, componentRequested && outer, outer, importer);
+			return processStaticMesh(workData, jsonGameObj, parentObject, folderPath, mainMeshCollider, componentRequested && outer, outer, importer);
 		}
 	}
 
@@ -92,12 +92,12 @@ ImportedObject GeometryComponentBuilder::processMeshAndColliders(ImportContext &
 	check(outer);
 	if (hasMainMesh){
 		if (mainMeshCollider){
-			collisionMesh = processStaticMesh(workData, jsonGameObj, jsonGameObj.id, nullptr, folderPath, mainMeshCollider, spawnMeshAsComponent, outer, importer);
+			collisionMesh = processStaticMesh(workData, jsonGameObj, nullptr, folderPath, mainMeshCollider, spawnMeshAsComponent, outer, importer);
 			auto name = FString::Printf(TEXT("%s_collisionMesh"), *jsonGameObj.ueName);
 			collisionMesh.setNameOrLabel(*name);
 		}
 		else{
-			displayOnlyMesh = processStaticMesh(workData, jsonGameObj, jsonGameObj.id, nullptr, folderPath, nullptr, spawnMeshAsComponent, outer, importer);
+			displayOnlyMesh = processStaticMesh(workData, jsonGameObj, nullptr, folderPath, nullptr, spawnMeshAsComponent, outer, importer);
 			auto name = FString::Printf(TEXT("%s_displayMesh"), *jsonGameObj.ueName);
 			displayOnlyMesh.setNameOrLabel(*name);
 		}
@@ -190,7 +190,7 @@ ImportedObject GeometryComponentBuilder::processMeshAndColliders(ImportContext &
 }
 
 ImportedObject GeometryComponentBuilder::processStaticMesh(ImportContext &workData, const JsonGameObject &jsonGameObj, 
-		int objId, ImportedObject *parentObject, const FString& folderPath, const JsonCollider *colliderData, bool spawnAsComponent, UObject *outer,
+		ImportedObject *parentObject, const FString& folderPath, const JsonCollider *colliderData, bool spawnAsComponent, UObject *outer,
 		JsonImporter *importer){
 	using namespace UnrealUtilities;
 	if (!jsonGameObj.hasMesh())
@@ -223,7 +223,7 @@ ImportedObject GeometryComponentBuilder::processStaticMesh(ImportContext &workDa
 
 	///This is awkward. Previously we couldd attempt loading the mesh prior to building the actor, but now...
 	if (!configureStaticMeshComponent(workData, meshComp, jsonGameObj, true, colliderData, importer)){
-		UE_LOG(JsonLog, Warning, TEXT("Configuration of static mesh component failed on object '%s'(%d)"), *jsonGameObj.name, objId);
+		UE_LOG(JsonLog, Warning, TEXT("Configuration of static mesh component failed on object '%s'(%d)"), *jsonGameObj.name, jsonGameObj.id);
 		//return ImportedObject(meshActor);
 	}
 
@@ -240,7 +240,7 @@ ImportedObject GeometryComponentBuilder::processStaticMesh(ImportContext &workDa
 		}
 	}
 	else{
-		UE_LOG(JsonLog, Warning, TEXT("First renderer not found on %s(%d)"), *jsonGameObj.name, objId);
+		UE_LOG(JsonLog, Warning, TEXT("First renderer not found on %s(%d)"), *jsonGameObj.name, jsonGameObj.id);
 	}
 
 	auto result = meshActor ? ImportedObject(meshActor) : ImportedObject(meshComp);
