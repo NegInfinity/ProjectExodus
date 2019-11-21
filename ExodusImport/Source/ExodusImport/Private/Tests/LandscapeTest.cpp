@@ -108,6 +108,99 @@ ULandscapeLayerInfoObject* LandscapeTest::createTerrainLayerInfo(const FString &
 }
 
 
+#if (ENGINE_MAJOR_VERSION == 4) && (ENGINE_MINOR_VERSION >= 23)
+//changes in layer structure in 423 and up.
+
+ALandscape* LandscapeTest::createTestLandscape(UWorld* world, const TArray<FString>& layerNames, UMaterial* landMaterial) {
+	//FlushRenderingCommands(true);
+	ALandscape* result = nullptr;
+	const int32 xComps = 1;
+	const int32 yComps = 1;
+	const int32 quadsPerSection = 63;
+	const int32 sectionsPerComp = 1;
+	const int32 quadsPerComp = quadsPerSection * sectionsPerComp;
+	int32 xSize = xComps * quadsPerComp + 1;
+	int32 ySize = yComps * quadsPerComp + 1;
+
+	TMap<FGuid, TArray<FLandscapeImportLayerInfo>> importLayerMap;
+	TMap<FGuid, TArray<uint16>> heightLayerData;
+
+	//TArray<uint16> hMap;
+	auto& hMap = heightLayerData.Add(FGuid());
+	hMap.SetNumUninitialized(xSize * ySize);
+	for (int i = 0; i < hMap.Num(); i++) {
+		hMap[i] = 32768;
+	}
+
+	auto& importLayers = importLayerMap.Add(FGuid());
+	//TArray<FLandscapeImportLayerInfo> importLayers;
+
+	/*
+	for (int layerIndex = 0; layerIndex < layerNames.Num(); layerIndex++) {
+		auto newGuid = FGuid::NewGuid();
+		layerGuids.Add(newGuid);
+	}
+	*/
+	
+	for (int layerIndex = 0; layerIndex < layerNames.Num(); layerIndex++) {
+		auto layerName = layerNames[layerIndex];
+
+		auto& curLayer = importLayers.AddDefaulted_GetRef();
+		DataPlane2D<uint8> alphaMap;
+		alphaMap.resize(xSize, ySize);
+		for (int y = 0; y < ySize; y++) {
+			auto scanline = alphaMap.getRow(y);
+			auto val = (((y / 16) % layerNames.Num()) == layerIndex) ? 0xFF : 0x00;
+			for (int x = 0; x < xSize; x++){
+				scanline[x] = val;
+			}
+		}
+		auto infoObj = createTerrainLayerInfo(layerName, layerIndex);
+
+		curLayer.LayerData = alphaMap.getArrayCopy();
+		curLayer.LayerName = *layerName;
+		curLayer.SourceFilePath = TEXT("");
+		curLayer.LayerInfo = infoObj;
+	}
+
+	result = world->SpawnActor<ALandscape>(ALandscape::StaticClass());
+	result->StaticLightingLOD = FMath::DivideAndRoundUp(FMath::CeilLogTwo((xSize * ySize) / (2048 * 2048) + 1), (uint32)2);//?
+
+	auto guid = FGuid::NewGuid();
+	auto* landProxy = Cast<ALandscapeProxy>(result);
+	landProxy->SetLandscapeGuid(guid);
+
+	landProxy->LandscapeMaterial = landMaterial;
+
+	landProxy->Import(
+		FGuid::NewGuid(),
+		0, 0, xSize - 1, ySize - 1, 
+		sectionsPerComp, quadsPerSection, 
+		//hMap.GetData(), TEXT(""), 
+		heightLayerData, TEXT(""), 
+		importLayerMap, ELandscapeImportAlphamapType::Additive
+	);
+
+	/*
+	Following lines are meant to trigger shader recompilation (when needed), but upon completion the editor crashes with a failed assert.
+	PreEditChange/PostEditChange produce similar effect.
+	*/
+
+	ULandscapeInfo* landscapeInfo = result->CreateLandscapeInfo();
+	landscapeInfo->UpdateLayerInfoMap(result);
+
+	result->MarkComponentsRenderStateDirty();
+	result->PostLoad();
+
+	/*
+	result->PreEditChange(0);
+	result->PostEditChange();
+	*/
+
+	return result;
+}
+
+#else
 ALandscape* LandscapeTest::createTestLandscape(UWorld *world, const TArray<FString> &layerNames, UMaterial *landMaterial){
 	//FlushRenderingCommands(true);
 	ALandscape * result = nullptr;
@@ -124,7 +217,7 @@ ALandscape* LandscapeTest::createTestLandscape(UWorld *world, const TArray<FStri
 	for(int i = 0; i < hMap.Num(); i++){
 		hMap[i] = 32768;
 	}
-	
+
 	TArray<FLandscapeImportLayerInfo> importLayers;
 
 	for(int layerIndex = 0; layerIndex < layerNames.Num(); layerIndex++){
@@ -178,6 +271,7 @@ ALandscape* LandscapeTest::createTestLandscape(UWorld *world, const TArray<FStri
 
 	return result;
 }
+#endif
 
 UMaterial* LandscapeTest::createLandscapeMaterial(const TArray<FString> &names){
 	auto fullPath = FString::Printf(TEXT("%s/%s"), *getTestRootPath(), TEXT("material"));

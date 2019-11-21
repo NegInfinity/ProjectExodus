@@ -75,6 +75,10 @@ public:
 		return data;
 	}
 
+	DataArray& getArray(){
+		return data;
+	}
+
 	DataArray getArrayCopy() const{
 		return data;
 	}

@@ -9,7 +9,7 @@
 
 #define LOCTEXT_NAMESPACE LOCTEXT_NAMESPACE_NAME
 
-//#define JSON_DISABLE_PREFAB_IMPORT
+#define JSON_DISABLE_PREFAB_IMPORT
 
 using namespace JsonObjects;
 using namespace UnrealUtilities;

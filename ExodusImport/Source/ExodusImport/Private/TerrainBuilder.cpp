@@ -222,7 +222,16 @@ void TerrainBuilder::processFoliageTreeActors(ALandscape *landscape){
 	FPaths::Split(terrainData.exportPath, terrPath, terrFileName, terrExt);
 
 	TMap<int32, UFoliageType*> foliageTypes;
+
+	/*
+	This is very interesting --> I don't see this being actually used directly anywhere.
+	It seems I've added this for bookkeeping.
+	*/
+#if (ENGINE_MAJOR_VERSION == 4) && (ENGINE_MINOR_VERSION >= 23)
+	TMap<int32, FFoliageInfo*> foliageMeshInfos;
+#else
 	TMap<int32, FFoliageMeshInfo*> foliageMeshInfos;
+#endif
 
 	int prototypeIndex = 0;
 	for(const auto& curProtoTree: terrainData.treePrototypes){
@@ -278,7 +287,11 @@ void TerrainBuilder::processFoliageTreeActors(ALandscape *landscape){
 		UE_LOG(JsonLogTerrain, Log, TEXT("Dst coord %f %f %f"), treePos.X, treePos.Y, treePos.Z);
 		//Hmm. Instance coordinates are within 0..1 range on terrain. 
 		dstInst.Location = treePos;//unityPosToUe(treePos);
+#if (ENGINE_MAJOR_VERSION == 4) && (ENGINE_MINOR_VERSION >= 23)
+		meshInfo->AddInstance(ifa, foliageType, dstInst);
+#else
 		meshInfo->AddInstance(ifa, foliageType, dstInst, true);
+#endif
 	}
 }
 
@@ -312,7 +325,12 @@ ALandscape* TerrainBuilder::buildTerrain(){
 	ySize = heightMapData.getHeight();
 
 	//normal layers
+#if (ENGINE_MAJOR_VERSION == 4) && (ENGINE_MINOR_VERSION >= 23)
+	TMap<FGuid, TArray<FLandscapeImportLayerInfo>> importLayerMap;
+	auto& importLayers = importLayerMap.Add(FGuid());
+#else
 	TArray<FLandscapeImportLayerInfo> importLayers;
+#endif
 	if (convertedTerrain.alphaMaps.Num() > 0){
 		for(int i = 0; i < convertedTerrain.alphaMaps.Num(); i++){
 			auto layerName = terrainData.getLayerName(i);
@@ -415,9 +433,19 @@ ALandscape* TerrainBuilder::buildTerrain(){
 	landProxy->LandscapeMaterial = terrainMaterial;
 	landProxy->LandscapeHoleMaterial = terrainMaterial;
 
+#if (ENGINE_MAJOR_VERSION == 4) && (ENGINE_MINOR_VERSION >= 23)
+	TMap<FGuid, TArray<uint16>> heightLayerData;
+	heightLayerData.Add(FGuid(), heightMapData.getArray());//Ouch. Need optimization, excessive copying here.
 	landProxy->Import(FGuid::NewGuid(),
-		0, 0, xSize - 1, ySize - 1, sectionsPerComp, quadsPerSection, heightMapData.getData(), 
-		TEXT(""), importLayers, ELandscapeImportAlphamapType::Additive);
+		0, 0, xSize - 1, ySize - 1, sectionsPerComp, quadsPerSection,
+		heightLayerData, TEXT(""),
+		importLayerMap, ELandscapeImportAlphamapType::Additive);
+#else
+	landProxy->Import(FGuid::NewGuid(),
+		0, 0, xSize - 1, ySize - 1, sectionsPerComp, quadsPerSection, 
+		heightMapData.getData(), TEXT(""), 
+		importLayers, ELandscapeImportAlphamapType::Additive);
+#endif
 
 	for(int i = 0; i < importLayers.Num(); i++){
 		auto &curLayer = importLayers[i];
