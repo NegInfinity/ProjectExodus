@@ -39,7 +39,18 @@ ImportedObject GeometryComponentBuilder::processMeshAndColliders(ImportContext &
 	If there's no such parent, OR if the user requested an actor, then we either spawn a blank, OR process static mesh as an actor and return that.
 	*/
 
-	UObject *outer = workData.findSuitableOuter(jsonGameObj);
+	UObject* outer = nullptr;
+
+	/*
+	We only need outer for components. If components weren't requested, an actor would be created and will serve as outer container for everything else
+	*/
+	bool componentRequested = (desiredObjectType == DesiredObjectType::Component);
+	if (outerCreator && componentRequested){
+		outer = outerCreator();
+	}
+	else {
+		outer = workData.findSuitableOuter(jsonGameObj);
+	}
 	//can be null at this point
 
 	bool hasMainMesh = jsonGameObj.hasMesh();
@@ -57,7 +68,6 @@ ImportedObject GeometryComponentBuilder::processMeshAndColliders(ImportContext &
 	And that's it.
 	*/
 	if (jsonGameObj.hasMesh()){
-		bool componentRequested = (desiredObjectType == DesiredObjectType::Component);
 		if (jsonGameObj.colliders.Num() == 0){//only display mesh is present
 			return processStaticMesh(workData, jsonGameObj, parentObject, folderPath, nullptr, componentRequested && outer, outer, importer);
 		}
@@ -117,7 +127,6 @@ ImportedObject GeometryComponentBuilder::processMeshAndColliders(ImportContext &
 			continue;
 		}
 
-		//auto collider = processCollider(workData, jsonGameObj, rootActor, curCollider);
 		auto collider = processCollider(workData, jsonGameObj, outer, curCollider, importer);
 		if (!collider){
 			UE_LOG(JsonLog, Warning, TEXT("Could not create collider %d on %d(%s)"), i, jsonGameObj.id, *jsonGameObj.name);

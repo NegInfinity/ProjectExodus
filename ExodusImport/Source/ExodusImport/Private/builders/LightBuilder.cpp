@@ -10,57 +10,36 @@
 #include <utility>
 
 void LightBuilder::setupPointLightComponent(UPointLightComponent *pointLight, const JsonLight &jsonLight){
-	//light->SetIntensity(lightIntensity * 2500.0f);//100W lamp per 1 point of intensity
-
 	pointLight->SetIntensity(jsonLight.intensity);
 	pointLight->bUseInverseSquaredFalloff = false;
-	//pointLight->LightFalloffExponent = 2.0f;
 	pointLight->SetLightFalloffExponent(2.0f);
 
 	pointLight->SetLightColor(jsonLight.color);
-	float attenRadius = jsonLight.range*100.0f;//*ueAttenuationBoost;//those are fine
+	float attenRadius = jsonLight.range*100.0f;
 	pointLight->AttenuationRadius = attenRadius;
 	pointLight->SetAttenuationRadius(attenRadius);
 	pointLight->CastShadows = jsonLight.castsShadows;//lightCastShadow;// != FString("None");
 }
 
 void LightBuilder::setupSpotLightComponent(USpotLightComponent *spotLight, const JsonLight &jsonLight){
-	//spotLight->SetIntensity(lightIntensity * 2500.0f);//100W lamp per 1 point of intensity
 	spotLight->SetIntensity(jsonLight.intensity);
 	spotLight->bUseInverseSquaredFalloff = false;
-	//spotLight->LightFalloffExponent = 2.0f;
 	spotLight->SetLightFalloffExponent(2.0f);
 
-
 	spotLight->SetLightColor(jsonLight.color);
-	float attenRadius = jsonLight.range*100.0f;//*ueAttenuationBoost;
+	float attenRadius = jsonLight.range*100.0f;
 	spotLight->AttenuationRadius = attenRadius;
 	spotLight->SetAttenuationRadius(attenRadius);
-	spotLight->CastShadows = jsonLight.castsShadows;//lightCastShadow;// != FString("None");
-													//spotLight->InnerConeAngle = lightSpotAngle * 0.25f;
+	spotLight->CastShadows = jsonLight.castsShadows;
 	spotLight->InnerConeAngle = 0.0f;
 	spotLight->OuterConeAngle = jsonLight.spotAngle * 0.5f;
 	//spotLight->SetVisibility(params.visible);
 }
 
 void LightBuilder::setupDirLightComponent(ULightComponent *dirLight, const JsonLight &jsonLight){
-	//light->SetIntensity(lightIntensity * 2500.0f);//100W lamp per 1 point of intensity
 	dirLight->SetIntensity(jsonLight.intensity);
-	//light->bUseInverseSquaredFalloff = false;
-	//light->LightFalloffExponent = 2.0f;
-	//light->SetLightFalloffExponent(2.0f);
-
 	dirLight->SetLightColor(jsonLight.color);
-	//float attenRadius = lightRange*100.0f;//*ueAttenuationBoost;
-	//light->AttenuationRadius = attenRadius;
-	//light->SetAttenuationRadius(attenRadius);
-	dirLight->CastShadows = jsonLight.castsShadows;// != FString("None");
-												   //light->InnerConeAngle = lightSpotAngle * 0.25f;
-
-												   //light->InnerConeAngle = 0.0f;
-												   //light->OuterConeAngle = lightSpotAngle * 0.5f;
-
-												   //light->SetVisibility(params.visible);
+	dirLight->CastShadows = jsonLight.castsShadows;
 }
 
 template <typename ActorClass, typename ComponentClass> 
@@ -69,7 +48,7 @@ std::pair<ActorClass*, ComponentClass*> createLightActorAndComponent(
 		FTransform lightTransform, 
 		std::function<ComponentClass*(ActorClass*)> componentGetter, 
 		std::function<void(ComponentClass*)> componentConfigurator,
-		const TCHAR* lightName, bool createActors){
+		const TCHAR* lightName, bool createActors, std::function<UObject * ()> outerCreator){
 
 	check(componentGetter);
 	check(lightName != nullptr);
@@ -82,7 +61,12 @@ std::pair<ActorClass*, ComponentClass*> createLightActorAndComponent(
 		lightComponent = componentGetter(lightActor);
 	}
 	else{
-		lightComponent = NewObject<ComponentClass>();
+		if (outerCreator) {
+			auto outer = outerCreator();
+			lightComponent = NewObject<ComponentClass>(outer);
+		}
+		else
+			lightComponent = NewObject<ComponentClass>();
 	}
 	if (componentConfigurator && lightComponent)
 		componentConfigurator(lightComponent);
@@ -106,7 +90,7 @@ ImportedObject LightBuilder::processLight(ImportContext &workData, const JsonGam
 			workData, lightTransform, 
 			[](auto arg){return arg->PointLightComponent;}, 
 			[&](auto arg){setupPointLightComponent(arg, jsonLight);},
-			TEXT("point light"), createActors
+			TEXT("point light"), createActors, outerCreator
 		);
 		lightActor = data.first;
 		lightComponent = data.second;
@@ -116,7 +100,7 @@ ImportedObject LightBuilder::processLight(ImportContext &workData, const JsonGam
 			workData, lightTransform, 
 			[](auto arg){return arg->SpotLightComponent;}, 
 			[&](auto arg){setupSpotLightComponent(arg, jsonLight);},
-			TEXT("spot light"), createActors
+			TEXT("spot light"), createActors, outerCreator
 		);
 		lightActor = data.first;
 		lightComponent = data.second;
@@ -126,7 +110,7 @@ ImportedObject LightBuilder::processLight(ImportContext &workData, const JsonGam
 			workData, lightTransform, 
 			[](auto arg){return arg->GetLightComponent();}, 
 			[&](auto arg){setupDirLightComponent(arg, jsonLight);},
-			TEXT("directional light"), createActors
+			TEXT("directional light"), createActors, outerCreator
 		);
 		lightActor = data.first;
 		lightComponent = data.second;

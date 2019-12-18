@@ -33,4 +33,4 @@ enum class DesiredObjectType{
 	Actor, Component
 };
 
-using OuterCallback = std::function<UObject*()>;
+using OuterCreatorCallback = std::function<UObject*()>;
