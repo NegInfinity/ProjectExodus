@@ -536,7 +536,9 @@ void SkeletalMeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonM
 	auto hasTangents = jsonMesh.tangents.Num() != 0;
 	//auto numTexCoords = jsonMesh.getNumTexCoords();
 
+#if !((ENGINE_MAJOR_VERSION >= 4) && (ENGINE_MINOR_VERSION >= 24))
 	skelMesh->bUseFullPrecisionUVs = true;
+#endif
 	skelMesh->bHasBeenSimplified = false;
 
 	lodModel.NumTexCoords = jsonMesh.getNumTexCoords();//numTexCoords;

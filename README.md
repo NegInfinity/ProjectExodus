@@ -2,7 +2,7 @@
 
 ## Currently supported versions:
 
-Currently supported versions are **2018.3** for Unity, and **4.23.1** for Unreal 4 (currently it is still possible to compile the plugin on **4.22.2**). This file will be updated to indicate whne supported versions change.
+Currently supported versions are **2018.3** for Unity, and **4.24** for Unreal 4 (currently it is still possible to compile the plugin on **44.23.1** and **4.22.2**). This file will be updated to indicate whne supported versions change.
 
 ## Description
 

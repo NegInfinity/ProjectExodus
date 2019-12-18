@@ -37,7 +37,9 @@ static void fillTestSkinMeshWithMeshTools(USkeletalMesh* skelMesh){
 	auto& refSkeleton = skelMesh->RefSkeleton;
 	refSkeleton.Empty();
 
+#if ! ((ENGINE_MAJOR_VERSION >= 4) && (ENGINE_MINOR_VERSION >= 24))
 	skelMesh->bUseFullPrecisionUVs = true;
+#endif
 	skelMesh->bHasVertexColors = false;
 	skelMesh->bHasBeenSimplified = false;
 
