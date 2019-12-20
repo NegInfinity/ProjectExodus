@@ -13,9 +13,10 @@ This does it.
 
 This method processess collision and mesh during object import
 */
-ImportedObject GeometryComponentBuilder::processMeshAndColliders(ImportContext &workData, 
-		const JsonGameObject &jsonGameObj, ImportedObject *parentObject, const FString &folderPath, DesiredObjectType desiredObjectType,
-		JsonImporter *importer, std::function<UObject*()> outerCreator){
+ImportedObject GeometryComponentBuilder::processMeshAndColliders(ImportContext& workData,
+	const JsonGameObject& jsonGameObj, ImportedObject* parentObject, const FString& folderPath,
+	bool spawnAsComponents,//DesiredObjectType desiredObjectType,
+	JsonImporter* importer, OuterCreatorCallback outerCreator) {
 	using namespace UnrealUtilities;
 	/*
 	There are several scenarios ....
@@ -39,18 +40,23 @@ ImportedObject GeometryComponentBuilder::processMeshAndColliders(ImportContext &
 	If there's no such parent, OR if the user requested an actor, then we either spawn a blank, OR process static mesh as an actor and return that.
 	*/
 
-	UObject* outer = nullptr;
+	//UObject* outer = nullptr;
 
 	/*
 	We only need outer for components. If components weren't requested, an actor would be created and will serve as outer container for everything else
 	*/
-	bool componentRequested = (desiredObjectType == DesiredObjectType::Component);
-	if (outerCreator && componentRequested){
+	bool componentRequested = spawnAsComponents;//(desiredObjectType == DesiredObjectType::Component);
+	if (componentRequested)
+		check(outerCreator);
+
+	/*
+	if (outerCreator && componentRequested) {
 		outer = outerCreator();
 	}
 	else {
 		outer = workData.findSuitableOuter(jsonGameObj);
 	}
+	*/
 	//can be null at this point
 
 	bool hasMainMesh = jsonGameObj.hasMesh();
@@ -67,55 +73,76 @@ ImportedObject GeometryComponentBuilder::processMeshAndColliders(ImportContext &
 
 	And that's it.
 	*/
-	if (jsonGameObj.hasMesh()){
-		if (jsonGameObj.colliders.Num() == 0){//only display mesh is present
-			return processStaticMesh(workData, jsonGameObj, parentObject, folderPath, nullptr, componentRequested && outer, outer, importer);
+	if (jsonGameObj.hasMesh()) {
+		if (jsonGameObj.colliders.Num() == 0) {//only display mesh is present
+			//return processStaticMesh(workData, jsonGameObj, parentObject, folderPath, nullptr, componentRequested && outer, outer, importer);
+			return processStaticMesh(workData, jsonGameObj, parentObject, folderPath, nullptr, componentRequested, outerCreator, importer);
 		}
-		if ((jsonGameObj.colliders.Num() == 1) && mainMeshCollider){
-			return processStaticMesh(workData, jsonGameObj, parentObject, folderPath, mainMeshCollider, componentRequested && outer, outer, importer);
+		if ((jsonGameObj.colliders.Num() == 1) && mainMeshCollider) {
+			//return processStaticMesh(workData, jsonGameObj, parentObject, folderPath, mainMeshCollider, componentRequested && outer, outer, importer);
+			return processStaticMesh(workData, jsonGameObj, parentObject, folderPath, mainMeshCollider, componentRequested, outerCreator, importer);
 		}
 	}
 
-	if (!jsonGameObj.hasMesh() && !jsonGameObj.hasColliders()){
+	//No mesh and no colliders
+	if (!jsonGameObj.hasMesh() && !jsonGameObj.hasColliders()) {
 		return ImportedObject();//We're processing an empty and by default they're not recreated as scene components. This may change in future.
 	}
 
 	/*
 	Goddamit this is getting too complicated.
 	*/
-
-	if (desiredObjectType == DesiredObjectType::Actor){
+	/*
+	if (!spawnAsComponents) {//desiredObjectType == DesiredObjectType::Actor){
 		outer = nullptr;//this will force creation of blank actor that will also serve as outer package.
 	}
+	*/
 
-	USceneComponent *rootComponent = nullptr;
-	AActor *rootActor = nullptr;
+	USceneComponent* rootComponent = nullptr;
+	AActor* createdRootActor = nullptr;
+	OuterCreatorCallback colliderOuterCreator = [&]() -> UObject*{
+		if (spawnAsComponents){
+			check(outerCreator);
+			return outerCreator();
+		}
+		if (!createdRootActor){
+			createdRootActor = workData.world->SpawnActor<AActor>(AActor::StaticClass(), jsonGameObj.getUnrealTransform());
+			createdRootActor->SetActorLabel(jsonGameObj.ueName);
+			createdRootActor->SetFolderPath(*folderPath);
+			check(createdRootActor);
+		}
+		return createdRootActor;
+	};
 
 	bool spawnMeshAsComponent = true;
+	/*
 	if (!outer){
 		rootActor = workData.world->SpawnActor<AActor>(AActor::StaticClass(), jsonGameObj.getUnrealTransform());
 		rootActor->SetActorLabel(jsonGameObj.ueName);
 		rootActor->SetFolderPath(*folderPath);
 		outer = rootActor;
 	}
+	*/
 
-	check(outer);
+	//check(outer);
+	//object has main mesh... meaning display or collision mesh.
 	if (hasMainMesh){
+		//This is nearly a code duplication
 		if (mainMeshCollider){
-			collisionMesh = processStaticMesh(workData, jsonGameObj, nullptr, folderPath, mainMeshCollider, spawnMeshAsComponent, outer, importer);
+			collisionMesh = processStaticMesh(workData, jsonGameObj, nullptr, folderPath, mainMeshCollider, spawnMeshAsComponent, colliderOuterCreator, importer);
 			auto name = FString::Printf(TEXT("%s_collisionMesh"), *jsonGameObj.ueName);
 			collisionMesh.setNameOrLabel(*name);
 		}
 		else{
-			displayOnlyMesh = processStaticMesh(workData, jsonGameObj, nullptr, folderPath, nullptr, spawnMeshAsComponent, outer, importer);
+			displayOnlyMesh = processStaticMesh(workData, jsonGameObj, nullptr, folderPath, nullptr, spawnMeshAsComponent, colliderOuterCreator, importer);
 			auto name = FString::Printf(TEXT("%s_displayMesh"), *jsonGameObj.ueName);
 			displayOnlyMesh.setNameOrLabel(*name);
 		}
 	}
-	check(outer);
+	//check(outer);
 
 	ImportedObject rootObject;
-	check(outer);
+	//check(outer);
 
 	TArray<UPrimitiveComponent*> newColliders;
 	//Walk through collider list, create primtivies, except that one collider used for the main static mesh.
@@ -127,7 +154,8 @@ ImportedObject GeometryComponentBuilder::processMeshAndColliders(ImportContext &
 			continue;
 		}
 
-		auto collider = processCollider(workData, jsonGameObj, outer, curCollider, importer);
+		//auto collider = processCollider(workData, jsonGameObj, outer, curCollider, importer);
+		auto collider = processCollider(workData, jsonGameObj, colliderOuterCreator, curCollider, importer);
 		if (!collider){
 			UE_LOG(JsonLog, Warning, TEXT("Could not create collider %d on %d(%s)"), i, jsonGameObj.id, *jsonGameObj.name);
 			continue;
@@ -139,30 +167,31 @@ ImportedObject GeometryComponentBuilder::processMeshAndColliders(ImportContext &
 	}
 
 	//Pick a component suitable for the "root" of the collider hierarchy
-	int rootCompIndex = mainMeshColliderIndex;
+	int rootComponentIndex = mainMeshColliderIndex;
 	if (!mainMeshCollider){
-		rootCompIndex = jsonGameObj.findSuitableRootColliderIndex();
-		if ((rootCompIndex < 0) || (rootCompIndex >= newColliders.Num())){
+		rootComponentIndex = jsonGameObj.findSuitableRootColliderIndex();
+		if ((rootComponentIndex < 0) || (rootComponentIndex >= newColliders.Num())){
 			UE_LOG(JsonLog, Warning, TEXT("Could not find suitable root collider on %s(%d)"), *jsonGameObj.name, jsonGameObj.id);
-			rootCompIndex = 0;
+			rootComponentIndex = 0;
 		}
 
 		check(newColliders.Num() > 0);
-		rootComponent = newColliders[rootCompIndex];
+		rootComponent = newColliders[rootComponentIndex];
 		check(rootComponent);
-		if (rootActor)
-			rootActor->SetRootComponent(rootComponent);
+		if (createdRootActor)
+			createdRootActor->SetRootComponent(rootComponent);
 		///newColliders.RemoveAt(rootCompIndex);//It is easier to handle this here... or not
 	}
 
 	check(rootComponent);
-	rootObject = ImportedObject(rootComponent);
+	rootObject = createdRootActor ? ImportedObject(createdRootActor)
+		:ImportedObject(rootComponent);
 
 	for (int i = 0; i < newColliders.Num(); i++){
 		auto curCollider = newColliders[i];
 		if (!curCollider)
 			continue;
-		if (i != rootCompIndex){
+		if (i != rootComponentIndex){
 			auto tmpObj = ImportedObject(curCollider);
 			tmpObj.attachTo(rootObject);
 		}
@@ -187,7 +216,7 @@ ImportedObject GeometryComponentBuilder::processMeshAndColliders(ImportContext &
 		collisionMesh.convertToInstanceComponent();
 	}
 
-	if (rootObject.isValid() && !rootActor){
+	if (rootObject.isValid() && !createdRootActor){
 		/*
 		Well... in this case we're rebuilding as components and there's no dummy to replicate unity name.
 		So we rename the component.
@@ -195,11 +224,16 @@ ImportedObject GeometryComponentBuilder::processMeshAndColliders(ImportContext &
 		rootObject.setNameOrLabel(jsonGameObj.ueName);
 	}
 
+	check((spawnAsComponents && rootObject.hasComponent()) 
+		|| (!spawnAsComponents && rootObject.hasActor()));
+
 	return rootObject;
 }
 
 ImportedObject GeometryComponentBuilder::processStaticMesh(ImportContext &workData, const JsonGameObject &jsonGameObj, 
-		ImportedObject *parentObject, const FString& folderPath, const JsonCollider *colliderData, bool spawnAsComponent, UObject *outer,
+		ImportedObject *parentObject, const FString& folderPath, const JsonCollider *colliderData, bool spawnAsComponent, 
+		OuterCreatorCallback outerCreator,
+		//UObject *outer,
 		JsonImporter *importer){
 	using namespace UnrealUtilities;
 	if (!jsonGameObj.hasMesh())
@@ -214,7 +248,11 @@ ImportedObject GeometryComponentBuilder::processStaticMesh(ImportContext &workDa
 
 	//
 	if (spawnAsComponent){
-		UObject* curOuter = outer ? outer: GetTransientPackage();
+		check(outerCreator);
+		UObject* curOuter = outerCreator ? outerCreator(): nullptr;//outer ? outer: GetTransientPackage();
+		check(curOuter);
+		/*if (curOuter == nullptr)
+			curOuter = GetTransientPackage();*/
 		meshComp = NewObject<UStaticMeshComponent>(curOuter);
 		meshComp->SetWorldTransform(transform);
 	}
@@ -265,21 +303,22 @@ ImportedObject GeometryComponentBuilder::processStaticMesh(ImportContext &workDa
 }
 
 UPrimitiveComponent* GeometryComponentBuilder::processCollider(ImportContext &workData, const JsonGameObject &jsonGameObj, 
-		UObject *ownerPtr, const JsonCollider &collider, JsonImporter *importer){
+		OuterCreatorCallback outerCreator,//UObject *ownerPtr, 
+		const JsonCollider &collider, JsonImporter *importer){
 	using namespace UnrealUtilities;
 	//trigger support...?
 	UPrimitiveComponent *colliderComponent = nullptr;
 	if (collider.isBoxCollider()){
-		colliderComponent = createBoxCollider(ownerPtr, jsonGameObj, collider);
+		colliderComponent = createBoxCollider(outerCreator, jsonGameObj, collider);
 	}
 	else if (collider.isSphereCollider()){
-		colliderComponent = createSphereCollider(ownerPtr, jsonGameObj, collider);
+		colliderComponent = createSphereCollider(outerCreator, jsonGameObj, collider);
 	}
 	else if (collider.isCapsuleCollider()){
-		colliderComponent = createCapsuleCollider(ownerPtr, jsonGameObj, collider);
+		colliderComponent = createCapsuleCollider(outerCreator, jsonGameObj, collider);
 	}
 	else if (collider.isMeshCollider()){
-		colliderComponent = createMeshCollider(ownerPtr, jsonGameObj, collider, workData, importer);
+		colliderComponent = createMeshCollider(outerCreator, jsonGameObj, collider, workData, importer);
 	}
 	else{
 		UE_LOG(JsonLog, Warning, TEXT("Unknown or unsupported collider type \'%s\" on object \'%s\' (%d)"),
@@ -296,9 +335,12 @@ UPrimitiveComponent* GeometryComponentBuilder::processCollider(ImportContext &wo
 	return colliderComponent;// ImportedObject(colliderComponent);
 }
 
-UBoxComponent* GeometryComponentBuilder::createBoxCollider(UObject *ownerPtr, const JsonGameObject &jsonGameObj, const JsonCollider &collider){
+UBoxComponent* GeometryComponentBuilder::createBoxCollider(OuterCreatorCallback ownerCallback, const JsonGameObject &jsonGameObj, const JsonCollider &collider){
 	using namespace UnrealUtilities;
-	auto *boxComponent = NewObject<UBoxComponent>(ownerPtr ? ownerPtr : GetTransientPackage(), UBoxComponent::StaticClass());
+	check(ownerCallback);
+	UObject* ownerPtr = ownerCallback();
+	check(ownerPtr != nullptr);
+	auto *boxComponent = NewObject<UBoxComponent>(ownerPtr, UBoxComponent::StaticClass());
 
 	auto centerAdjust = unityPosToUe(collider.center);
 
@@ -308,18 +350,24 @@ UBoxComponent* GeometryComponentBuilder::createBoxCollider(UObject *ownerPtr, co
 	return boxComponent;
 }
 
-USphereComponent* GeometryComponentBuilder::createSphereCollider(UObject *ownerPtr, const JsonGameObject &jsonGameObj, const JsonCollider &collider){
+USphereComponent* GeometryComponentBuilder::createSphereCollider(OuterCreatorCallback ownerCallback, const JsonGameObject &jsonGameObj, const JsonCollider &collider){
 	using namespace UnrealUtilities;
-	auto *sphereComponent = NewObject<USphereComponent>(ownerPtr ? ownerPtr : GetTransientPackage(), USphereComponent::StaticClass());
+	check(ownerCallback);
+	UObject* ownerPtr = ownerCallback();
+	check(ownerPtr != nullptr);
+	auto *sphereComponent = NewObject<USphereComponent>(ownerPtr, USphereComponent::StaticClass());
 	sphereComponent->SetWorldTransform(jsonGameObj.getUnrealTransform(collider.center));
 	sphereComponent->SetMobility(jsonGameObj.getUnrealMobility());
 	sphereComponent->SetSphereRadius(unityDistanceToUe(collider.radius));
 	return sphereComponent;
 }
 
-UCapsuleComponent* GeometryComponentBuilder::createCapsuleCollider(UObject *ownerPtr, const JsonGameObject &jsonGameObj, const JsonCollider &collider){
+UCapsuleComponent* GeometryComponentBuilder::createCapsuleCollider(OuterCreatorCallback ownerCallback, const JsonGameObject &jsonGameObj, const JsonCollider &collider){
 	using namespace UnrealUtilities;
-	auto *capsule = NewObject<UCapsuleComponent>(ownerPtr ? ownerPtr : GetTransientPackage(), UCapsuleComponent::StaticClass());
+	check(ownerCallback);
+	UObject* ownerPtr = ownerCallback();
+	check(ownerPtr != nullptr);
+	auto *capsule = NewObject<UCapsuleComponent>(ownerPtr, UCapsuleComponent::StaticClass());
 
 	FMatrix capsuleMatrix = FMatrix::Identity;
 	capsuleMatrix.SetOrigin(collider.center);
@@ -360,10 +408,14 @@ UCapsuleComponent* GeometryComponentBuilder::createCapsuleCollider(UObject *owne
 	return capsule;
 }
 
-UStaticMeshComponent* GeometryComponentBuilder::createMeshCollider(UObject *ownerPtr, const JsonGameObject &jsonGameObj, const JsonCollider &collider, ImportContext &workData, JsonImporter *importer){
+UStaticMeshComponent* GeometryComponentBuilder::createMeshCollider(OuterCreatorCallback ownerCallback, 
+		const JsonGameObject &jsonGameObj, const JsonCollider &collider, ImportContext &workData, JsonImporter *importer){
 	using namespace UnrealUtilities;
+	check(ownerCallback);
+	UObject* ownerPtr = ownerCallback();
 	check(importer);
-	auto *meshComponent = NewObject<UStaticMeshComponent>(ownerPtr ? ownerPtr : GetTransientPackage(), UStaticMeshComponent::StaticClass());
+	check(ownerPtr);
+	auto *meshComponent = NewObject<UStaticMeshComponent>(ownerPtr, UStaticMeshComponent::StaticClass());
 
 	configureStaticMeshComponent(workData, meshComponent, jsonGameObj, false, &collider, importer);
 

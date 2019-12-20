@@ -99,17 +99,13 @@ void JsonImporter::loadMaterials(const StringArray &materials){
 	matProgress.MakeDialog();
 	UE_LOG(JsonLog, Log, TEXT("Processing materials"));
 	jsonMaterials.Empty();
-	int32 matId = 0;
 	for(auto curFilename: materials){
 		auto obj = loadExternResourceFromFile(curFilename);
-		auto curId = matId;
-		matId++;//hmm.... I should probably axe this?
 		if (!obj.IsValid())
 			continue;
 
 		JsonMaterial jsonMat(obj);
 		jsonMaterials.Add(jsonMat);
-		//importMasterMaterial(obj, curId);
 		if (!jsonMat.supportedShader){
 			UE_LOG(JsonLog, Warning, TEXT("Material \"%s\"(id: %d) is marked as having unsupported shader \"%s\""),
 				*jsonMat.name, jsonMat.id, *jsonMat.shader);
@@ -117,7 +113,6 @@ void JsonImporter::loadMaterials(const StringArray &materials){
 
 		auto matInst = materialBuilder.importMaterialInstance(jsonMat, this);
 		if (matInst){
-			//registerMaterialInstancePath(curId, matInst->GetPathName());
 			registerMaterialInstancePath(jsonMat.id, matInst->GetPathName());
 		}
 

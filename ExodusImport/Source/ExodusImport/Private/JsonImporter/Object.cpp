@@ -74,7 +74,7 @@ ImportedObject JsonImporter::importObject(const JsonGameObject &jsonGameObj, Imp
 
 	ImportedObjectArray createdObjects;
 
-	auto objectType = DesiredObjectType::Default;
+	//auto objectType = DesiredObjectType::Default;
 	/*
 	When importing prefabs, child actor nodes are not being harvested correctly. They have to be rebuilt as component-only structures
 	*/
@@ -108,7 +108,9 @@ ImportedObject JsonImporter::importObject(const JsonGameObject &jsonGameObj, Imp
 	and returns root object to us
 	*/
 	ImportedObject rootObject = GeometryComponentBuilder::processMeshAndColliders(workData, jsonGameObj, parentObject, folderPath, 
-		createActorNodes ? DesiredObjectType::Actor: objectType, this, outerCreator);
+		!createActorNodes,
+		//createActorNodes ? DesiredObjectType::Actor: objectType, 
+		this, outerCreator);
 	if (rootObject.isValid()){
 		createdObjects.Add(rootObject);
 		if (rootObject.hasActor()){

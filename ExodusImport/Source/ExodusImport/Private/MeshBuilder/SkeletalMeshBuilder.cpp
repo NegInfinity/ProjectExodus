@@ -204,7 +204,6 @@ void SkeletalMeshBuildData::computeBoundingBox(USkeletalMesh *skelMesh, const Js
 	skelMesh->SetImportedBounds(FBoxSphereBounds(boundBox));
 }
 
-
 struct SkeletalMeshInfluence{
 	int boneIndex = 0;
 	float weight = 0.0f;
@@ -285,18 +284,12 @@ void normalizeInfluenceMap(BoneInfluenceMap &boneInfluences){
 	}
 }
 
+//#define EXODUS_SKELETAL_MESH_SKIN_LOGGING
+
 void SkeletalMeshBuildData::processPositionsAndWeights(const JsonMesh &jsonMesh, const TMap<int, int> &meshToSkeletonBoneMap, StringArray &remapErrors){
-//void SkeletalMeshBuildData::processVerts(const JsonMesh &jsonMesh, StringArray &remapErrors){
 	const int jsonInfluencesPerVertex = 4;
 
 	bool hasBones = jsonMesh.boneIndexes.Num() > 0;
-
-	/*
-	//TMap<int, float> summaryWeightMap;
-	//TMap<int, TArray<int>> influenceIndexes;
-
-	//TMap<int, int> summaryIntWeightMap;
-	*/
 
 	//vertices themselves
 	for(int vertIndex = 0; vertIndex < jsonMesh.vertexCount; vertIndex++){
@@ -315,11 +308,10 @@ void SkeletalMeshBuildData::processPositionsAndWeights(const JsonMesh &jsonMesh,
 				auto dataOffset = inflIndex + vertIndex * jsonInfluencesPerVertex;
 				auto meshBoneIdx = jsonMesh.boneIndexes[dataOffset]; 
 				auto boneWeight = jsonMesh.boneWeights[dataOffset];
-				//if (boneWeight < 0.0f)//There actually ARE negative weight somewhere, andd they cause mesh spikes.
+				//There actually ARE negative weight somewhere, andd they cause mesh spikes.
 				if (boneWeight <= 0.0f)
 					continue;
 
-				//auto dstInfluenceIndex = meshInfluences.Num();
 				auto skelBoneIdx = meshBoneIdx;
 				auto foundIdx = meshToSkeletonBoneMap.Find(meshBoneIdx);
 				if (!foundIdx){
@@ -357,28 +349,27 @@ void SkeletalMeshBuildData::processPositionsAndWeights(const JsonMesh &jsonMesh,
 		}
 	}
 
-	/*
+#ifdef EXODUS_SKELETAL_MESH_SKIN_LOGGING
 	UE_LOG(JsonLog, Log, TEXT("Pre-sort bone influences on %s(%d)"), *jsonMesh.name, jsonMesh.id);
 	printBoneInfluenceMap(boneInfluences);
-	*/
+#endif
 
 	//Sorting the influences from strongest to weakest
 	for(auto &cur: boneInfluences){
 		Algo::SortBy(cur.Value, [](const SkeletalMeshInfluence &arg){return -arg.weight;});
-		//cur.Value.Sort(
 	}
 
-	/*
+#ifdef EXODUS_SKELETAL_MESH_SKIN_LOGGING
 	UE_LOG(JsonLog, Log, TEXT("Post-sort bone influences on %s(%d)"), *jsonMesh.name, jsonMesh.id);
 	printBoneInfluenceMap(boneInfluences);
-	*/
+#endif
 
 	normalizeInfluenceMap(boneInfluences);
 
-	/*
+#ifdef EXODUS_SKELETAL_MESH_SKIN_LOGGING
 	UE_LOG(JsonLog, Log, TEXT("Post-normalization bone influences on %s(%d)"), *jsonMesh.name, jsonMesh.id);
 	printBoneInfluenceMap(boneInfluences);
-	*/
+#endif
 
 	for(const auto &cur: boneInfluences){
 		float total = 0.0f;
@@ -392,13 +383,10 @@ void SkeletalMeshBuildData::processPositionsAndWeights(const JsonMesh &jsonMesh,
 			if (total >= 256.0f/255.0f){
 				UE_LOG(JsonLog, Log, TEXT("Total overflow: %f on vertex %d"), total, dstInfl.VertIndex);
 			}
-			//dstInfl.Weight = 1.0f;
-			//
-			//break;
 		}
 	}
 
-	/*
+#ifdef EXODUS_SKELETAL_MESH_SKIN_LOGGING
 	for(auto& cur: boneInfluences){
 		auto &influences = cur.Value;
 		
@@ -416,9 +404,7 @@ void SkeletalMeshBuildData::processPositionsAndWeights(const JsonMesh &jsonMesh,
 			}
 		}
 	}
-	*/
 
-	/*
 	for(const auto &cur: summaryIntWeightMap){
 		if ((cur.Value > 255) || (cur.Value < 0)){
 			UE_LOG(JsonLog, Warning, TEXT("Invalid total int weight %d on vertex %d, mesh %s (%d)"),
@@ -431,16 +417,13 @@ void SkeletalMeshBuildData::processPositionsAndWeights(const JsonMesh &jsonMesh,
 			UE_LOG(JsonLog, Warning, TEXT("Unbound skin vertex %d on mesh %s(%d)"), vertIndex, *jsonMesh.name, jsonMesh.id);
 		}
 	}
-	*/
 
-	/*
 	for(const auto &cur: summaryWeightMap){
 		auto &curIndexes = cur.Value;
 		for(const auto influeneIndexes: curIndexes){
 		}
 	}
-	*/
-	/*
+
 	for(const auto &cur: summaryWeightMap){
 		if (cur.Value > 1.0f){
 			UE_LOG(JsonLog, Warning, TEXT("Bone weight value %f is too high on vertex %d, mesh %s (%d)"),
@@ -451,7 +434,7 @@ void SkeletalMeshBuildData::processPositionsAndWeights(const JsonMesh &jsonMesh,
 				cur.Value, cur.Key, *jsonMesh.name, jsonMesh.id)
 		}
 	}
-	*/
+#endif
 }
 
 
@@ -467,6 +450,7 @@ void SkeletalMeshBuilder::registerPreviewMesh(USkeleton *skel, USkeletalMesh *me
 		return;
 	
 	UE_LOG(JsonLog, Log, TEXT("Preview mesh: %x; collection: %x"), previewMesh, collectionAsset);
+
 	//collection needed;
 	if (!previewMesh){
 		skel->SetPreviewMesh(mesh);
@@ -504,8 +488,6 @@ void SkeletalMeshBuilder::registerPreviewMesh(USkeleton *skel, USkeletalMesh *me
 
 	collection->MarkPackageDirty();
 	collection->PostEditChange();
-
-	//collection->Mesh
 }
 
 
@@ -530,14 +512,11 @@ void SkeletalMeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonM
 	auto &lodModel = importModel->LODModels[0];
 
 	auto hasNormals = jsonMesh.normals.Num() != 0;
-	//auto hasColors = jsonMesh.colors.Num() != 0;
-	//skelMesh->bHasVertexColors = hasColors;
 	skelMesh->bHasVertexColors = (jsonMesh.colors.Num() != 0);
 	auto hasTangents = jsonMesh.tangents.Num() != 0;
-	//auto numTexCoords = jsonMesh.getNumTexCoords();
 
 #if !((ENGINE_MAJOR_VERSION >= 4) && (ENGINE_MINOR_VERSION >= 24))
-	skelMesh->bUseFullPrecisionUVs = true;
+	skelMesh->bUseFullPrecisionUVs = true;//those were deprecated in 4.24, apparently.
 #endif
 	skelMesh->bHasBeenSimplified = false;
 
@@ -623,14 +602,11 @@ void SkeletalMeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonM
 		skelMesh->Skeleton = foundSkeleton;
 	}
 
-	//auto collectionSkel = skelMesh->Skeleton;
-
 	buildData.processBlendShapes(skelMesh, jsonMesh);
-
 	buildData.computeBoundingBox(skelMesh, jsonMesh);
 
 	/*
-	Here's the thing thoug h - Since we're operating on unity skeletons, the data will not behave the same way Unreal FBX importer expects it.
+	Here's the thing though - Since we're operating on unity skeletons, the data will not behave the same way Unreal FBX importer expects it.
 
 	Meaning, there may be a piece of clothing floating above the ground. 
 
@@ -638,7 +614,6 @@ void SkeletalMeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonM
 	*/
 
 	registerPreviewMesh(skelMesh->Skeleton, skelMesh, jsonMesh);
-
 
 	skelMesh->PostEditChange();
 	skelMesh->MarkPackageDirty();
