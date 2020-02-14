@@ -502,7 +502,8 @@ void SkeletalMeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonM
 	check(importModel->LODModels.Num() == 0);
 	importModel->LODModels.Empty();
 
-#if (ENGINE_MAJOR_VERSION >= 4) && (ENGINE_MINOR_VERSION >= 22)
+//#if (ENGINE_MAJOR_VERSION >= 4) && (ENGINE_MINOR_VERSION >= 22)
+#ifdef EXODUS_UE_VER_4_22_GE
 	//It is not directly specified anywhere, but TIndirectArray will properly delete its elements.
 	importModel->LODModels.Add(new FSkeletalMeshLODModel());
 #else
@@ -515,7 +516,8 @@ void SkeletalMeshBuilder::setupSkeletalMesh(USkeletalMesh *skelMesh, const JsonM
 	skelMesh->bHasVertexColors = (jsonMesh.colors.Num() != 0);
 	auto hasTangents = jsonMesh.tangents.Num() != 0;
 
-#if !((ENGINE_MAJOR_VERSION >= 4) && (ENGINE_MINOR_VERSION >= 24))
+//#if !((ENGINE_MAJOR_VERSION >= 4) && (ENGINE_MINOR_VERSION >= 24))
+#ifndef EXODUS_UE_VER_4_24_GE
 	skelMesh->bUseFullPrecisionUVs = true;//those were deprecated in 4.24, apparently.
 #endif
 	skelMesh->bHasBeenSimplified = false;

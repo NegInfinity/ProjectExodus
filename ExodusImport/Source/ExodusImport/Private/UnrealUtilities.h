@@ -13,6 +13,16 @@ class JsonImporter;
 class UStaticMesh;
 class USceneComponent;
 
+#if ((ENGINE_MAJOR_VERSION >= 4) && (ENGINE_MINOR_VERSION >= 24))
+	#define EXODUS_UE_VER_4_24_GE
+#endif
+#if ((ENGINE_MAJOR_VERSION >= 4) && (ENGINE_MINOR_VERSION >= 23))
+	#define EXODUS_UE_VER_4_23_GE
+#endif
+#if ((ENGINE_MAJOR_VERSION >= 4) && (ENGINE_MINOR_VERSION >= 22))
+	#define EXODUS_UE_VER_4_22_GE
+#endif
+
 namespace UnrealUtilities{
 	FVector getUnityUpVector();
 	FVector getUnityRightVector();
@@ -246,4 +256,12 @@ namespace UnrealUtilities{
 			*outExistingObj = existingObj;
 		}
 	}
+
+	/*
+		Those were introduced due to mesh api changed over ocurse of 4.22...4.24. 
+		I decided that rather having a bunch of ifdefs all over the place, a better idea would be to wrap related functions around.
+	*/
+	int getNumLods(UStaticMesh *mesh);
+	FStaticMeshSourceModel& getSourceModel(UStaticMesh *mesh, int lod);
+	void addSourceModel(UStaticMesh *mesh);
 }

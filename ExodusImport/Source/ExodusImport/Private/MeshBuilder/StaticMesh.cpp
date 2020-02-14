@@ -11,18 +11,20 @@ void MeshBuilder::setupStaticMesh(UStaticMesh *mesh, const JsonMesh &jsonMesh, s
 	using namespace MeshBuilderUtils;
 
 	check(mesh);
-	UE_LOG(JsonLog, Log, TEXT("Static mesh num lods: %d"), mesh->SourceModels.Num());
 
-	if (mesh->SourceModels.Num() < 1){
+	UE_LOG(JsonLog, Log, TEXT("Static mesh num lods: %d"), getNumLods(mesh));
+
+	if (getNumLods(mesh) < 1){
 		UE_LOG(JsonLog, Warning, TEXT("Adding static mesh lod!"));
-		new(mesh->SourceModels) FStaticMeshSourceModel();//???
+		addSourceModel(mesh);
 	}
 	 
 	int32 lod = 0;
 
-	FStaticMeshSourceModel &srcModel = mesh->SourceModels[lod];
+	FStaticMeshSourceModel& srcModel = getSourceModel(mesh, lod);
 
-#if (ENGINE_MAJOR_VERSION >= 4) && (ENGINE_MINOR_VERSION >= 22)
+//#if (ENGINE_MAJOR_VERSION >= 4) && (ENGINE_MINOR_VERSION >= 22)
+#ifdef EXODUS_UE_VER_4_22_GE
 	srcModel.StaticMeshOwner = mesh;
 #endif
 
@@ -225,7 +227,8 @@ void MeshBuilder::setupStaticMesh(UStaticMesh *mesh, const JsonMesh &jsonMesh, s
 		}
 	}
 
-#if (ENGINE_MAJOR_VERSION >= 4) && (ENGINE_MINOR_VERSION >= 22)
+//#if (ENGINE_MAJOR_VERSION >= 4) && (ENGINE_MINOR_VERSION >= 22)
+#ifdef EXODUS_UE_VER_4_22_GE
 	srcModel.StaticMeshOwner = mesh;
 #endif
 }

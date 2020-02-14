@@ -108,7 +108,8 @@ ULandscapeLayerInfoObject* LandscapeTest::createTerrainLayerInfo(const FString &
 }
 
 
-#if (ENGINE_MAJOR_VERSION == 4) && (ENGINE_MINOR_VERSION >= 23)
+//#if (ENGINE_MAJOR_VERSION == 4) && (ENGINE_MINOR_VERSION >= 23)
+#ifdef EXODUS_UE_VER_4_23_GE
 //changes in layer structure in 423 and up.
 
 ALandscape* LandscapeTest::createTestLandscape(UWorld* world, const TArray<FString>& layerNames, UMaterial* landMaterial) {

@@ -81,13 +81,22 @@ void ImportedObject::setActiveInHierarchy(bool active) const{
 	if (!actor)
 		return;
 	if (component){
+#ifdef EXODUS_UE_VER_4_24_GE
+		component->SetVisibility(active);
+#else
 		component->bVisible = active;
+#endif
 		///Collisions?
 	}
 	else{
 		auto root = actor->GetRootComponent();
-		if (root)
+		if (root){
+#ifdef EXODUS_UE_VER_4_24_GE
+			root->SetVisibility(active);
+#else
 			root->bVisible = active;
+#endif
+		}
 		actor->SetActorHiddenInGame(!active);
 		actor->SetActorEnableCollision(active);
 		actor->SetActorTickEnabled(active);

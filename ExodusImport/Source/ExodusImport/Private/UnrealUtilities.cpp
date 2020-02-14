@@ -26,6 +26,33 @@ UPackage* UnrealUtilities::createAssetPackage(const FString &objectName, const F
 	return newPackage;
 }	
 
+void UnrealUtilities::addSourceModel(UStaticMesh* mesh){
+	check(mesh);
+#ifdef EXODUS_UE_VER_4_24_GE
+	mesh->AddSourceModel();
+#else
+	new(mesh->SourceModels) FStaticMeshSourceModel();//???
+#endif
+}
+
+int UnrealUtilities::getNumLods(UStaticMesh *mesh){
+	check(mesh != nullptr);
+#ifdef EXODUS_UE_VER_4_24_GE
+	return mesh->GetNumLODs();
+#else
+	return mesh->SourceModels.Num(){
+#endif
+}
+
+FStaticMeshSourceModel& UnrealUtilities::getSourceModel(UStaticMesh *mesh, int lod){
+	check(mesh != nullptr);
+#ifdef EXODUS_UE_VER_4_24_GE
+	return mesh->GetSourceModel(lod);
+#else
+	return mesh->SourceModels[lod];
+#endif
+}
+
 FString UnrealUtilities::getDefaultImportPath(){
 	return TEXT("/Game/Import");
 }
@@ -150,13 +177,15 @@ UPackage* UnrealUtilities::createPackage(const FString &basePackageName,
 void UnrealUtilities::generateStaticMesh(UStaticMesh *mesh, RawMeshFillCallback fillCallback, 
 		StaticMeshBuildCallback preConfig, StaticMeshBuildCallback postConfig){
 	int32 lod = 0;
-	if (mesh->SourceModels.Num() < 1){
+	if (getNumLods(mesh) < 1){
 		UE_LOG(JsonLog, Warning, TEXT("Adding static mesh lod!"));
-		new(mesh->SourceModels) FStaticMeshSourceModel();//???
+		addSourceModel(mesh);
 	}
 
-	FStaticMeshSourceModel &srcModel = mesh->SourceModels[lod];
-#if (ENGINE_MAJOR_VERSION >= 4) && (ENGINE_MINOR_VERSION >= 22)
+	FStaticMeshSourceModel& srcModel = getSourceModel(mesh, lod);
+
+#ifdef EXODUS_UE_VER_4_22_GE
+//#if (ENGINE_MAJOR_VERSION >= 4) && (ENGINE_MINOR_VERSION >= 22)
 	srcModel.StaticMeshOwner = mesh;
 #endif
 

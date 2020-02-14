@@ -81,6 +81,7 @@ ImportedObject JsonImporter::importObject(const JsonGameObject &jsonGameObj, Imp
 	bool objectIsPrefab = jsonGameObj.usesPrefab();
 	bool mustCreateBlankNodes = objectIsPrefab || createEmptyTransforms;//prefab objects can have no folders, so we're going to faithfully rebuild node hierarchy.
 	bool createActorNodes = jsonGameObj.isPrefabRoot() || !objectIsPrefab;
+	//createActorNodes = true;
 
 	//In situation where there's no parent, we have to create an actor. Otherwise we will have no valid outer
 	createActorNodes = createActorNodes || !parentObject;
