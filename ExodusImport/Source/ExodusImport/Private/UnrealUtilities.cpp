@@ -40,7 +40,7 @@ int UnrealUtilities::getNumLods(UStaticMesh *mesh){
 #ifdef EXODUS_UE_VER_4_24_GE
 	return mesh->GetNumLODs();
 #else
-	return mesh->SourceModels.Num(){
+	return mesh->SourceModels.Num();
 #endif
 }
 
