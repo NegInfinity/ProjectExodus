@@ -74,11 +74,15 @@ ImportedObject JsonImporter::importObject(const JsonGameObject &jsonGameObj, Imp
 
 	ImportedObjectArray createdObjects;
 
+	bool rebuildPrefabsWithComponents = false;//a switch to disable prefab rebuilding functionality while I debug something else
+
 	//auto objectType = DesiredObjectType::Default;
 	/*
 	When importing prefabs, child actor nodes are not being harvested correctly. They have to be rebuilt as component-only structures
 	*/
 	bool objectIsPrefab = jsonGameObj.usesPrefab();
+	objectIsPrefab = objectIsPrefab && rebuildPrefabsWithComponents;
+
 	bool mustCreateBlankNodes = objectIsPrefab || createEmptyTransforms;//prefab objects can have no folders, so we're going to faithfully rebuild node hierarchy.
 	bool createActorNodes = jsonGameObj.isPrefabRoot() || !objectIsPrefab;
 	//createActorNodes = true;
