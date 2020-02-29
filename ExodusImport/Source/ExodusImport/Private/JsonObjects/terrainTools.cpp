@@ -1,6 +1,6 @@
 #include "JsonImportPrivatePCH.h"
 #include "terrainTools.h"
-#include "ScopedSlowTask.h"
+#include "Misc/ScopedSlowTask.h"
 
 using namespace JsonTerrainTools;
 

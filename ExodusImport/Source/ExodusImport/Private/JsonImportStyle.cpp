@@ -3,8 +3,8 @@
 #include "JsonImportPrivatePCH.h"
 
 #include "JsonImportStyle.h"
-#include "SlateGameResources.h"
-#include "IPluginManager.h"
+#include "Slate/SlateGameResources.h"
+#include "Interfaces/IPluginManager.h"
 
 TSharedPtr< FSlateStyleSet > FJsonImportStyle::StyleInstance = NULL;
 

@@ -4,7 +4,7 @@
 #include "JsonObjects.h"
 #include "UnrealUtilities.h"
 
-#include "Classes/Engine/SkeletalMesh.h"
+#include "Engine/SkeletalMesh.h"
 
 #include "builders/LightBuilder.h"
 #include "builders/ReflectionProbeBuilder.h"

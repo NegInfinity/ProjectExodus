@@ -4,7 +4,7 @@
 #include "UnrealEd/Public/ObjectTools.h"
 #include "UnrealEd/Public/PackageTools.h"
 #include "AssetRegistry/Public/AssetRegistryModule.h"
-#include "Classes/Components/SceneComponent.h"
+#include "Components/SceneComponent.h"
 
 using namespace UnrealUtilities;
 

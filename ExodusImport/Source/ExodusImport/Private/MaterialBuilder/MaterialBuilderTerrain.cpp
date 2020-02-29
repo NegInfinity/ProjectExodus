@@ -5,7 +5,7 @@
 #include "JsonImporter.h"
 #include "AssetRegistryModule.h"
 #include "UnrealUtilities.h"
-#include "Classes/Factories/MaterialFactoryNew.h"
+#include "Factories/MaterialFactoryNew.h"
 
 UMaterialExpression* createTerrainLayerCoords(UMaterial *material, const JsonTerrain &terr, const JsonTerrainData &terrData
 	, const FVector2D& splatSize, const FVector2D& splatOffset, const FIntPoint &terrainVertSize,  const TCHAR* text = 0){

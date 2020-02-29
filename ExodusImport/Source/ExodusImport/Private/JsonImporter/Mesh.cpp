@@ -33,7 +33,7 @@
 #include "DesktopPlatformModule.h"
 #include "MeshBuilder.h"
 #include "SkeletalMeshBuilder.h"
-#include "Classes/PhysicsEngine/BodySetup.h"
+#include "PhysicsEngine/BodySetup.h"
 
 using namespace UnrealUtilities;
 using namespace JsonObjects;

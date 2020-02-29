@@ -2,8 +2,8 @@
 #include "SkeletalMeshComponentBuilder.h"
 #include "UnrealUtilities.h"
 #include "JsonImporter.h"
-#include "Classes/Animation/SkeletalMeshActor.h"
-#include "Classes/Components/SkeletalMeshComponent.h"
+#include "Animation/SkeletalMeshActor.h"
+#include "Components/SkeletalMeshComponent.h"
 
 void SkeletalMeshComponentBuilder::processSkinMeshes(ImportContext &workData, const JsonGameObject &gameObj, 
 		ImportedObject *parentObject, const FString &folderPath, ImportedObjectArray *createdObjects, JsonImporter *importer, 

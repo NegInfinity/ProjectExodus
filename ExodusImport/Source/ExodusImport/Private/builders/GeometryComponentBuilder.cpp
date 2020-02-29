@@ -2,11 +2,11 @@
 #include "GeometryComponentBuilder.h"
 #include "JsonImporter.h"
 #include "UnrealUtilities.h"
-#include "Classes/Engine/StaticMeshActor.h"
-#include "Classes/Components/BoxComponent.h"
-#include "Classes/Components/SphereComponent.h"
-#include "Classes/Components/CapsuleComponent.h"
-#include "Classes/Engine/CollisionProfile.h"
+#include "Engine/StaticMeshActor.h"
+#include "Components/BoxComponent.h"
+#include "Components/SphereComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "Engine/CollisionProfile.h"
 
 /*
 This does it. 

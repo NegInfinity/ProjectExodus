@@ -3,8 +3,8 @@
 #include "Runtime/Engine/Classes/Components/SceneComponent.h"
 #include "Runtime/Engine/Classes/GameFramework/Actor.h"
 #include "JsonObjects/utilities.h"
-#include "Classes/GameFramework/Actor.h"
-#include "Classes/Engine/World.h"
+#include "GameFramework/Actor.h"
+#include "Engine/World.h"
 #include "UnrealUtilities.h"
 
 

@@ -3,7 +3,7 @@
 #include "Factories/WorldFactory.h"
 #include "Editor.h"
 #include "JsonImporter.h"
-#include "StrongObjectPtr.h"
+#include "UObject/StrongObjectPtr.h"
 #include "UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 #include "AssetRegistryModule.h"
 

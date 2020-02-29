@@ -4,7 +4,7 @@
 #include "MeshBuilderUtils.h"
 
 #include "Editor/UnrealEd/Private/GeomFitUtils.h"
-#include "Classes/PhysicsEngine/BodySetup.h"
+#include "PhysicsEngine/BodySetup.h"
 
 void MeshBuilder::setupStaticMesh(UStaticMesh *mesh, const JsonMesh &jsonMesh, std::function<void(TArray<FStaticMaterial> &meshMaterial)> materialSetup){
 	using namespace UnrealUtilities;
