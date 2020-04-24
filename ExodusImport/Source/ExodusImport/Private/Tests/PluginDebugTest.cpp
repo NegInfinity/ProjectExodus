@@ -17,34 +17,90 @@ void PluginDebugTest::run(){
 	FTransform transform;
 	transform.SetFromMatrix(FMatrix::Identity);
 	auto actor1 = world->SpawnActor<AActor>(AActor::StaticClass(), transform);
-	actor1->SetActorLabel("Root Actor");
+	actor1->SetActorLabel("Root Actor 1");
 
 	/*
-	auto rootComponent= NewObject<USceneComponent>(actor1);
-	actor1->SetRootComponent(rootComponent);
-	rootComponent->SetWorldLocation(FVector(0.0f, 0.0f, 300.0f));
-	rootComponent->RegisterComponent();
+	So. To summarize it:
 
-	auto subComponent = NewObject<USceneComponent>(actor1);
-	subComponent->SetWorldLocation(FVector(0.0f, 0.0f, 600.0f));
-	subComponent->AttachToComponent(rootComponent, FAttachmentTransformRules::KeepWorldTransform);
-	subComponent->RegisterComponent();
+	Attaching component without outer change makes the component disappear. Need to change outer manually using rename() so it persists
+	Registering component prior to rename() with owner change causes rename() to fail. Need to unregister first, apparently.
+
+	This is going to be painful.
 	*/
 
-	auto lightComp = NewObject<UPointLightComponent>(actor1);
-	//auto lightComp = NewObject<UDirectionalLightComponent>(actor1);
-	FMatrix lightMatrix = FMatrix::Identity;
-	lightMatrix.SetOrigin(FVector(100.0f, 200.0f, 300.0f));
-	FTransform lightTransform(lightMatrix);
+	auto comp1 = NewObject<USceneComponent>();
+	comp1->Rename(TEXT("comp1"));
+	comp1->SetWorldLocation(FVector(0.0f, 0.0f, 100.0f));
 
-	lightComp->SetWorldTransform(lightTransform);
+	auto comp2 = NewObject<USceneComponent>();
+	comp2->Rename(TEXT("comp2"));
+	comp2->SetWorldLocation(FVector(0.0f, 0.0f, 200.0f));
+	comp2->AttachToComponent(comp1, FAttachmentTransformRules::KeepWorldTransform);
 
-	actor1->SetRootComponent(lightComp);
-	//lightComp->AttachToComponent(subComponent, FAttachmentTransformRules::KeepWorldTransform);
-	lightComp->RegisterComponent();
+	auto comp3 = NewObject<USceneComponent>();
+	comp3->Rename(TEXT("comp3"));
+	comp3->SetWorldLocation(FVector(0.0f, 0.0f, 300.0f));
+	comp3->AttachToComponent(comp2, FAttachmentTransformRules::KeepWorldTransform);
 
-	//actor1->AddInstanceComponent(subComponent);
+	comp1->Rename(0, actor1);
+	comp1->RegisterComponent();
+	actor1->SetRootComponent(comp1);
+
+	/*
+	comp2->RegisterComponent();
+	comp3->RegisterComponent();
+
+	comp2->UnregisterComponent();
+	comp3->UnregisterComponent();
+	*/
+
+	comp2->Rename(0, actor1);
+	comp3->Rename(0, actor1);
+
+	comp2->RegisterComponent();
+	comp3->RegisterComponent();
+
+	actor1->AddInstanceComponent(comp1);
+	actor1->AddInstanceComponent(comp2);
+	actor1->AddInstanceComponent(comp3);
+
+	auto lightComp2 = NewObject<UPointLightComponent>();
+	{
+		FMatrix lightMatrix = FMatrix::Identity;
+		auto worldPos = FVector(0.0f, 0.0f, 600.0f);
+		lightMatrix.SetOrigin(worldPos);
+		FTransform lightTransform(lightMatrix);
+		lightComp2->SetWorldTransform(lightTransform);
+	}
+	lightComp2->AttachToComponent(comp3, FAttachmentTransformRules::KeepWorldTransform);
+	actor1->AddInstanceComponent(lightComp2);
+	lightComp2->Rename(0, actor1);
+	lightComp2->RegisterComponent();
+
+		//auto subComponent = NewObject<USceneComponent>(actor1);
+	/*
+	subComponent->SetWorldLocation(FVector(0.0f, 0.0f, 600.0f));
+	auto subComponent = NewObject<USceneComponent>();
+	subComponent->SetWorldLocation(FVector(0.0f, 0.0f, 600.0f));
+	subComponent->AttachToComponent(lightComp, FAttachmentTransformRules::KeepWorldTransform);
+
+	auto lightComp2 = NewObject<UPointLightComponent>();
+	{
+		FMatrix lightMatrix = FMatrix::Identity;
+		lightMatrix.SetOrigin(FVector(400.0f, 500.0f, 600.0f));
+		FTransform lightTransform(lightMatrix);
+		lightComp2->SetWorldTransform(lightTransform);
+	}
+	lightComp2->AttachToComponent(subComponent, FAttachmentTransformRules::KeepRelativeTransform);
+	lightComp2->RegisterComponent();
+	lightComp2->Rename(0, actor1, ERenameFlags::
+
+	subComponent->Rename(0, actor1);
+	subComponent->RegisterComponent();
+
+	actor1->AddInstanceComponent(subComponent);
 	actor1->AddInstanceComponent(lightComp);
+	*/
 }
 
 #if 0

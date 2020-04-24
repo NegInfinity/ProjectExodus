@@ -120,8 +120,10 @@ void ImportedObject::setNameOrLabel(const FString &newName, bool markDirty){
 }
 
 void ImportedObject::fixMismatchingOwner(bool applyToChildren) const{
+	UE_LOG(JsonLog, Log, TEXT("Fixing mismatching owner"));
 	if (!component)
 		return;//nothing to do, an AActor is supposed to have a proper container by default.
+
 	auto root = component->GetAttachmentRoot();
 	if (!root)
 		return;//how? should we fail in this case?

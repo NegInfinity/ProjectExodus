@@ -67,6 +67,8 @@ std::pair<ActorClass*, ComponentClass*> createLightActorAndComponent(
 		}
 		else
 			lightComponent = NewObject<ComponentClass>();
+		check(lightComponent);
+		lightComponent->SetWorldTransform(lightTransform);
 	}
 	if (componentConfigurator && lightComponent)
 		componentConfigurator(lightComponent);

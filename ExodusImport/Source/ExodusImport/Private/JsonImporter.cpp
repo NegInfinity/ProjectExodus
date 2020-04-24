@@ -9,7 +9,7 @@
 
 #define LOCTEXT_NAMESPACE LOCTEXT_NAMESPACE_NAME
 
-#define JSON_DISABLE_PREFAB_IMPORT
+#define JSON_DISABLE_PREFAB_IMPORT //not working, yet.
 
 using namespace JsonObjects;
 using namespace UnrealUtilities;
@@ -43,7 +43,6 @@ void JsonImporter::loadTerrains(const StringArray &terrains){
 		importTerrainData(obj, curId, assetRootPath);
 		terProgress.EnterProgressFrame(1.0f);
 	}
-
 }
 
 void JsonImporter::loadCubemaps(const StringArray &cubemaps){

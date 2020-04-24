@@ -15,6 +15,21 @@
 #include "DesktopPlatformModule.h"
 
 /*
+Notes:
+* An object without an owner will be created as transient, that includes components.
+* A transient object will poof eventually.
+* In order to make component visible, it has to be registered in an Actor, so the actor creates render/physics state for it.
+* In order to show up in unreal editor, object must be registered as an instance component.
+* Changing outer to another object can be safely done when object is not registered yet. There's an owner check within the component, it throws an assert when owners mismatch.
+
+Basically, we can totally create all objects as transient, and then alter owner, BUT, we'll need to take care of registering them and instance registering them.
+Likewise the components can be created in vacuum, but if we want to see them, we msut register them, if they should be editable in hierarchy, they should be added as instance component,
+and when they're registered, they can no longer be safely moved to another outer (can unregister them though).
+
+Currently the system tries use correct outer right at the beginning, as a result the Outer is provided via a callback. This can be and likely should be simplified in the future.
+*/
+
+/*
 We've ... actually I've run into a pickle.
 
 It goes like this:
@@ -74,7 +89,7 @@ ImportedObject JsonImporter::importObject(const JsonGameObject &jsonGameObj, Imp
 
 	ImportedObjectArray createdObjects;
 
-	bool rebuildPrefabsWithComponents = false;//a switch to disable prefab rebuilding functionality while I debug something else
+	bool rebuildPrefabsWithComponents = true;//a switch to disable prefab rebuilding functionality while I debug something else
 
 	//auto objectType = DesiredObjectType::Default;
 	/*
@@ -213,6 +228,15 @@ ImportedObject JsonImporter::importObject(const JsonGameObject &jsonGameObj, Imp
 		workData.registerGameObject(jsonGameObj, rootObject);
 		setObjectHierarchy(rootObject, parentObject, folderPath, workData, jsonGameObj);
 		rootObject.setFolderPath(folderPath, true);
+
+		rootObject.fixEditorVisibility();
+		rootObject.convertToInstanceComponent();
+		for (auto& cur : createdObjects){
+			if (!cur.isValid() || (cur == rootObject))
+				continue;
+			cur.fixEditorVisibility();
+			cur.convertToInstanceComponent();
+		}
 	}
 
 	if (rootObject.isValid() && parentObject && parentObject->isValid()){
