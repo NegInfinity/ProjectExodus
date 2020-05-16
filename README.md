@@ -2,7 +2,7 @@
 
 ## Currently supported versions:
 
-Currently supported versions are **2018.3** for Unity, and **4.24** for Unreal 4 (currently it is still possible to compile the plugin on **44.23.1** and **4.22.2**). This file will be updated to indicate whne supported versions change.
+Currently supported versions are **2018.3** for Unity, and **4.25** for Unreal 4 (Unreal side of the plugin is tested for 3 latest minor versions of Unreal 4, which currently **4.25.0**, **4.24.3**, **4.23.1**. While it is possible that the plugin will compile on earlier version, this is not guaranteed). This file will be updated to indicate whne supported versions change.
 
 ## Description
 
@@ -83,7 +83,7 @@ Additionally, the file format used for transferring the project is subject to ch
 ## Additional contact information:
 
 Bugs can be reported via github project page.
-Additionally I can be reached through email address: neginfinty000<at>gmail.com
+Additionally I can be reached through email address: neginfinity000<at>gmail.com
 
 ## Contacts
 
