@@ -158,6 +158,7 @@ void FJsonImportModule::AddMenuExtension(FMenuBuilder& Builder){
 void FJsonImportModule::AddToolbarExtension(FToolBarBuilder& Builder){
 	Builder.AddToolBarButton(FJsonImportCommands::Get().PluginImportAction);
 	Builder.AddToolBarButton(FJsonImportCommands::Get().PluginDebugAction);
+	Builder.AddToolBarButton(FJsonImportCommands::Get().PluginSkinMeshTestAction);
 	/*
 	Builder.AddToolBarButton(FJsonImportCommands::Get().PluginTestAction);
 	Builder.AddToolBarButton(FJsonImportCommands::Get().PluginLandscapeTestAction);
