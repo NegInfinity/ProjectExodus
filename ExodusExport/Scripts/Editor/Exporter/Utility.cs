@@ -4,6 +4,9 @@ using System.Collections.Generic;
 
 namespace SceneExport{
 	public static class Utility{
+		public static string safeObjectToString(Object obj){
+			return (obj == null) ? "": obj.ToString();
+		}
 		/*
 		Returns node matrix relative to rootNode. root node can be null
 		*/

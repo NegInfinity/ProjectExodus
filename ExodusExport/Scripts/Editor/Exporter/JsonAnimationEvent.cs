@@ -12,7 +12,7 @@ namespace SceneExport{
 				writer.writeKeyVal("floatParameter", animEvent.floatParameter);
 				writer.writeKeyVal("intParameter", animEvent.intParameter);
 				writer.writeKeyVal("stringParameter", animEvent.stringParameter);
-				writer.writeKeyVal("objectReferenceParameter", animEvent.objectReferenceParameter.ToString());
+				writer.writeKeyVal("objectReferenceParameter", Utility.safeObjectToString(animEvent.objectReferenceParameter));
 				writer.writeKeyVal("isFiredByAnimator", animEvent.isFiredByAnimator);
 				writer.writeKeyVal("isFiredByLegacy", animEvent.isFiredByLegacy);
 			}
