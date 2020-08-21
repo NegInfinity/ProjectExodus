@@ -34,6 +34,10 @@ namespace SceneExport{
 			var assetInfo = new AssetInfo(guid, assetPath);
 				
 			var assetType = AssetDatabase.GetMainAssetTypeAtPath(assetPath);
+			if (assetType == null){
+				logger.logWarningFormat("null asset type for path: {0}; guid: {1}", assetPath, guid);
+				return;
+			}
 			
 			if (assetType == typeof(Texture2D)){
 				textures.Add(assetInfo);
@@ -74,7 +78,7 @@ namespace SceneExport{
 			}
 			else{
 				logger.logWarningFormat("Unhandled asset type: {0}. path: {1}, guid: {2} ({3})", 
-					assetType.Name, assetPath, guid, assetType);
+					assetType.Name ?? "N/A", assetPath, guid, assetType);
 			}
 		}
 	}
