@@ -223,7 +223,7 @@ void MaterialBuilder::buildTerrainMaterial(UMaterial* material,
 				auto* normTex = importer->getTexture(srcSplat.normalMapId);
 
 				if (normTex){
-					auto texExpr = createTextureExpression(material, normTex, 0);
+					auto texExpr = createTextureExpression(material, normTex, 0, true);
 					texExpr->Coordinates.Expression = layerUvCoords[layerIndex];
 					return texExpr;
 				}
