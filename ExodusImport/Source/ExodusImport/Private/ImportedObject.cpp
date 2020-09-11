@@ -115,8 +115,10 @@ void ImportedObject::setFolderPath(const FString &folderPath, bool recursive) co
 void ImportedObject::setNameOrLabel(const FString &newName, bool markDirty){
 	if (actor)
 		actor->SetActorLabel(newName, markDirty);
+
 	if (component)
-		component->Rename(*newName);
+		UnrealUtilities::renameComponent(component, newName, true);
+		//component->Rename(*newName);
 }
 
 void ImportedObject::fixMismatchingOwner(bool applyToChildren) const{

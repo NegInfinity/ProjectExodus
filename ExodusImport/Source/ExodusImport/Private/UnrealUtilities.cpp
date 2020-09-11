@@ -520,3 +520,46 @@ void UnrealUtilities::processComponentsRecursively(USceneComponent *rootComponen
 	if (childrenFirst)
 		processCallback(rootComponent);
 }
+
+bool UnrealUtilities::renameComponent(USceneComponent* component, const FString& newName, bool allowSafeRename){
+	if (!component)
+		return false;
+	if (!allowSafeRename){
+		return component->Rename(*newName);
+	}
+
+	const FString* curNameCandidate = &newName;
+	FString nameCandidate;
+	const int maxNameAttempts = 64;
+	bool warned = false;
+
+	for (int attemptIndex = 0; attemptIndex < maxNameAttempts; attemptIndex++){
+		check(curNameCandidate);
+
+		if (component->Rename(**curNameCandidate, 0, REN_Test)){
+			return component->Rename(**curNameCandidate);
+		}
+		if (!warned){
+			UE_LOG(JsonLog, Warning, TEXT("Name clash while tyring to rename component %s into %s. Trying to generate unique name"),
+				*component->GetFullName(),
+				*newName);
+			warned = true;
+		}
+
+		auto tmpGuid = FGuid::NewGuid();
+		auto guidName = tmpGuid.ToString(EGuidFormats::Digits);
+		nameCandidate = FString::Printf(TEXT("%s-(uid:%s)"), *newName, *guidName);
+		curNameCandidate = &nameCandidate;
+
+		UE_LOG(JsonLog, Warning, TEXT("Renaming %s; attempt %d, Name candidate: %s"),
+			*component->GetFullName(), attemptIndex, *nameCandidate
+		);
+	}
+
+	UE_LOG(JsonLog, Warning, TEXT("Could not resolve name clash, while renaming component %s into %s. Max name attempts exceeded"),
+		*component->GetFullName(), *newName
+	);
+
+	return false;
+}
+

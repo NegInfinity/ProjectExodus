@@ -264,4 +264,6 @@ namespace UnrealUtilities{
 	int getNumLods(UStaticMesh *mesh);
 	FStaticMeshSourceModel& getSourceModel(UStaticMesh *mesh, int lod);
 	void addSourceModel(UStaticMesh *mesh);
+
+	bool renameComponent(USceneComponent *component, const FString& newName, bool allowSafeRename);
 }
