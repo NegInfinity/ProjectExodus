@@ -146,8 +146,13 @@ namespace SceneExport{
 			//logger.logFormat("Saving to \"{0}\", \"{1}\"", targetPath, heightPath);
 			
 			var terData = curTerrain.terrainData;
+#if UNITY_2019_3_OR_NEWER //heightmap api changed in this release
+			int hMapW = terData.heightmapResolution;
+			int hMapH = terData.heightmapResolution;
+#else
 			int hMapW = terData.heightmapWidth;
-			int hMapH = terData.heightmapHeight;				
+			int hMapH = terData.heightmapHeight;
+#endif
 			var numAlphas = terData.alphamapLayers;
 			//logger.logFormat("w: {0}; h: {1}; alphas: {2}", w, h, numAlphas);			
 			var heightData = terData.GetHeights(0, 0, hMapW, hMapH);

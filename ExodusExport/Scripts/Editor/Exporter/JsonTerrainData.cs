@@ -57,13 +57,23 @@ namespace SceneExport{
 			writer.writeKeyVal("detailPrototypes", detailPrototypes);
 			writer.writeKeyVal("detailResolution", terrainData.detailResolution);
 		
+		#if UNITY_2019_3_OR_NEWER
+			writer.writeKeyVal("heightmapWidth", terrainData.heightmapResolution);
+			writer.writeKeyVal("heightmapHeight", terrainData.heightmapResolution);
+		#else
 			writer.writeKeyVal("heightmapWidth", terrainData.heightmapWidth);
 			writer.writeKeyVal("heightmapHeight", terrainData.heightmapHeight);
+		#endif
+
 			writer.writeKeyVal("heightmapResolution", terrainData.heightmapResolution);
 			writer.writeKeyVal("heightmapScale", terrainData.heightmapScale);
 		
 			writer.writeKeyVal("worldSize", terrainData.size);
+		#if UNITY_2019_3_OR_NEWER
+			writer.writeKeyVal("thickness", 0.0f);
+		#else
 			writer.writeKeyVal("thickness", terrainData.thickness);
+		#endif
 			writer.writeKeyVal("treeInstanceCount", terrainData.treeInstanceCount);
 
 			writer.writeKeyVal("splatPrototypes", splatPrototypes);		

@@ -128,7 +128,11 @@ namespace SceneExport{
 			
 			isStatic = obj.isStatic;
 			var flags = GameObjectUtility.GetStaticEditorFlags(obj);
+		#if UNITY_2019_2_OR_NEWER
+			lightMapStatic = (flags & StaticEditorFlags.ContributeGI) != 0;
+		#else
 			lightMapStatic = (flags & StaticEditorFlags.LightmapStatic) != 0;
+		#endif
 			occluderStatic = (flags & StaticEditorFlags.OccluderStatic) != 0;
 			occludeeStatic = (flags & StaticEditorFlags.OccludeeStatic) != 0;
 			navigationStatic = (flags & StaticEditorFlags.NavigationStatic) != 0;
