@@ -12,22 +12,17 @@ class UStaticMeshComponent;
 class GeometryComponentBuilder{
 protected:
 	static ImportedObject processStaticMesh(ImportContext &workData, const JsonGameObject &jsonGameObj, 
-		ImportedObject *parentObject, const FString& folderPath, const JsonCollider *colliderData, bool spawnAsComponent, 
+		ImportedObject *parentObject, const FString& folderPath, const JsonCollider *colliderData, bool createRenderData, 
+		bool spawnAsComponent,
 		OuterCreatorCallback outerCreator,
-		//UObject *outer,
 		JsonImporter *importer);
+
+	static void configureMeshRendererData(UStaticMeshComponent& meshComp, const JsonGameObject& jsonGameObj, JsonImporter& importer, const ResId &meshId);
 
 	static void setupCommonColliderSettings(const ImportContext &workData, UPrimitiveComponent *dstCollider, const JsonGameObject &jsonGameObj, const JsonCollider &collider);
 	static bool configureStaticMeshComponent(ImportContext &workData, UStaticMeshComponent *meshComp, 
 		const JsonGameObject &gameObj, bool configForRender, const JsonCollider *collider, JsonImporter *importer);
 
-	/*static UBoxComponent *createBoxCollider(UObject *ownerPtr, const JsonGameObject &gameObj, const JsonCollider &collider);
-	static USphereComponent *createSphereCollider(UObject *ownerPtr, const JsonGameObject &gameObj, const JsonCollider &collider);
-	static UCapsuleComponent *createCapsuleCollider(UObject *ownerPtr, const JsonGameObject &gameObj, const JsonCollider &collider);
-	static UStaticMeshComponent *createMeshCollider(UObject *ownerPtr, const JsonGameObject &gameObj, const JsonCollider &collider, 
-		ImportContext &workData, JsonImporter *importer);
-	static UPrimitiveComponent* processCollider(ImportContext &workData, const JsonGameObject &jsonGameObj, 
-		UObject *ownerPtr, const JsonCollider &collider, JsonImporter *importer);*/
 	static UBoxComponent* createBoxCollider(OuterCreatorCallback outerCreator, const JsonGameObject& gameObj, const JsonCollider& collider);
 	static USphereComponent* createSphereCollider(OuterCreatorCallback outerCreator, const JsonGameObject& gameObj, const JsonCollider& collider);
 	static UCapsuleComponent* createCapsuleCollider(OuterCreatorCallback outerCreator, const JsonGameObject& gameObj, const JsonCollider& collider);

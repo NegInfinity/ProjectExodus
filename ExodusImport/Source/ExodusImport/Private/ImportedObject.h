@@ -51,6 +51,11 @@ public:
 	*/
 	void fixMismatchingOwner(bool applyToChidlren) const;//Erm... const modifier.
 
+	/*
+	* Component visibility will be adjusted only if adjustComponents is set to true.
+	* This is added to deal with complex situations where component visibility does not match object visibility,
+	* such as non-renderable mesh collider.
+	*/
 	void setActiveInHierarchy(bool active) const;
 	void setFolderPath(const FString &folderPath, bool recursive = false) const;
 

@@ -432,7 +432,7 @@ FVector UnrealUtilities::getUnityForwardVector(){
 }
 
 void UnrealUtilities::setObjectHierarchy(const ImportedObject &object, ImportedObject *parentObject, 
-	const FString& folderPath, ImportContext &workData, const JsonGameObject &gameObj){
+	const FString& folderPath, ImportContext &workData, const JsonGameObject &gameObj, bool setActiveFlag){
 	if (parentObject){
 		object.attachTo(*parentObject);
 	}
@@ -441,7 +441,8 @@ void UnrealUtilities::setObjectHierarchy(const ImportedObject &object, ImportedO
 			object.setFolderPath(*folderPath);
 	}
 
-	object.setActiveInHierarchy(gameObj.activeInHierarchy);
+	if (setActiveFlag)
+		object.setActiveInHierarchy(gameObj.activeInHierarchy);
 }
 
 void UnrealUtilities::registerImportedObject(ImportedObjectArray *outArray, const ImportedObject &arg){

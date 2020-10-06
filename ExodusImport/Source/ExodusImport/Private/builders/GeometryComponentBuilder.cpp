@@ -60,7 +60,7 @@ ImportedObject GeometryComponentBuilder::processMeshAndColliders(ImportContext& 
 	//can be null at this point
 
 	bool hasMainMesh = jsonGameObj.hasMesh();
-	int mainMeshColliderIndex = jsonGameObj.findMainMeshColliderIndex();
+	int mainMeshColliderIndex = jsonGameObj.findMainMeshColliderIndex();//Makes me wonder if somebody has objects with MULTIPLE mesh colliders.
 	auto mainMeshCollider = jsonGameObj.getColliderByIndex(mainMeshColliderIndex);
 
 	ImportedObject collisionMesh, displayOnlyMesh;
@@ -73,14 +73,17 @@ ImportedObject GeometryComponentBuilder::processMeshAndColliders(ImportContext& 
 
 	And that's it.
 	*/
+
+	bool hasRenderers = jsonGameObj.hasRenderers();
+
 	if (jsonGameObj.hasMesh()) {
-		if (jsonGameObj.colliders.Num() == 0) {//only display mesh is present
-			//return processStaticMesh(workData, jsonGameObj, parentObject, folderPath, nullptr, componentRequested && outer, outer, importer);
-			return processStaticMesh(workData, jsonGameObj, parentObject, folderPath, nullptr, componentRequested, outerCreator, importer);
+		if (!jsonGameObj.hasColliders()) {//only display mesh is present
+			return processStaticMesh(workData, jsonGameObj, parentObject, folderPath, nullptr, 
+				jsonGameObj.hasRenderers(), componentRequested, outerCreator, importer);
 		}
 		if ((jsonGameObj.colliders.Num() == 1) && mainMeshCollider) {
-			//return processStaticMesh(workData, jsonGameObj, parentObject, folderPath, mainMeshCollider, componentRequested && outer, outer, importer);
-			return processStaticMesh(workData, jsonGameObj, parentObject, folderPath, mainMeshCollider, componentRequested, outerCreator, importer);
+			return processStaticMesh(workData, jsonGameObj, parentObject, folderPath, mainMeshCollider, 
+				jsonGameObj.hasRenderers(), componentRequested, outerCreator, importer);
 		}
 	}
 
@@ -129,12 +132,14 @@ ImportedObject GeometryComponentBuilder::processMeshAndColliders(ImportContext& 
 	if (hasMainMesh){
 		//This is nearly a code duplication
 		if (mainMeshCollider){
-			collisionMesh = processStaticMesh(workData, jsonGameObj, nullptr, folderPath, mainMeshCollider, spawnMeshAsComponent, colliderOuterCreator, importer);
+			collisionMesh = processStaticMesh(workData, jsonGameObj, nullptr, folderPath, mainMeshCollider, 
+				jsonGameObj.hasRenderers(), spawnMeshAsComponent, colliderOuterCreator, importer);
 			auto name = FString::Printf(TEXT("%s_collisionMesh"), *jsonGameObj.ueName);
 			collisionMesh.setNameOrLabel(*name);
 		}
 		else{
-			displayOnlyMesh = processStaticMesh(workData, jsonGameObj, nullptr, folderPath, nullptr, spawnMeshAsComponent, colliderOuterCreator, importer);
+			displayOnlyMesh = processStaticMesh(workData, jsonGameObj, nullptr, folderPath, nullptr, jsonGameObj.hasRenderers(),
+				spawnMeshAsComponent, colliderOuterCreator, importer);
 			auto name = FString::Printf(TEXT("%s_displayMesh"), *jsonGameObj.ueName);
 			displayOnlyMesh.setNameOrLabel(*name);
 		}
@@ -231,7 +236,7 @@ ImportedObject GeometryComponentBuilder::processMeshAndColliders(ImportContext& 
 }
 
 ImportedObject GeometryComponentBuilder::processStaticMesh(ImportContext &workData, const JsonGameObject &jsonGameObj, 
-		ImportedObject *parentObject, const FString& folderPath, const JsonCollider *colliderData, bool spawnAsComponent, 
+		ImportedObject *parentObject, const FString& folderPath, const JsonCollider *colliderData, bool createRenderData, bool spawnAsComponent, 
 		OuterCreatorCallback outerCreator,
 		//UObject *outer,
 		JsonImporter *importer){
@@ -246,7 +251,6 @@ ImportedObject GeometryComponentBuilder::processStaticMesh(ImportContext &workDa
 	AStaticMeshActor *meshActor = nullptr;
 	UStaticMeshComponent *meshComp = nullptr;
 
-	//
 	if (spawnAsComponent){
 		check(outerCreator);
 		UObject* curOuter = outerCreator ? outerCreator(): nullptr;//outer ? outer: GetTransientPackage();
@@ -268,26 +272,28 @@ ImportedObject GeometryComponentBuilder::processStaticMesh(ImportContext &workDa
 		meshComp = meshActor->GetStaticMeshComponent();
 	}
 
-	///This is awkward. Previously we couldd attempt loading the mesh prior to building the actor, but now...
-	if (!configureStaticMeshComponent(workData, meshComp, jsonGameObj, true, colliderData, importer)){
+	///This is awkward. Previously we could attempt loading the mesh prior to building the actor, but now...
+	if (!configureStaticMeshComponent(workData, meshComp, jsonGameObj, createRenderData, colliderData, importer)){
 		UE_LOG(JsonLog, Warning, TEXT("Configuration of static mesh component failed on object '%s'(%d)"), *jsonGameObj.name, jsonGameObj.id);
 		//return ImportedObject(meshActor);
 	}
 
-	const auto* renderer = jsonGameObj.getFirstRenderer();
-	if (renderer){
-		if (renderer->castsShadowsOnly()){
-			if (meshActor){
-				meshActor->SetActorHiddenInGame(true);//this doesn't seem to do anything? (-_-)
-			}
-			if (meshComp){
-				meshComp->bCastHiddenShadow = true;
-				meshComp->bHiddenInGame = true;
+	if (createRenderData){
+		const auto* renderer = jsonGameObj.getFirstRenderer();
+		if (renderer){
+			if (renderer->castsShadowsOnly()){
+				if (meshActor){
+					meshActor->SetActorHiddenInGame(true);//this doesn't seem to do anything? (-_-)
+				}
+				if (meshComp){
+					meshComp->bCastHiddenShadow = true;
+					meshComp->bHiddenInGame = true;
+				}
 			}
 		}
-	}
-	else{
-		UE_LOG(JsonLog, Warning, TEXT("First renderer not found on %s(%d)"), *jsonGameObj.name, jsonGameObj.id);
+		else{
+			UE_LOG(JsonLog, Warning, TEXT("First renderer not found on %s(%d)"), *jsonGameObj.name, jsonGameObj.id);
+		}
 	}
 
 	auto result = meshActor ? ImportedObject(meshActor) : ImportedObject(meshComp);
@@ -296,7 +302,16 @@ ImportedObject GeometryComponentBuilder::processStaticMesh(ImportContext &workDa
 		meshActor->MarkComponentsRenderStateDirty();
 
 	result.setNameOrLabel(jsonGameObj.ueName);
-	setObjectHierarchy(result, parentObject, folderPath, workData, jsonGameObj);
+
+	//bool canSetActiveFlags = createRenderData && jsonGameObj.hasRenderers();
+	/*
+	This is a fairly messy approach, because there's no separation between object visibility and component visibility.
+	So, in case there's a mesh configured as collision only and is invisible, we tell the engine to ignore active flag override.
+	Not the best approach.
+	...
+	Nope. Doesn't work. setObjectHierarchy is called in multiple places, we need to implement custom visibility flag
+	*/
+	setObjectHierarchy(result, parentObject, folderPath, workData, jsonGameObj/*, canSetActiveFlags*/);
 	workData.registerGameObject(jsonGameObj, result);
 
 	return result;
@@ -476,13 +491,6 @@ bool GeometryComponentBuilder::configureStaticMeshComponent(ImportContext &workD
 	check(meshComp);
 	check(importer);
 
-	/*
-	if (!jsonGameObj.hasRenderers()){
-	UE_LOG(JsonLog, Warning, TEXT("Renderer not found on %s(%d), cannot create mesh"), *jsonGameObj.ueName, jsonGameObj.id);
-	return false;
-	}
-	check(jsonGameObj.renderers.Num() > 0);
-	*/
 	if (!jsonGameObj.hasRenderers() && configForRender){
 		UE_LOG(JsonLog, Warning, TEXT("Renderer not found on %s(%d), while the mesh was being configured for rendering"), *jsonGameObj.ueName, jsonGameObj.id);
 	}
@@ -493,17 +501,13 @@ bool GeometryComponentBuilder::configureStaticMeshComponent(ImportContext &workD
 	If collider is provided, its meshId takes priority.
 	*/
 	bool collisionOnlyMesh = false;
-	//JsonId meshId = jsonGameObj.meshId;
 	ResId meshId = jsonGameObj.meshId;
-	//if (collider && isValidId(collider->meshId) && !configForRender){
 	if (collider && collider->meshId.isValid() && !configForRender){
 		meshId = collider->meshId;
 		collisionOnlyMesh = true;
 	}
 
 	auto foundMeshPath = importer->findMeshPath(meshId);
-	//auto meshPath = meshIdMap[meshId];
-	//UE_LOG(JsonLog, Log, TEXT("Mesh path: %s"), *meshPath);
 	if (!foundMeshPath){
 		UE_LOG(JsonLog, Error, TEXT("Mesh path not found for id %d"), meshId.id);
 	}
@@ -534,7 +538,9 @@ bool GeometryComponentBuilder::configureStaticMeshComponent(ImportContext &workD
 		return true;
 	}
 
-	if (!collisionOnlyMesh){
+	if (!collisionOnlyMesh && configForRender){
+		configureMeshRendererData(*meshComp, jsonGameObj, *importer, meshId);
+		/*
 		const auto &renderer = jsonGameObj.renderers[0];
 		auto materials = jsonGameObj.getFirstMaterials();
 
@@ -556,11 +562,47 @@ bool GeometryComponentBuilder::configureStaticMeshComponent(ImportContext &workD
 		logValue("twoSidedShadows", renderer.castsTwoSidedShadows());
 
 		meshComp->SetCastShadow(renderer.castsShadows());
-		meshComp->bCastShadowAsTwoSided = renderer.castsTwoSidedShadows();//twoSidedShadows;
+		meshComp->bCastShadowAsTwoSided = renderer.castsTwoSidedShadows();
 
 		if (emissiveMesh)
 			meshComp->LightmassSettings.bUseEmissiveForStaticLighting = true;
+		*/
 	}
 
 	return true;
+}
+
+void GeometryComponentBuilder::configureMeshRendererData(UStaticMeshComponent& meshComp, 
+		const JsonGameObject& jsonGameObj, JsonImporter& importer, const ResId &meshId){
+	using namespace JsonObjects;
+	if (!jsonGameObj.hasRenderers()){
+		UE_LOG(JsonLog, Error, TEXT("No renderers found on jsonGameObj %d while configuring mesh %d"), jsonGameObj.id, meshId.id);
+		return;
+	}
+
+	const auto& renderer = jsonGameObj.renderers[0];
+	auto materials = jsonGameObj.getFirstMaterials();
+
+	bool emissiveMesh = false;
+	if (materials.Num() > 0){
+		for (int i = 0; i < materials.Num(); i++){
+			auto matId = materials[i];
+
+			auto* jsonMat = importer.getJsonMaterial(matId);
+			if (jsonMat && (jsonMat->isEmissive()))
+				emissiveMesh = true;
+
+			auto material = importer.loadMaterialInterface(matId);
+			meshComp.SetMaterial(i, material);
+		}
+	}
+
+	logValue("hasShadows", renderer.castsShadows());
+	logValue("twoSidedShadows", renderer.castsTwoSidedShadows());
+
+	meshComp.SetCastShadow(renderer.castsShadows());
+	meshComp.bCastShadowAsTwoSided = renderer.castsTwoSidedShadows();
+
+	if (emissiveMesh)
+		meshComp.LightmassSettings.bUseEmissiveForStaticLighting = true;
 }

@@ -226,7 +226,7 @@ namespace UnrealUtilities{
 	FString genTimestamp();
 
 	void setObjectHierarchy(const ImportedObject &object, ImportedObject *parentObject, 
-		const FString& folderPath, ImportContext &workData, const JsonGameObject &gameObj);
+		const FString& folderPath, ImportContext &workData, const JsonGameObject &gameObj, bool setActiveFlag = true);
 	void registerImportedObject(ImportedObjectArray *outArray, const ImportedObject &arg);
 
 	template<typename T> UPackage* createPackage(
