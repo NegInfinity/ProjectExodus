@@ -15,6 +15,8 @@
 
 using namespace UnrealUtilities;
 
+#ifdef EXODUS_UE_VER_4_24_GE
+
 struct TestSkelMeshFiller{
 	USkeletalMesh* skelMesh = {};
 
@@ -670,7 +672,10 @@ static void fillTestSkinMeshWithMeshTools(USkeletalMesh* skelMesh){
 }
 #endif
 
+#endif //EXODUS_UE_VER_4_24_GE
+
 void SkinMeshTest::run(){
+#ifdef EXODUS_UE_VER_4_24_GE
 	FString meshName = TEXT("SkinMeshDebug");
 	FString meshPath = TEXT("SkinMeshDebug");
 	//auto fullPath = meshName;//FString::Printf(TEXT("%s/%s"), *meshPath, *meshName);
@@ -680,4 +685,5 @@ void SkinMeshTest::run(){
 			fillTestSkinMeshWithMeshTools(arg);
 			//fillTestSkinMeshDirect(arg);
 		}, RF_Standalone|RF_Public);
+#endif //EXODUS_UE_VER_4_24_GE
 }
