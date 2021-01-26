@@ -31,7 +31,11 @@ void PrefabBuilder::importPrefab(const JsonPrefabData& prefab, JsonImporter *imp
 	factory->FeatureLevel = GEditor->DefaultWorldFeatureLevel;
 	EObjectFlags flags = RF_Public | RF_Standalone;
 
+#ifdef EXODUS_UE_VER_4_26_GE
+	auto worldPkg = TStrongObjectPtr<UPackage>(CreatePackage(0));
+#else
 	auto worldPkg = TStrongObjectPtr<UPackage>(CreatePackage(0, 0));
+#endif
 
 	auto tmpWorld = TStrongObjectPtr<UWorld>(
 		CastChecked<UWorld>(
@@ -86,7 +90,15 @@ void PrefabBuilder::importPrefab(const JsonPrefabData& prefab, JsonImporter *imp
 		rootObject = newRoot;
 	}
 
+#ifdef EXODUS_UE_VER_4_26_GE
+	FKismetEditorUtilities::FCreateBlueprintFromActorParams blueprintActorParams;
+	blueprintActorParams.bReplaceActor = true;
+	blueprintActorParams.bKeepMobility = true;
+	//auto blueprintActorParams = FCreateBlueprintFromActorParams();
+	auto* createdBlueprint = FKismetEditorUtilities::CreateBlueprintFromActor(FName(*blueprintName), blueprintPackage, rootActor, blueprintActorParams);
+#else
 	auto *createdBlueprint = FKismetEditorUtilities::CreateBlueprintFromActor(FName(*blueprintName), blueprintPackage, rootActor, true, true);
+#endif
 	UE_LOG(JsonLogPrefab, Warning, TEXT("Created blueprint: %x"), createdBlueprint);
 	if (createdBlueprint){
 		FAssetRegistryModule::AssetCreated(createdBlueprint);

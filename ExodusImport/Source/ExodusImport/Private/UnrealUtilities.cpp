@@ -13,7 +13,11 @@ UPackage* UnrealUtilities::createAssetPackage(const FString &objectName, const F
 
 	auto fullPackagePath = buildPackagePath(objectName, desiredDir, importer);
 
+#ifdef EXODUS_UE_VER_4_26_GE
+	auto newPackage = CreatePackage(*fullPackagePath);
+#else
 	auto newPackage = CreatePackage(0, *fullPackagePath);
+#endif
 
 	if (assetCreator){
 		auto newAsset = assetCreator(newPackage);
@@ -108,7 +112,11 @@ UPackage* UnrealUtilities::createPackage(const FString &targetPath,
 		defaultPackageRoot);
 
 	UPackage *package = 0;
+#ifdef EXODUS_UE_VER_4_26_GE
+	package = CreatePackage(*fullPackagePath);
+#else
 	package = CreatePackage(0, *fullPackagePath);
+#endif
 	return package;
 }
 
@@ -166,7 +174,11 @@ UPackage* UnrealUtilities::createPackage(const FString &basePackageName,
 	}
 	else{
 		UE_LOG(JsonLog, Log, TEXT("Creating package %s"), *fullPackagePath);
+#ifdef EXODUS_UE_VER_4_26_GE
+		package = CreatePackage(*fullPackagePath);
+#else
 		package = CreatePackage(0, *fullPackagePath);
+#endif
 		UE_LOG(JsonLog, Log, TEXT("Package created"));
 	}
 

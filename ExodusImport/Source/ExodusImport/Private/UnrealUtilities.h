@@ -8,20 +8,11 @@
 #include "Runtime/Engine/Classes/Engine/StaticMesh.h"
 #include <functional>
 #include "JsonObjects/loggers.h"
+#include "UnrealVersionUtilities.h"
 
 class JsonImporter;
 class UStaticMesh;
 class USceneComponent;
-
-#if ((ENGINE_MAJOR_VERSION >= 4) && (ENGINE_MINOR_VERSION >= 24))
-	#define EXODUS_UE_VER_4_24_GE
-#endif
-#if ((ENGINE_MAJOR_VERSION >= 4) && (ENGINE_MINOR_VERSION >= 23))
-	#define EXODUS_UE_VER_4_23_GE
-#endif
-#if ((ENGINE_MAJOR_VERSION >= 4) && (ENGINE_MINOR_VERSION >= 22))
-	#define EXODUS_UE_VER_4_22_GE
-#endif
 
 namespace UnrealUtilities{
 	FVector getUnityUpVector();

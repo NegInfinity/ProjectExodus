@@ -2,6 +2,7 @@
 
 #include "JsonTypes.h"
 #include "JsonObjects.h"
+#include "UnrealVersionUtilities.h"
 
 #include "MaterialBuilder.h"
 #include "JsonObjects/JsonTerrainData.h"
@@ -238,7 +239,11 @@ public:
 		}
 		else{
 			UE_LOG(JsonLog, Log, TEXT("Creating package %s"), *packageName);
+#ifdef EXODUS_UE_VER_4_26_GE
+			package = CreatePackage(*packageName);
+#else
 			package = CreatePackage(0, *packageName);
+#endif
 			UE_LOG(JsonLog, Log, TEXT("Package created"));
 		}
 
@@ -248,4 +253,5 @@ public:
 		UE_LOG(JsonLog, Log, TEXT("Done creating package"));
 		return package;
 	}
+
 };

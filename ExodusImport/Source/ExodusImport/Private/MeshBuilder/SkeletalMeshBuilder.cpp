@@ -168,10 +168,18 @@ void SkeletalMeshBuildData::buildSkeletalMesh(FSkeletalMeshLODModel &lodModel, c
 	*/
 
 	IMeshUtilities& meshUtils = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
-	meshUtils.BuildSkeletalMesh(lodModel, 
-		refSkeleton, 
-		meshInfluences, meshWedges, meshFaces, meshPoints, 
+#ifdef EXODUS_UE_VER_4_26_GE
+	auto skeletonName = FString{};
+	meshUtils.BuildSkeletalMesh(lodModel,
+		skeletonName, refSkeleton,
+		meshInfluences, meshWedges, meshFaces, meshPoints,
 		pointToOriginalMap, buildOptions, &buildWarnMessages, &buildWarnNames);
+#else
+	meshUtils.BuildSkeletalMesh(lodModel,
+		refSkeleton,
+		meshInfluences, meshWedges, meshFaces, meshPoints,
+		pointToOriginalMap, buildOptions, &buildWarnMessages, &buildWarnNames);
+#endif
 
 	if (buildWarnMessages.Num() || buildWarnNames.Num()){
 		FString msg;
