@@ -117,6 +117,15 @@ ImportedObject LightBuilder::processLight(ImportContext &workData, const JsonGam
 		lightActor = data.first;
 		lightComponent = data.second;
 	}
+	/*
+	else if (jsonLight.lightType == "Rectangle"){
+	}
+	*/
+	else{
+		UE_LOG(JsonLog, Warning, TEXT("Unsupported light type \"%s\" on object %d(%s)"), 
+			*jsonLight.lightType, gameObj.id, *gameObj.scenePath);
+		return ImportedObject();
+	}
 
 	if (lightActor){
 		lightActor->SetActorLabel(gameObj.ueName, true);
