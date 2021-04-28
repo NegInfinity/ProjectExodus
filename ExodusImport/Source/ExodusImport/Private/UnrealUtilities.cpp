@@ -69,6 +69,64 @@ FString UnrealUtilities::sanitizePackageName(const FString &arg){
 	return PackageTools::SanitizePackageName(arg);
 }
 
+template <typename T>T* UnrealUtilities::createAssetObject(const FString& objectName, const FString* desiredDir, const JsonImporter *importer,
+        std::function<void(T* obj)> onCreate, EObjectFlags objectFlags){
+    return createAssetObject<T>(objectName, desiredDir, importer, onCreate, nullptr, objectFlags);
+}
+
+template <typename T>T* UnrealUtilities::createAssetObject(const FString& objectName, const FString* desiredDir, const JsonImporter *importer,
+        std::function<void(T* obj)> onCreate, std::function<T*(UPackage* pkg, const FString&)> creatorFunc, EObjectFlags objectFlags, bool checkForExistingObjects ){
+
+    T* finalResult;
+    auto sanitizedName = ::sanitizeObjectName(*objectName);
+    createAssetPackage(objectName, desiredDir, importer,
+        [&](UPackage* pkg) -> T*{
+            T* newObj = nullptr;
+            if (checkForExistingObjects){
+                auto *oldObj = FindObject<T>(pkg, *sanitizedName);
+                if (oldObj){
+                    auto uniqueName = MakeUniqueObjectName(pkg, T::StaticClass(), *sanitizedName).ToString();
+                    UE_LOG(JsonLog, Log, TEXT("Unique name created: %s (old obj: %x). Original name: %s"), *uniqueName, oldObj, *sanitizedName);
+                    sanitizedName = uniqueName;
+                }
+            }
+            if (creatorFunc){
+                newObj = creatorFunc(pkg, sanitizedName);
+            }
+            else{
+                newObj =  NewObject<T>(pkg, T::StaticClass(), *sanitizedName, objectFlags);
+            }
+            if (onCreate)
+                onCreate(newObj);
+            finalResult = newObj;
+            return newObj;
+        }
+    );
+
+    return finalResult;
+}
+
+template<typename T> UPackage* UnrealUtilities::createPackage(const FString &basePackageName, const FString &srcPackagePath, const FString &objectNameSuffix, const FString *commonAssetPath,
+        const FString *defaultPackageRoot, FString *outSanitizedPackageName, FString *outSanitizedObjName, T** outExistingObj){
+
+    T* existingObj = nullptr;
+    UPackage* result = createPackage(
+        basePackageName, srcPackagePath, objectNameSuffix, commonAssetPath, defaultPackageRoot,
+        outSanitizedPackageName, outSanitizedObjName,
+        [&](const FString &path) -> UPackage*{
+            auto obj  = Cast<T>(LoadObject<T>(0, *outExistingObj));
+            if (obj){
+                existingObj  = obj;
+                return existingObj->GetOutermost();
+            }
+            return nullptr;
+        }
+                                     );
+    if (outExistingObj){
+        *outExistingObj = existingObj;
+    }
+}
+
 FString UnrealUtilities::buildPackagePath(const FString &desiredName, const FString &desiredDir, const JsonImporter *importer){
 	return buildPackagePath(desiredName, &desiredDir, importer);
 }
