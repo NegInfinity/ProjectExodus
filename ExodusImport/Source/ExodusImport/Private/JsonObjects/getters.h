@@ -38,7 +38,7 @@ namespace JsonObjects{
 	template<typename T> void getJsonObjArray(JsonObjPtr jsonData, TArray<T>& result, const char* name, std::function<T(JsonObjPtr, int)> converter){
 		getJsonValArray<T>(jsonData, result, name, 
 			[&](JsonValPtr val, int idx){
-				auto jsonObj = jsonVal->AsObject();
+				auto jsonObj = val->AsObject();
 				if (!jsonObj.IsValid()){	
 					UE_LOG(JsonLog, Warning, TEXT("Could not retrieve array index %d from \"%s\""), idx, name);
 					return T();

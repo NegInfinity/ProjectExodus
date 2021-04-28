@@ -24,8 +24,8 @@ void ImportedObject::setCompatibleMobility(ImportedObject parentObject) const{
 	auto newMobility = EComponentMobility::Movable;
 	UnrealUtilities::processComponentsRecursively(myComponent, 
 		nullptr, 
-		[&](USceneComponent *component){
-			component->SetMobility(newMobility);
+		[&](USceneComponent *_component){
+        _component->SetMobility(newMobility);
 		}, false
 	);
 }

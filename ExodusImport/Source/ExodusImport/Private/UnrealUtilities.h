@@ -114,43 +114,10 @@ namespace UnrealUtilities{
 
 	UPackage* createAssetPackage(const FString &objectName, const FString* desiredDir, const JsonImporter *importer, std::function<UObject*(UPackage*)> assetCreator);
 
-	template <typename T>T* createAssetObject(const FString& objectName, const FString* desiredDir, const JsonImporter *importer, 
-			std::function<void(T* obj)> onCreate, EObjectFlags objectFlags){
-		return createAssetObject<T>(objectName, desiredDir, importer, onCreate, nullptr, objectFlags);
-	}
+	template <typename T>T* createAssetObject(const FString& objectName, const FString* desiredDir, const JsonImporter *importer, std::function<void(T* obj)> onCreate, EObjectFlags objectFlags);
 
 	template <typename T>T* createAssetObject(const FString& objectName, const FString* desiredDir, const JsonImporter *importer, 
-			std::function<void(T* obj)> onCreate, std::function<T*(UPackage* pkg, const FString&)> creatorFunc = nullptr, EObjectFlags objectFlags = RF_NoFlags, 
-			bool checkForExistingObjects = true){
-
-		T* finalResult;
-		auto sanitizedName = sanitizeObjectName(*objectName);
-		createAssetPackage(objectName, desiredDir, importer,
-			[&](UPackage* pkg) -> T*{
-				T* newObj = nullptr;
-				if (checkForExistingObjects){
-					auto *oldObj = FindObject<T>(pkg, *sanitizedName);
-					if (oldObj){
-						auto uniqueName = MakeUniqueObjectName(pkg, T::StaticClass(), *sanitizedName).ToString();
-						UE_LOG(JsonLog, Log, TEXT("Unique name created: %s (old obj: %x). Original name: %s"), *uniqueName, oldObj, *sanitizedName);
-						sanitizedName = uniqueName;
-					}
-				}
-				if (creatorFunc){
-					newObj = creatorFunc(pkg, sanitizedName);
-				}
-				else{
-					newObj =  NewObject<T>(pkg, T::StaticClass(), *sanitizedName, objectFlags);
-				}
-				if (onCreate)
-					onCreate(newObj);
-				finalResult = newObj;
-				return newObj;
-			}
-		);
-
-		return finalResult;
-	}
+			std::function<void(T* obj)> onCreate, std::function<T*(UPackage* pkg, const FString&)> creatorFunc = nullptr, EObjectFlags objectFlags = RF_NoFlags, bool checkForExistingObjects = true);
 
 	template <typename T>T* createActor(UWorld *world, FTransform transform, bool editorMode, const TCHAR* logName = 0){
 		T* result = 0;
@@ -228,25 +195,7 @@ namespace UnrealUtilities{
 			const FString *defaultPackageRoot = nullptr,
 			FString *outSanitizedPackageName = nullptr, 
 			FString *outSanitizedObjName = nullptr, 		
-			T** outExistingObj = nullptr){
-
-		T* existingObj = nullptr;
-		UPackage* result = createPackage(
-			basePackageName, srcPackagePath, objectNameSuffix, commonAssetPath, defaultPackageRoot, 
-			outSanitizedPackageName, outSanitizedobjName, 
-			[&](const FString &path) -> UPackage*{
-				auto obj  = Cast<T>(LoadObject<T>(0, *objPath));
-				if (obj){
-					existingObj  = obj;
-					return existingObj->GetOutermost();
-				}
-				return nullptr;
-			}
-		)
-		if (outExistingObj){
-			*outExistingObj = existingObj;
-		}
-	}
+            T** outExistingObj = nullptr);
 
 	/*
 		Those were introduced due to mesh api changed over ocurse of 4.22...4.24. 

@@ -93,18 +93,18 @@ public:
 
 	bool loadFromRaw(const FString& filename, int w_, int h_){
 		resize(w_, h_);
-		TArray<uint8> data;
-		if (!FFileHelper::LoadFileToArray(data, *filename)){
+		TArray<uint8> dataArr;
+		if (!FFileHelper::LoadFileToArray(dataArr, *filename)){
 			UE_LOG(JsonLog, Error, TEXT("Could not load file \"%s\""), *filename);
 			return false;
 		}
 		auto byteSize = getByteSize();
-		if (byteSize != data.Num()){
+		if (byteSize != dataArr.Num()){
 			UE_LOG(JsonLog, Error, TEXT("Invalid file size of \"%s\": %d received, %d (%d x %d (%d)) expected"),
-				*filename, data.Num(), byteSize, getWidth(), getHeight(), sizeof(T));
+				*filename, dataArr.Num(), byteSize, getWidth(), getHeight(), sizeof(T));
 			return false;
 		}
-		const T* srcPtr = (const T*)data.GetData();
+		const T* srcPtr = (const T*)dataArr.GetData();
 		T* dstPtr = getData();
 		for(auto i = 0; i < getNumElements(); i++){
 			dstPtr[i] = srcPtr[i];
